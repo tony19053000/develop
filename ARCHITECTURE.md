@@ -9,9 +9,9 @@
 ## Current Architecture Status
 
 - Documentation baseline: IMPLEMENTED.
-- Frontend application: PLANNED.
-- Backend API: PLANNED.
-- Database/storage: PLANNED.
+- Frontend application: IMPLEMENTED.
+- Backend API: IMPLEMENTED.
+- Database/storage: PARTIAL.
 - Google ADK agents: PLANNED.
 - AgentLatch policy engine: PLANNED.
 - Approval system: PLANNED.
@@ -22,11 +22,11 @@
 
 ## Proposed System Shape
 
-LaunchForge will use a full-stack architecture:
+LaunchForge uses a full-stack TypeScript architecture:
 
-- Frontend command center for project creation, live agent workspace, approvals, artifacts, security center, and audit.
-- Backend application service exposing authenticated APIs and realtime event streams.
-- Workflow state store for projects, phases, tasks, approvals, artifacts, and audit events.
+- React/Vite frontend command center for project creation, live agent workspace, approvals, artifacts, security center, and audit.
+- Express backend application service exposing APIs and realtime event streams.
+- File-backed Phase 1 project state store for launch projects and initial agent tasks.
 - Agent runtime using Google ADK with replaceable model/provider configuration.
 - Tool adapter layer for sponsor integrations.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
@@ -104,7 +104,7 @@ Adapters must handle authentication failure, timeout, rate limit, malformed resp
 
 ## Realtime Events
 
-The Live Agent Workspace requires realtime project events. Phase 1 will choose SSE or WebSocket. SSE is the initial preferred option because the early workflow is server-to-client status streaming, but this remains a Phase 1 implementation decision.
+The Live Agent Workspace uses SSE as the Phase 1 realtime foundation because current workflow updates are server-to-client status events. WebSocket remains available as a later option if bidirectional agent operations require it.
 
 ## Data Model
 
@@ -127,7 +127,7 @@ Planned entities:
 
 ## Folder Structure
 
-Planned Phase 1 structure:
+Implemented Phase 1 structure:
 
 ```text
 apps/
@@ -135,6 +135,12 @@ apps/
   api/
 packages/
   shared/
+```
+
+Planned later structure:
+
+```text
+packages/
   agentlatch/
   integrations/
   agents/
@@ -142,7 +148,7 @@ docs/
 tests/
 ```
 
-The exact framework and package manager will be finalized in Phase 1.
+The selected package manager is npm workspaces.
 
 ## Diagrams
 
@@ -173,4 +179,3 @@ Domain Agent
   -> name.com API
   -> Audit Event
 ```
-

@@ -1,0 +1,22 @@
+import path from "node:path";
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      "@launchforge/shared": path.resolve(import.meta.dirname, "../../packages/shared/src/index.ts")
+    }
+  },
+  server: {
+    port: 5173
+  },
+  preview: {
+    port: 4173
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts"
+  }
+});

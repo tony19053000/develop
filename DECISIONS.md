@@ -58,3 +58,41 @@ Consequences: No app runs yet; that is expected and recorded in status.
 
 Reversibility: Medium. Phase 1 can choose and scaffold the runtime stack.
 
+## 2026-08-31 - TypeScript npm Workspace Foundation
+
+Decision: Use an npm workspace monorepo with TypeScript, React/Vite, Express, Zod, Vitest, and ESLint for the Phase 1 application foundation.
+
+Context: Phase 1 requires frontend foundation, backend foundation, shared data contracts, configuration, storage, error handling, event/status foundation, and baseline checks.
+
+Alternatives:
+
+- Next.js single application.
+- Python backend with separate frontend.
+- A heavier full-stack framework.
+
+Chosen Approach: Keep `apps/web`, `apps/api`, and `packages/shared` as separate workspaces with shared TypeScript contracts.
+
+Reason: This gives clean boundaries for later Google ADK agents, AgentLatch, and sponsor adapters while staying fast to run locally.
+
+Consequences: The project uses Node/npm as the primary local development toolchain.
+
+Reversibility: Medium. The boundaries allow replacing individual apps/packages later if needed.
+
+## 2026-08-31 - SSE for Phase 1 Events
+
+Decision: Use Server-Sent Events as the Phase 1 realtime event foundation.
+
+Context: The live workspace initially needs server-to-client project and agent status updates.
+
+Alternatives:
+
+- WebSocket.
+- Polling.
+
+Chosen Approach: Add an SSE endpoint at `/api/projects/:projectId/events`.
+
+Reason: SSE is simple, browser-native, and appropriate for one-way status streams.
+
+Consequences: Later phases can keep SSE or add WebSocket if bidirectional agent controls require it.
+
+Reversibility: High.

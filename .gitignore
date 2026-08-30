@@ -19,6 +19,7 @@ build/
 .next/
 .turbo/
 coverage/
+data/
 
 # Logs
 *.log
@@ -31,4 +32,3 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
-

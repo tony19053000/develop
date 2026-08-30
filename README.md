@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 0, Project Analysis & Master Design, is complete as the initial repository foundation. The repository is intentionally documentation-first because this is a new project repo and later phases must be built one complete subsystem at a time.
+Phase 1, Application Foundation, is complete. The repository now contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, and baseline build/test/lint checks.
 
 ## Sponsor Integrations
 
@@ -42,8 +42,6 @@ See [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md), [STATUS.md](./STATUS.md), and 
 
 ## Setup
 
-No runtime application has been created yet. Phase 1 will establish the application foundation, dependency stack, build commands, test commands, and local development instructions.
-
 Prepare local environment variables from:
 
 ```bash
@@ -52,3 +50,29 @@ cp .env.example .env
 
 Never commit `.env` or real credentials.
 
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the full local application:
+
+```bash
+npm run dev
+```
+
+Default URLs:
+
+- Web: `http://localhost:5173`
+- API: `http://localhost:4000`
+
+Useful checks:
+
+```bash
+npm run typecheck
+npm run test
+npm run lint
+npm run build
+npm audit --audit-level=moderate
+```

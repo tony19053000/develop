@@ -1,0 +1,27 @@
+{
+  "name": "launchforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LaunchForge + AgentLatch autonomous AI startup launch command center.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @launchforge/api\" \"npm run dev -w @launchforge/web\"",
+    "build": "npm run build -w @launchforge/shared && npm run build -w @launchforge/api && npm run build -w @launchforge/web",
+    "typecheck": "npm run build -w @launchforge/shared && npm run typecheck -w @launchforge/api && npm run typecheck -w @launchforge/web",
+    "test": "npm run build -w @launchforge/shared && npm run test -w @launchforge/shared && npm run test -w @launchforge/api && npm run test -w @launchforge/web",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
