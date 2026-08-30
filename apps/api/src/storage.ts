@@ -8,7 +8,8 @@ import {
   tasksFromWorkflowPlan,
   type CreateLaunchProjectInput,
   type LaunchProject,
-  type LaunchWorkflowPlan
+  type LaunchWorkflowPlan,
+  type MarketResearch
 } from "@launchforge/shared";
 
 export interface ProjectRepository {
@@ -16,6 +17,7 @@ export interface ProjectRepository {
   findById(id: string): Promise<LaunchProject | undefined>;
   create(input: CreateLaunchProjectInput): Promise<LaunchProject>;
   applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject>;
+  saveMarketResearch(projectId: string, research: MarketResearch): Promise<LaunchProject>;
 }
 
 export class FileProjectRepository implements ProjectRepository {
@@ -75,6 +77,40 @@ export class FileProjectRepository implements ProjectRepository {
       status: "active",
       progress: calculateProjectProgress(tasks),
       tasks,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveMarketResearch(projectId: string, research: MarketResearch): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const tasks = project.tasks.map((task) =>
+      task.id === "market-research" || task.id === "brand-positioning"
+        ? { ...task, status: "complete" as const, updatedAt: now }
+        : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: "active",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      marketResearch: research,
       updatedAt: now
     };
 

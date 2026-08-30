@@ -116,3 +116,23 @@ Reason: LangGraph is strong for explicit workflow/state control, avoids the unre
 Consequences: The master prompt's original Google ADK preference is superseded by latest explicit user instruction. The dependency audit is clean after the switch.
 
 Reversibility: Medium.
+
+## 2026-08-31 - SerpApi Evidence Adapter
+
+Decision: Implement Phase 3 market research through a narrow SerpApi adapter and store structured evidence on the launch project.
+
+Context: The Market & Brand Agent needs real web intelligence for competitors, market signals, and naming conflicts, but normal tests must not require live sponsor credentials.
+
+Alternatives:
+
+- Call SerpApi directly from the agent.
+- Store only generated brand text without source evidence.
+- Use fixture data as if it were live research.
+
+Chosen Approach: Add `@launchforge/integrations` with `HttpSerpApiClient`, expose a `SerpApiClient` interface to agents, persist typed research results, and keep tests on mocked HTTP/client boundaries.
+
+Reason: This keeps sponsor credentials and network behavior isolated while letting downstream agents consume clear, evidence-backed market data.
+
+Consequences: Phase 3 implementation can be tested locally without a key, but the phase cannot be marked complete until a real `SERPAPI_API_KEY` verifies live results.
+
+Reversibility: High.

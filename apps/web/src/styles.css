@@ -202,6 +202,25 @@ textarea:focus {
   opacity: 0.7;
 }
 
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #b9c9bd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f5e3d;
+  font-weight: 800;
+}
+
+.secondary-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 .command-grid {
   display: grid;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
@@ -214,6 +233,12 @@ textarea:focus {
 }
 
 .section-heading {
+  margin-bottom: 14px;
+}
+
+.workspace-actions {
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: 14px;
 }
 
@@ -346,6 +371,101 @@ textarea:focus {
   text-transform: capitalize;
 }
 
+.research-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #dce4dc;
+}
+
+.brand-direction {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.brand-direction strong {
+  font-size: 1rem;
+}
+
+.brand-direction p,
+.evidence-summary {
+  margin: 0;
+  color: #4f5f55;
+  line-height: 1.5;
+}
+
+.target-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.target-list span {
+  padding: 6px 8px;
+  border: 1px solid #c8d8cc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #234233;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.research-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.research-column {
+  min-width: 0;
+}
+
+.research-column h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.research-column ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.research-column li {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d9e2da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.research-column a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1f5e3d;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.research-column a span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.research-column p,
+.research-empty {
+  margin: 6px 0 0;
+  color: #65746a;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 900px) {
   .app-shell,
   .launch-entry,
@@ -381,8 +501,17 @@ textarea:focus {
   }
 
   .primary-button,
+  .secondary-button,
   .status-pill {
     width: 100%;
+  }
+
+  .workspace-actions {
+    justify-content: stretch;
+  }
+
+  .research-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -407,4 +536,3 @@ textarea:focus {
     grid-column: 2;
   }
 }
-

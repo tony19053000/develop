@@ -4,6 +4,7 @@ import {
   createInitialAgentTasks,
   createLaunchProjectSchema,
   launchWorkflowPlanSchema,
+  marketResearchSchema,
   tasksFromWorkflowPlan
 } from "./index.js";
 
@@ -59,5 +60,35 @@ describe("shared launch contracts", () => {
         updatedAt: "2026-08-31T00:01:00.000Z"
       }
     ]);
+  });
+
+  it("validates market research output with evidence", () => {
+    const research = {
+      id: "research-1",
+      projectId: "project-1",
+      idea: "Launch an AI interview-preparation platform for university students.",
+      queries: ["AI interview preparation university students competitors"],
+      competitors: [
+        {
+          title: "Interview Prep Example",
+          link: "https://example.com",
+          snippet: "Practice interviews for students.",
+          source: "SerpApi"
+        }
+      ],
+      marketSignals: [],
+      namingConflicts: [],
+      brand: {
+        name: "PrepOrbit",
+        tagline: "Ace your next interview with AI.",
+        description: "AI interview practice for university students.",
+        targetUsers: ["University students"],
+        positioning: "Focused interview readiness for early-career candidates."
+      },
+      evidenceSummary: "Found student-focused interview preparation competitors.",
+      generatedAt: "2026-08-31T00:00:00.000Z"
+    };
+
+    expect(() => marketResearchSchema.parse(research)).not.toThrow();
   });
 });

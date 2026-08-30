@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createDeterministicWorkflowPlan, type OrchestratorRuntime } from "@launchforge/agents";
+import { createDeterministicWorkflowPlan, type MarketBrandAgent, type OrchestratorRuntime } from "@launchforge/agents";
 import { createApp } from "./app.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
@@ -25,7 +25,8 @@ beforeEach(async () => {
     config: { ...config, DATA_DIR: dataDir },
     projects: new FileProjectRepository(dataDir),
     events: new EventBus(),
-    orchestrator: createFakeOrchestrator()
+    orchestrator: createFakeOrchestrator(),
+    marketBrand: createFakeMarketBrand()
   });
 });
 
@@ -85,6 +86,26 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.plan.steps).toHaveLength(8);
     expect(response.body.project.status).toBe("active");
   });
+
+  it("runs market and brand research for an existing project", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/research/market`)
+      .expect(200);
+
+    expect(response.body.research.brand.name).toBe("EvidenceForge");
+    expect(response.body.project.marketResearch.competitors).toHaveLength(1);
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "market-research", status: "complete" }),
+        expect.objectContaining({ id: "brand-positioning", status: "complete" })
+      ])
+    );
+  });
 });
 
 function createFakeOrchestrator(): OrchestratorRuntime {
@@ -92,6 +113,38 @@ function createFakeOrchestrator(): OrchestratorRuntime {
     graph: {} as OrchestratorRuntime["graph"],
     async planLaunch(input) {
       return createDeterministicWorkflowPlan(input.projectId, input.idea);
+    }
+  };
+}
+
+function createFakeMarketBrand(): MarketBrandAgent {
+  return {
+    async research(input) {
+      return {
+        id: "research-1",
+        projectId: input.projectId,
+        idea: input.idea,
+        queries: ["contract review competitors"],
+        competitors: [
+          {
+            title: "Contract AI Example",
+            link: "https://example.com",
+            snippet: "AI contract review for small firms.",
+            source: "SerpApi"
+          }
+        ],
+        marketSignals: [],
+        namingConflicts: [],
+        brand: {
+          name: "EvidenceForge",
+          tagline: "Review contracts faster with AI.",
+          description: "AI contract review for small law firms.",
+          targetUsers: ["Small law firms"],
+          positioning: "Fast launch execution for legal operators."
+        },
+        evidenceSummary: "Found 1 competitor result.",
+        generatedAt: "2026-08-31T00:00:00.000Z"
+      };
     }
   };
 }

@@ -6,7 +6,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 3 - SerpApi + Market & Brand Agent is next.
+Phase 3 - SerpApi + Market & Brand Agent is in progress.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -48,6 +48,15 @@ Phase 2 - LangGraph + Orchestrator is complete and approved.
   - API orchestration on project creation.
   - API route `POST /api/projects/:projectId/orchestrate`.
   - Tests for shared workflow mapping, LangGraph runtime construction, planner behavior, and API orchestration.
+- Added Phase 3 implementation:
+  - `packages/integrations` workspace.
+  - Real SerpApi Google Search HTTP adapter using `https://serpapi.com/search.json`.
+  - Market & Brand Agent that performs competitor, market signal, and naming conflict searches through SerpApi.
+  - Shared market research and research evidence schemas.
+  - API route `POST /api/projects/:projectId/research/market`.
+  - File-backed persistence for market research on launch projects.
+  - Frontend research action and Market Intelligence result panel.
+  - Unit and integration tests with mocked SerpApi responses.
 
 ## Architecture Summary
 
@@ -59,7 +68,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer for SerpApi, name.com, Xano, and Foxit is planned.
+- Sponsor adapter layer has a SerpApi implementation; name.com, Xano, and Foxit are planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
 - Audit trail with redaction and exact action tracking is planned.
@@ -74,6 +83,7 @@ Current architecture:
 - Use npm workspaces with TypeScript, React/Vite, Express, Zod, Vitest, and ESLint for the Phase 1 foundation.
 - Use SSE for Phase 1 realtime server-to-client agent/project events.
 - Use LangGraph instead of Google ADK by latest explicit user instruction. This resolved the prior ADK transitive dependency audit blocker.
+- Use a narrow SerpApi adapter and store evidence-backed research results before downstream domain, website, backend, and document phases consume the brand direction.
 
 ## Recent Commands
 
@@ -89,27 +99,33 @@ Current architecture:
 - `npm audit --audit-level=moderate`
 - `npm view @langchain/langgraph version description`
 - `npm audit fix`
+- `npm run typecheck`
+- `npm run test`
+- `npm run lint`
+- `npm run build`
+- `npm audit --audit-level=moderate`
 
 ## Baseline Results
 
 - Git history: no commits at start.
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
-- Build/typecheck/test/lint: passing with Phase 2 code.
+- Build/typecheck/test/lint: passing with Phase 3 implementation.
 - npm audit: passing after replacing ADK with LangGraph.
 - Phase 0 foundation commit: `d5f824b`.
 - Phase 1 implementation commit: `dd9b5ea`.
+- Phase 2 implementation commit: `742dfee`.
 
 ## Environment Assumptions
 
 - Current workspace: `/home/aayush/Desktop/devlopment`.
 - Real credentials must be provided through local environment variables and never committed.
-- Future Phase 1 should introduce actual dependency management and local development commands.
+- `SERPAPI_API_KEY` is required to verify live Phase 3 sponsor behavior.
 
 ## Blockers
 
-None for Phase 2.
+Phase 3 cannot be marked complete until a real SerpApi key is configured and the live research endpoint is verified.
 
 ## Next Exact Task
 
-Begin Phase 3 by implementing the SerpApi adapter, Market & Brand Agent boundary, structured market research outputs, tests, and initial research UI.
+Set `SERPAPI_API_KEY` in `.env`, start the API/web app, create a project, and run `POST /api/projects/:projectId/research/market` or the web "Run Research" action to verify real SerpApi results.

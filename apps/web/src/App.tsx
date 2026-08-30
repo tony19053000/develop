@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AgentRole, AgentTask, LaunchProject } from "@launchforge/shared";
+import type { AgentRole, AgentTask, LaunchProject, ResearchResult } from "@launchforge/shared";
 import {
   Activity,
   BadgeCheck,
   Blocks,
   Bot,
   ClipboardCheck,
+  ExternalLink,
   FileText,
   Gauge,
   Globe2,
@@ -14,9 +15,10 @@ import {
   Plus,
   Radio,
   Rocket,
+  Search,
   Server
 } from "lucide-react";
-import { createProject, listProjects } from "./api.js";
+import { createProject, listProjects, runMarketResearch } from "./api.js";
 
 const navigation = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -43,6 +45,7 @@ export function App() {
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,6 +88,21 @@ export function App() {
     }
   }
 
+  async function handleRunResearch(projectId: string) {
+    setIsResearching(true);
+    setError(null);
+
+    try {
+      const { project } = await runMarketResearch(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to run market research.");
+    } finally {
+      setIsResearching(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="LaunchForge navigation">
@@ -119,7 +137,7 @@ export function App() {
           </div>
           <div className="status-pill">
             <BadgeCheck size={18} aria-hidden="true" />
-            API-backed project flow
+            SerpApi research flow
           </div>
         </header>
 
@@ -179,6 +197,18 @@ export function App() {
 
             {selectedProject ? (
               <>
+                <div className="workspace-actions">
+                  <button
+                    className="secondary-button"
+                    disabled={isResearching}
+                    onClick={() => void handleRunResearch(selectedProject.id)}
+                    type="button"
+                  >
+                    <Search size={18} aria-hidden="true" />
+                    {isResearching ? "Researching..." : "Run Research"}
+                  </button>
+                </div>
+
                 <div className="progress-block">
                   <span>Overall Progress</span>
                   <strong>{selectedProject.progress}%</strong>
@@ -192,6 +222,10 @@ export function App() {
                     <AgentTaskRow key={task.id} task={task} />
                   ))}
                 </div>
+
+                {selectedProject.marketResearch ? (
+                  <MarketResearchPanel project={selectedProject} />
+                ) : null}
               </>
             ) : (
               <p className="empty-state">Start a launch to populate the workspace.</p>
@@ -200,6 +234,64 @@ export function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+function MarketResearchPanel({ project }: { project: LaunchProject }) {
+  const research = project.marketResearch;
+
+  if (!research) {
+    return null;
+  }
+
+  return (
+    <section className="research-panel" aria-labelledby="market-intelligence-title">
+      <div className="section-heading">
+        <p className="eyebrow">Market Intelligence</p>
+        <h2 id="market-intelligence-title">{research.brand.name}</h2>
+      </div>
+
+      <div className="brand-direction">
+        <strong>{research.brand.tagline}</strong>
+        <p>{research.brand.positioning}</p>
+        <div className="target-list">
+          {research.brand.targetUsers.map((user) => (
+            <span key={user}>{user}</span>
+          ))}
+        </div>
+      </div>
+
+      <p className="evidence-summary">{research.evidenceSummary}</p>
+
+      <div className="research-grid">
+        <ResearchColumn title="Competitors" results={research.competitors} />
+        <ResearchColumn title="Signals" results={research.marketSignals} />
+        <ResearchColumn title="Names" results={research.namingConflicts} />
+      </div>
+    </section>
+  );
+}
+
+function ResearchColumn({ title, results }: { title: string; results: ResearchResult[] }) {
+  return (
+    <div className="research-column">
+      <h3>{title}</h3>
+      {results.length === 0 ? (
+        <p className="research-empty">No results saved.</p>
+      ) : (
+        <ul>
+          {results.slice(0, 3).map((result) => (
+            <li key={result.link}>
+              <a href={result.link} rel="noreferrer" target="_blank">
+                <span>{result.title}</span>
+                <ExternalLink size={14} aria-hidden="true" />
+              </a>
+              <p>{result.snippet}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -218,4 +310,3 @@ function AgentTaskRow({ task }: { task: AgentTask }) {
     </div>
   );
 }
-

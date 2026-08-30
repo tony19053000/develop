@@ -1,4 +1,4 @@
-import type { CreateLaunchProjectInput, LaunchProject } from "@launchforge/shared";
+import type { CreateLaunchProjectInput, LaunchProject, MarketResearch } from "@launchforge/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
@@ -8,6 +8,11 @@ interface ProjectListResponse {
 
 interface ProjectResponse {
   project: LaunchProject;
+}
+
+interface MarketResearchResponse {
+  project: LaunchProject;
+  research: MarketResearch;
 }
 
 export async function listProjects(): Promise<LaunchProject[]> {
@@ -28,6 +33,13 @@ export async function createProject(input: CreateLaunchProjectInput): Promise<La
   return body.project;
 }
 
+export async function runMarketResearch(projectId: string): Promise<MarketResearchResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/research/market`, {
+    method: "POST"
+  });
+  return readJson<MarketResearchResponse>(response);
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   const body = await response.json();
 
@@ -38,4 +50,3 @@ async function readJson<T>(response: Response): Promise<T> {
 
   return body as T;
 }
-

@@ -1,5 +1,5 @@
 {
-  "name": "@launchforge/agents",
+  "name": "@launchforge/integrations",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@langchain/langgraph": "^1.4.13",
-    "@launchforge/integrations": "0.1.0",
     "@launchforge/shared": "0.1.0",
     "zod": "^3.24.1"
   },
@@ -21,3 +19,4 @@
     "vitest": "^4.1.11"
   }
 }
+

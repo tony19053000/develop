@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
-import type { OrchestratorRuntime } from "@launchforge/agents";
+import type { MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
+import { SerpApiConfigurationError } from "@launchforge/integrations";
 import { createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -12,9 +13,10 @@ export interface AppDependencies {
   projects: ProjectRepository;
   events: EventBus;
   orchestrator: OrchestratorRuntime;
+  marketBrand: MarketBrandAgent;
 }
 
-export function createApp({ config, projects, events, orchestrator }: AppDependencies) {
+export function createApp({ config, projects, events, orchestrator, marketBrand }: AppDependencies) {
   const app = express();
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
@@ -109,6 +111,45 @@ export function createApp({ config, projects, events, orchestrator }: AppDepende
 
       response.json({ project, plan });
     } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/research/market", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "market_brand",
+        level: "info",
+        message: "Market & Brand Agent started SerpApi research."
+      });
+
+      const research = await marketBrand.research({
+        projectId: existingProject.id,
+        idea: existingProject.idea
+      });
+      const project = await projects.saveMarketResearch(existingProject.id, research);
+
+      events.publish({
+        projectId: project.id,
+        agent: "market_brand",
+        level: "success",
+        message: `Market research complete. Brand direction created: ${research.brand.name}.`
+      });
+
+      response.json({ project, research });
+    } catch (error) {
+      if (error instanceof SerpApiConfigurationError) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
       next(error);
     }
   });

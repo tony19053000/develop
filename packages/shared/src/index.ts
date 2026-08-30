@@ -49,6 +49,32 @@ export const launchWorkflowPlanSchema = z.object({
   createdAt: z.string().datetime()
 });
 
+export const researchResultSchema = z.object({
+  title: z.string(),
+  link: z.string().url(),
+  snippet: z.string().default(""),
+  source: z.string().default("SerpApi")
+});
+
+export const marketResearchSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  idea: z.string(),
+  queries: z.array(z.string()).min(1),
+  competitors: z.array(researchResultSchema),
+  marketSignals: z.array(researchResultSchema),
+  namingConflicts: z.array(researchResultSchema),
+  brand: z.object({
+    name: z.string(),
+    tagline: z.string(),
+    description: z.string(),
+    targetUsers: z.array(z.string()),
+    positioning: z.string()
+  }),
+  evidenceSummary: z.string(),
+  generatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -73,6 +99,7 @@ export const launchProjectSchema = z.object({
   status: launchProjectStatusSchema,
   progress: z.number().min(0).max(100),
   tasks: z.array(agentTaskSchema),
+  marketResearch: marketResearchSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -88,6 +115,8 @@ export type CreateLaunchProjectInput = z.infer<typeof createLaunchProjectSchema>
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;
+export type MarketResearch = z.infer<typeof marketResearchSchema>;
+export type ResearchResult = z.infer<typeof researchResultSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
 
 export function calculateProjectProgress(tasks: AgentTask[]): number {

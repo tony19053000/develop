@@ -9,7 +9,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 0 | Project Analysis & Master Design | 4 | 100% complete |
 | 1 | Application Foundation | 6 | 100% complete |
 | 2 | LangGraph + Orchestrator | 6 | 100% complete |
-| 3 | SerpApi + Market & Brand Agent | 6 | 0% pending |
+| 3 | SerpApi + Market & Brand Agent | 6 | implementation present, pending real key verification |
 | 4 | name.com + Domain Agent | 5 | 0% pending |
 | 5 | AgentLatch Policy Engine | 7 | 0% pending |
 | 6 | Human Approval System | 7 | 0% pending |
@@ -33,7 +33,7 @@ Phase 3 - SerpApi + Market & Brand Agent.
 
 ## Current Task
 
-Begin the SerpApi integration and Market & Brand Agent.
+Verify the Phase 3 SerpApi integration with a real `SERPAPI_API_KEY`.
 
 ## Baseline
 
@@ -43,11 +43,12 @@ Begin the SerpApi integration and Market & Brand Agent.
 - Backend: Express API with validation, error handling, project routes, file-backed storage, and SSE event foundation.
 - Shared package: typed launch project, task, event, and validation contracts.
 - Phase 2 implementation adds `@launchforge/agents`, LangGraph orchestration, workflow planning, API orchestration on project creation, and orchestration refresh endpoint.
+- Phase 3 implementation adds `@launchforge/integrations`, real SerpApi HTTP adapter wiring, Market & Brand Agent research generation, project persistence for market research, API route `POST /api/projects/:projectId/research/market`, and frontend research controls/results.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 14 tests.
+- Tests: passed, 21 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -56,17 +57,20 @@ Begin the SerpApi integration and Market & Brand Agent.
 
 Reviewer/Tester result for Phase 2: APPROVED.
 
+Reviewer/Tester result for Phase 3: PENDING real SerpApi credential verification.
+
 ## GitHub Status
 
 - Remote: `https://github.com/tony19053000/develop.git`
 - Phase 0 foundation commit: `d5f824b`.
 - Push status: pushed to `origin/main`.
 - Phase 1 implementation commit: `dd9b5ea`, pushed to `origin/main`.
-- Phase 2 implementation commit: pending until commit/push completes.
+- Phase 2 implementation commit: `742dfee`, pushed to `origin/main`.
+- Phase 3 implementation commit: pending until commit/push completes.
 
 ## Sponsor Integrations
 
-- SerpApi: planned.
+- SerpApi: adapter and Market & Brand Agent implemented; pending verification with real `SERPAPI_API_KEY`.
 - name.com: planned.
 - Xano: planned.
 - Foxit: planned.
@@ -81,8 +85,8 @@ Planned.
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, and view the initial live workspace foundation. Real agents and sponsor integrations begin in later phases.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, and trigger Market & Brand research after configuring `SERPAPI_API_KEY`.
 
 ## Blockers
 
-None.
+Real SerpApi verification requires `SERPAPI_API_KEY` in the local environment.

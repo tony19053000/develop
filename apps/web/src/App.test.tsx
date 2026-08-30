@@ -60,4 +60,80 @@ describe("LaunchForge web foundation", () => {
       expect.objectContaining({ method: "POST" })
     );
   });
+
+  it("runs market research and renders brand evidence", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 25,
+              tasks: [],
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 50,
+            tasks: [],
+            marketResearch: {
+              id: "research-1",
+              projectId: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              queries: ["AI interview prep competitors"],
+              competitors: [
+                {
+                  title: "Interview Prep Example",
+                  link: "https://example.com",
+                  snippet: "Practice interviews.",
+                  source: "SerpApi"
+                }
+              ],
+              marketSignals: [],
+              namingConflicts: [],
+              brand: {
+                name: "InterviewForge",
+                tagline: "Practice interviews faster with AI.",
+                description: "AI interview preparation.",
+                targetUsers: ["University students"],
+                positioning: "Differentiated interview readiness for early-career candidates."
+              },
+              evidenceSummary: "Found 1 competitor result.",
+              generatedAt: "2026-08-31T00:00:00.000Z"
+            },
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          },
+          research: {
+            brand: {
+              name: "InterviewForge"
+            }
+          }
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Run Research/i }));
+
+    expect(await screen.findByRole("heading", { name: "InterviewForge" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Interview Prep Example/i })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/research/market", {
+      method: "POST"
+    });
+  });
 });
