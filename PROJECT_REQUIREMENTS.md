@@ -49,7 +49,7 @@ The interface must feel like an AI launch command center, not a generic chatbot.
 - Backend Agent: Xano APIs, database models, workflows, auth, generated backend metadata.
 - Document Agent: Foxit document creation, PDF workflows, eSign initiation.
 
-Application agents must use Google ADK as the current framework, with model/provider selection configurable.
+Application agents must use LangGraph as the current workflow/agent orchestration framework, with model/provider selection configurable.
 
 ## AgentLatch Requirements
 
@@ -118,4 +118,3 @@ Sponsor integrations must be real, meaningful, functional, and visible in the de
 The final project must demonstrate:
 
 SerpApi research -> Brand -> name.com domain search -> AgentLatch approval -> TEE secure execution -> domain registration -> website generation -> Xano backend -> deployment -> Foxit documents -> human-only eSign -> final launch summary.
-

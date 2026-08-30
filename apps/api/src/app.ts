@@ -57,7 +57,7 @@ export function createApp({ config, projects, events, orchestrator }: AppDepende
         projectId: project.id,
         agent: "orchestrator",
         level: "success",
-        message: "Initial launch workflow created with Google ADK orchestration."
+        message: "Initial launch workflow created with LangGraph orchestration."
       });
       response.status(201).json({ project });
     } catch (error) {

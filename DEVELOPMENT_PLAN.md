@@ -8,7 +8,7 @@ The full project is weighted at 100 points. Only reviewer-approved completed pha
 | --- | --- | ---: |
 | 0 | Project Analysis & Master Design | 4 |
 | 1 | Application Foundation | 6 |
-| 2 | Google ADK + Orchestrator | 6 |
+| 2 | LangGraph + Orchestrator | 6 |
 | 3 | SerpApi + Market & Brand Agent | 6 |
 | 4 | name.com + Domain Agent | 5 |
 | 5 | AgentLatch Policy Engine | 7 |
@@ -82,11 +82,11 @@ Acceptance:
 - A user can create/view a basic launch project.
 - Foundation supports later agents, events, approvals, and audit.
 
-## Phase 2 - Google ADK + Orchestrator
+## Phase 2 - LangGraph + Orchestrator
 
 Tasks:
 
-- Integrate Google ADK.
+- Integrate LangGraph.
 - Add model/provider configuration abstraction.
 - Build Orchestrator Agent.
 - Create structured workflow planning.
@@ -95,7 +95,7 @@ Tasks:
 
 Acceptance:
 
-- User launch request creates a structured workflow using ADK tools.
+- User launch request creates a structured workflow using a LangGraph state graph.
 
 ## Phase 3 - SerpApi + Market & Brand Agent
 

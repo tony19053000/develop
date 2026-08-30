@@ -1,5 +1,4 @@
-import { Agent, FunctionTool, isLlmAgent, type Context } from "@google/adk";
-import { Type, type Schema } from "@google/genai";
+import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import {
   launchWorkflowPlanSchema,
   type AgentRole,
@@ -14,68 +13,56 @@ const planLaunchInputSchema = z.object({
   idea: z.string().min(10)
 });
 
-const planLaunchAdkSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    projectId: {
-      type: Type.STRING,
-      description: "LaunchForge project identifier."
-    },
-    idea: {
-      type: Type.STRING,
-      description: "Startup idea submitted by the user."
-    }
-  },
-  required: ["projectId", "idea"]
-};
+const OrchestratorState = Annotation.Root({
+  projectId: Annotation<string>(),
+  idea: Annotation<string>(),
+  modelProvider: Annotation<string>(),
+  model: Annotation<string>(),
+  plan: Annotation<LaunchWorkflowPlan | undefined>()
+});
+
+type OrchestratorStateValue = typeof OrchestratorState.State;
+type OrchestratorGraphBuilder = ReturnType<typeof createGraphBuilder>;
 
 export interface OrchestratorRuntime {
-  adkAgent: Agent;
+  graph: ReturnType<OrchestratorGraphBuilder["compile"]>;
   planLaunch(input: z.infer<typeof planLaunchInputSchema>): Promise<LaunchWorkflowPlan>;
 }
 
 export function createOrchestratorRuntime(modelConfig: AgentModelConfig): OrchestratorRuntime {
-  const planLaunchTool = createPlanLaunchTool();
-  const adkAgent = new Agent({
-    name: "launchforge_orchestrator",
-    model: modelConfig.model,
-    instruction:
-      "Create structured startup launch workflows. Keep security boundaries explicit. Never authorize protected actions yourself.",
-    tools: [planLaunchTool],
-    outputKey: "launch_workflow_plan"
-  });
-
-  if (!isLlmAgent(adkAgent)) {
-    throw new Error("Failed to initialize Google ADK Orchestrator Agent.");
-  }
+  const graph = createGraphBuilder(modelConfig).compile();
 
   return {
-    adkAgent,
+    graph,
     async planLaunch(input) {
-      const result = await planLaunchTool.runAsync({
-        args: input,
-        toolContext: {} as unknown as Context
+      const parsed = planLaunchInputSchema.parse(input);
+      const result = await graph.invoke({
+        projectId: parsed.projectId,
+        idea: parsed.idea,
+        modelProvider: modelConfig.provider,
+        model: modelConfig.model,
+        plan: undefined
       });
 
-      return launchWorkflowPlanSchema.parse(result);
+      return launchWorkflowPlanSchema.parse(result.plan);
     }
   };
 }
 
-function createPlanLaunchTool() {
-  return new FunctionTool({
-    name: "create_launch_workflow",
-    description:
-      "Create a structured LaunchForge workflow plan with explicit agent responsibilities and dependencies.",
-    parameters: planLaunchAdkSchema,
-    execute: (input) => {
-      const parsed = planLaunchInputSchema.parse(input);
-      return createDeterministicWorkflowPlan(parsed.projectId, parsed.idea);
-    }
-  });
+function createGraphBuilder(modelConfig: AgentModelConfig) {
+  return new StateGraph(OrchestratorState)
+    .addNode("plan_launch", (state: OrchestratorStateValue) => ({
+      plan: createDeterministicWorkflowPlan(state.projectId, state.idea, modelConfig)
+    }))
+    .addEdge(START, "plan_launch")
+    .addEdge("plan_launch", END);
 }
 
-export function createDeterministicWorkflowPlan(projectId: string, idea: string): LaunchWorkflowPlan {
+export function createDeterministicWorkflowPlan(
+  projectId: string,
+  idea: string,
+  modelConfig: AgentModelConfig = { provider: "langgraph", model: "deterministic-local" }
+): LaunchWorkflowPlan {
   const createdAt = new Date().toISOString();
   const steps: WorkflowStep[] = [
     step("orchestrator-plan", "orchestrator", "Create launch plan", [], "complete"),
@@ -91,7 +78,7 @@ export function createDeterministicWorkflowPlan(projectId: string, idea: string)
   return launchWorkflowPlanSchema.parse({
     projectId,
     objective: idea,
-    summary: `Launch workflow created for: ${idea}`,
+    summary: `LangGraph ${modelConfig.model} workflow created for: ${idea}`,
     steps,
     createdAt
   });

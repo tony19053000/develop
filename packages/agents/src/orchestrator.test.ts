@@ -1,23 +1,27 @@
-import { isLlmAgent } from "@google/adk";
 import { describe, expect, it } from "vitest";
 import { createDeterministicWorkflowPlan, createOrchestratorRuntime } from "./orchestrator.js";
 
-describe("Google ADK orchestrator runtime", () => {
-  it("creates a real ADK agent with a launch planning tool", () => {
+describe("LangGraph orchestrator runtime", () => {
+  it("creates a compiled LangGraph runtime", async () => {
     const runtime = createOrchestratorRuntime({
-      provider: "google-adk",
-      model: "gemini-test-model"
+      provider: "langgraph",
+      model: "deterministic-local"
     });
 
-    expect(isLlmAgent(runtime.adkAgent)).toBe(true);
-    expect(runtime.adkAgent.name).toBe("launchforge_orchestrator");
-    expect(runtime.adkAgent.tools).toHaveLength(1);
+    const plan = await runtime.planLaunch({
+      projectId: "project-1",
+      idea: "Launch an AI interview-preparation platform for university students."
+    });
+
+    expect(runtime.graph).toBeDefined();
+    expect(plan.projectId).toBe("project-1");
+    expect(plan.summary).toContain("LangGraph");
   });
 
-  it("creates a structured launch workflow through the ADK tool wrapper", async () => {
+  it("creates a structured launch workflow through the graph", async () => {
     const runtime = createOrchestratorRuntime({
-      provider: "google-adk",
-      model: "gemini-test-model"
+      provider: "langgraph",
+      model: "deterministic-local"
     });
 
     const plan = await runtime.planLaunch({
@@ -40,4 +44,3 @@ describe("Google ADK orchestrator runtime", () => {
     expect(plan.steps.find((step) => step.id === "approval-boundary")?.dependsOn).toEqual(["domain-research"]);
   });
 });
-

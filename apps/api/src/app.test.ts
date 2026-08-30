@@ -89,7 +89,7 @@ describe("LaunchForge API foundation", () => {
 
 function createFakeOrchestrator(): OrchestratorRuntime {
   return {
-    adkAgent: {} as OrchestratorRuntime["adkAgent"],
+    graph: {} as OrchestratorRuntime["graph"],
     async planLaunch(input) {
       return createDeterministicWorkflowPlan(input.projectId, input.idea);
     }

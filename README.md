@@ -21,7 +21,7 @@ LaunchForge will be built as a full-stack application with:
 
 - A command-center frontend for launch creation, live agent status, approvals, artifacts, audit, and final summary.
 - A backend API for projects, workflows, events, approvals, policies, secure execution requests, and sponsor integration adapters.
-- Google ADK-based application agents behind modular tool interfaces.
+- LangGraph-based application agents/workflows behind modular tool interfaces.
 - AgentLatch as deterministic policy and authorization infrastructure, not as an LLM agent.
 - A future hardware-backed TEE or confidential computing executor for privileged sponsor operations.
 

@@ -72,7 +72,7 @@ Alternatives:
 
 Chosen Approach: Keep `apps/web`, `apps/api`, and `packages/shared` as separate workspaces with shared TypeScript contracts.
 
-Reason: This gives clean boundaries for later Google ADK agents, AgentLatch, and sponsor adapters while staying fast to run locally.
+Reason: This gives clean boundaries for later LangGraph workflows, AgentLatch, and sponsor adapters while staying fast to run locally.
 
 Consequences: The project uses Node/npm as the primary local development toolchain.
 
@@ -97,22 +97,22 @@ Consequences: Later phases can keep SSE or add WebSocket if bidirectional agent 
 
 Reversibility: High.
 
-## 2026-08-31 - Google ADK TypeScript Runtime
+## 2026-08-31 - LangGraph Orchestrator Runtime
 
-Decision: Integrate the Orchestrator through the official `@google/adk` TypeScript package.
+Decision: Integrate the Orchestrator through LangGraph instead of Google ADK.
 
-Context: Phase 2 requires Google ADK integration, model configurability, Orchestrator Agent, structured tool interfaces, workflow state, and local tests.
+Context: Phase 2 requires model configurability, Orchestrator workflow control, structured interfaces, workflow state, and local tests. The user explicitly instructed: "LangGraph go ahead with it."
 
 Alternatives:
 
-- Delay ADK integration until later.
-- Simulate ADK with local interfaces only.
-- Use a non-Google/community wrapper.
+- Continue with Google ADK and document the audit exception.
+- Delay orchestration integration.
+- Use a custom state machine only.
 
-Chosen Approach: Add `packages/agents` with a real ADK `Agent` and ADK `FunctionTool`, while keeping deterministic local execution credential-free for tests.
+Chosen Approach: Use `@langchain/langgraph` in `packages/agents` with a compiled Orchestrator state graph and deterministic local planning node.
 
-Reason: This satisfies the architecture direction while avoiding required live model credentials during local CI-style checks.
+Reason: LangGraph is strong for explicit workflow/state control, avoids the unresolved ADK transitive audit findings, and fits AgentLatch's future deterministic security boundary.
 
-Consequences: Current `@google/adk@2.0.0` introduces unresolved npm audit findings through transitive dependencies. Phase 2 remains blocked until those are resolved or explicitly accepted.
+Consequences: The master prompt's original Google ADK preference is superseded by latest explicit user instruction. The dependency audit is clean after the switch.
 
 Reversibility: Medium.

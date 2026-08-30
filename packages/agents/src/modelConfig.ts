@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const agentModelConfigSchema = z.object({
-  provider: z.literal("google-adk").default("google-adk"),
-  model: z.string().min(1).default("gemini-2.5-flash")
+  provider: z.literal("langgraph").default("langgraph"),
+  model: z.string().min(1).default("deterministic-local")
 });
 
 export type AgentModelConfig = z.infer<typeof agentModelConfigSchema>;
@@ -13,4 +13,3 @@ export function loadAgentModelConfig(env: NodeJS.ProcessEnv = process.env): Agen
     model: env.AGENT_MODEL
   });
 }
-

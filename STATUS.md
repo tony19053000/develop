@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 10%
+## Overall Completion: 16%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -8,7 +8,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | --- | --- | ---: | --- |
 | 0 | Project Analysis & Master Design | 4 | 100% complete |
 | 1 | Application Foundation | 6 | 100% complete |
-| 2 | Google ADK + Orchestrator | 6 | Implementation present, blocked on ADK dependency audit |
+| 2 | LangGraph + Orchestrator | 6 | 100% complete |
 | 3 | SerpApi + Market & Brand Agent | 6 | 0% pending |
 | 4 | name.com + Domain Agent | 5 | 0% pending |
 | 5 | AgentLatch Policy Engine | 7 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 2 - Google ADK + Orchestrator.
+Phase 3 - SerpApi + Market & Brand Agent.
 
 ## Current Task
 
-Resolve the `@google/adk@2.0.0` transitive dependency audit blocker or choose an approved ADK version/strategy.
+Begin the SerpApi integration and Market & Brand Agent.
 
 ## Baseline
 
@@ -42,7 +42,7 @@ Resolve the `@google/adk@2.0.0` transitive dependency audit blocker or choose an
 - Frontend: React + Vite command center shell.
 - Backend: Express API with validation, error handling, project routes, file-backed storage, and SSE event foundation.
 - Shared package: typed launch project, task, event, and validation contracts.
-- Phase 2 local implementation adds `@launchforge/agents`, Google ADK Orchestrator Agent construction, ADK FunctionTool workflow planning, API orchestration on project creation, and orchestration refresh endpoint.
+- Phase 2 implementation adds `@launchforge/agents`, LangGraph orchestration, workflow planning, API orchestration on project creation, and orchestration refresh endpoint.
 
 ## Test Status
 
@@ -50,13 +50,11 @@ Resolve the `@google/adk@2.0.0` transitive dependency audit blocker or choose an
 - Tests: passed, 14 tests.
 - Lint: passed.
 - Build: passed.
-- npm audit: blocked by `@google/adk@2.0.0` transitive dependencies: OpenTelemetry packages, `adm-zip`, and `gaxios`/`uuid`.
+- npm audit: passed, 0 vulnerabilities.
 
 ## Review Status
 
-Reviewer/Tester result for Phase 2: CHANGES REQUIRED.
-
-Required change: resolve or formally accept the current official Google ADK package dependency audit findings before Phase 2 can be approved.
+Reviewer/Tester result for Phase 2: APPROVED.
 
 ## GitHub Status
 
@@ -64,6 +62,7 @@ Required change: resolve or formally accept the current official Google ADK pack
 - Phase 0 foundation commit: `d5f824b`.
 - Push status: pushed to `origin/main`.
 - Phase 1 implementation commit: `dd9b5ea`, pushed to `origin/main`.
+- Phase 2 implementation commit: pending until commit/push completes.
 
 ## Sponsor Integrations
 
@@ -86,4 +85,4 @@ Partially demo-ready. A user can run the local app, create a launch project, and
 
 ## Blockers
 
-- Phase 2 cannot be marked complete while `npm audit --audit-level=moderate` reports vulnerabilities introduced by `@google/adk@2.0.0`.
+None.

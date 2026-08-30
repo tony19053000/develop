@@ -12,7 +12,7 @@
 - Frontend application: IMPLEMENTED.
 - Backend API: IMPLEMENTED.
 - Database/storage: PARTIAL.
-- Google ADK agents: PLANNED.
+- LangGraph orchestration: IMPLEMENTED.
 - AgentLatch policy engine: PLANNED.
 - Approval system: PLANNED.
 - TEE secure executor: PLANNED.
@@ -27,7 +27,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - React/Vite frontend command center for project creation, live agent workspace, approvals, artifacts, security center, and audit.
 - Express backend application service exposing APIs and realtime event streams.
 - File-backed Phase 1 project state store for launch projects and initial agent tasks.
-- Agent runtime using Google ADK with replaceable model/provider configuration.
+- Agent/workflow runtime using LangGraph with replaceable model/provider configuration.
 - Tool adapter layer for sponsor integrations.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
 - SecureExecutor abstraction that later maps privileged execution to a real TEE/confidential computing platform.

@@ -2,14 +2,15 @@
 
 ## Project Summary
 
-LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its authorization layer for sensitive AI-requested actions. The final product must integrate SerpApi, name.com, Xano, Foxit, Google ADK application agents, a secure execution boundary using a real TEE/confidential computing technology, approvals, audit, and a polished AI launch command center UI.
+LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its authorization layer for sensitive AI-requested actions. The final product must integrate SerpApi, name.com, Xano, Foxit, LangGraph application workflows/agents, a secure execution boundary using a real TEE/confidential computing technology, approvals, audit, and a polished AI launch command center UI.
 
 ## Current Phase
 
-Phase 2 - Google ADK + Orchestrator is in progress and blocked on dependency audit.
+Phase 3 - SerpApi + Market & Brand Agent is next.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
+Phase 2 - LangGraph + Orchestrator is complete and approved.
 
 ## Completed Work
 
@@ -38,16 +39,15 @@ Phase 1 - Application Foundation is complete and approved.
   - Frontend command center shell with navigation, new launch form, project list, and live workspace task timeline.
   - Baseline unit/integration tests, typecheck, lint, build, and audit commands.
 - Pushed Phase 1 implementation commit `dd9b5ea` to `origin/main`.
-- Added Phase 2 local implementation:
+- Added Phase 2 implementation:
   - `packages/agents` workspace.
-  - `@google/adk@2.0.0` integration.
-  - ADK Orchestrator `Agent` with configurable model.
-  - ADK `FunctionTool` named `create_launch_workflow`.
-  - Deterministic credential-free workflow planner used through the ADK tool wrapper.
+  - `@langchain/langgraph` integration.
+  - LangGraph Orchestrator state graph with configurable model metadata.
+  - Deterministic credential-free workflow planner executed through the compiled graph.
   - Shared workflow plan schemas and task mapping helpers.
   - API orchestration on project creation.
   - API route `POST /api/projects/:projectId/orchestrate`.
-  - Tests for shared workflow mapping, ADK runtime construction, planner behavior, and API orchestration.
+  - Tests for shared workflow mapping, LangGraph runtime construction, planner behavior, and API orchestration.
 
 ## Architecture Summary
 
@@ -58,8 +58,7 @@ Current architecture:
 - Express backend API and SSE event foundation.
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
-- Google ADK agent runtime is next.
-- Google ADK Orchestrator package is implemented locally but not approved because of dependency audit findings.
+- LangGraph Orchestrator runtime is implemented.
 - Sponsor adapter layer for SerpApi, name.com, Xano, and Foxit is planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
@@ -74,7 +73,7 @@ Current architecture:
 - Do not claim TEE behavior is hardware-backed until a real platform is implemented.
 - Use npm workspaces with TypeScript, React/Vite, Express, Zod, Vitest, and ESLint for the Phase 1 foundation.
 - Use SSE for Phase 1 realtime server-to-client agent/project events.
-- Use `@google/adk@2.0.0` for Phase 2 because it is the current official TypeScript ADK package, with the caveat that its transitive dependency audit findings remain unresolved.
+- Use LangGraph instead of Google ADK by latest explicit user instruction. This resolved the prior ADK transitive dependency audit blocker.
 
 ## Recent Commands
 
@@ -88,7 +87,7 @@ Current architecture:
 - `npm run lint`
 - `npm run build`
 - `npm audit --audit-level=moderate`
-- `npm view @google/adk version description`
+- `npm view @langchain/langgraph version description`
 - `npm audit fix`
 
 ## Baseline Results
@@ -97,7 +96,7 @@ Current architecture:
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/typecheck/test/lint: passing with Phase 2 code.
-- npm audit: failing because of `@google/adk@2.0.0` transitive dependencies.
+- npm audit: passing after replacing ADK with LangGraph.
 - Phase 0 foundation commit: `d5f824b`.
 - Phase 1 implementation commit: `dd9b5ea`.
 
@@ -109,8 +108,8 @@ Current architecture:
 
 ## Blockers
 
-Phase 2 blocker: `npm audit --audit-level=moderate` reports vulnerabilities introduced by the current official `@google/adk@2.0.0` dependency tree. `npm audit fix` cannot resolve them without npm suggesting a breaking package change. Attempted overrides made the dependency tree invalid, so they were removed.
+None for Phase 2.
 
 ## Next Exact Task
 
-Next exact task: resolve the ADK dependency audit blocker, either by finding a compatible patched `@google/adk` release, selecting an approved older ADK version after verifying its API and audit state, or documenting an explicit user-approved audit exception.
+Begin Phase 3 by implementing the SerpApi adapter, Market & Brand Agent boundary, structured market research outputs, tests, and initial research UI.
