@@ -37,6 +37,7 @@ Phase 1 - Application Foundation is complete and approved.
   - API routes for health, project list, project creation, project lookup, and project SSE events.
   - Frontend command center shell with navigation, new launch form, project list, and live workspace task timeline.
   - Baseline unit/integration tests, typecheck, lint, build, and audit commands.
+- Pushed Phase 1 implementation commit `dd9b5ea` to `origin/main`.
 
 ## Architecture Summary
 
@@ -83,7 +84,7 @@ Current architecture:
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/test: available and passing as of Phase 1.
 - Phase 0 foundation commit: `d5f824b`.
-- Phase 1 commit: pending until commit/push completes.
+- Phase 1 implementation commit: `dd9b5ea`.
 
 ## Environment Assumptions
 
