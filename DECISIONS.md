@@ -96,3 +96,23 @@ Reason: SSE is simple, browser-native, and appropriate for one-way status stream
 Consequences: Later phases can keep SSE or add WebSocket if bidirectional agent controls require it.
 
 Reversibility: High.
+
+## 2026-08-31 - Google ADK TypeScript Runtime
+
+Decision: Integrate the Orchestrator through the official `@google/adk` TypeScript package.
+
+Context: Phase 2 requires Google ADK integration, model configurability, Orchestrator Agent, structured tool interfaces, workflow state, and local tests.
+
+Alternatives:
+
+- Delay ADK integration until later.
+- Simulate ADK with local interfaces only.
+- Use a non-Google/community wrapper.
+
+Chosen Approach: Add `packages/agents` with a real ADK `Agent` and ADK `FunctionTool`, while keeping deterministic local execution credential-free for tests.
+
+Reason: This satisfies the architecture direction while avoiding required live model credentials during local CI-style checks.
+
+Consequences: Current `@google/adk@2.0.0` introduces unresolved npm audit findings through transitive dependencies. Phase 2 remains blocked until those are resolved or explicitly accepted.
+
+Reversibility: Medium.

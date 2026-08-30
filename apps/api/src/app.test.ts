@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createDeterministicWorkflowPlan, type OrchestratorRuntime } from "@launchforge/agents";
 import { createApp } from "./app.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
@@ -23,7 +24,8 @@ beforeEach(async () => {
   app = createApp({
     config: { ...config, DATA_DIR: dataDir },
     projects: new FileProjectRepository(dataDir),
-    events: new EventBus()
+    events: new EventBus(),
+    orchestrator: createFakeOrchestrator()
   });
 });
 
@@ -48,8 +50,9 @@ describe("LaunchForge API foundation", () => {
       .send({ idea: "Launch an AI interview-preparation platform for university students." })
       .expect(201);
 
-    expect(createResponse.body.project.status).toBe("planning");
-    expect(createResponse.body.project.tasks).toHaveLength(7);
+    expect(createResponse.body.project.status).toBe("active");
+    expect(createResponse.body.project.tasks).toHaveLength(8);
+    expect(createResponse.body.project.tasks[0].status).toBe("complete");
 
     const listResponse = await request(app).get("/api/projects").expect(200);
 
@@ -68,5 +71,27 @@ describe("LaunchForge API foundation", () => {
 
     expect(response.body.error).toBe("Project not found.");
   });
+
+  it("refreshes orchestration for an existing project", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/orchestrate`)
+      .expect(200);
+
+    expect(response.body.plan.steps).toHaveLength(8);
+    expect(response.body.project.status).toBe("active");
+  });
 });
 
+function createFakeOrchestrator(): OrchestratorRuntime {
+  return {
+    adkAgent: {} as OrchestratorRuntime["adkAgent"],
+    async planLaunch(input) {
+      return createDeterministicWorkflowPlan(input.projectId, input.idea);
+    }
+  };
+}

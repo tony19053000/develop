@@ -33,6 +33,22 @@ export const createLaunchProjectSchema = z.object({
   idea: z.string().trim().min(10, "Describe the startup idea in at least 10 characters.").max(1000)
 });
 
+export const workflowStepSchema = z.object({
+  id: z.string(),
+  agent: agentRoleSchema,
+  title: z.string(),
+  dependsOn: z.array(z.string()),
+  status: agentTaskStatusSchema
+});
+
+export const launchWorkflowPlanSchema = z.object({
+  projectId: z.string(),
+  objective: z.string(),
+  summary: z.string(),
+  steps: z.array(workflowStepSchema).min(1),
+  createdAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -71,6 +87,8 @@ export type AgentTaskStatus = z.infer<typeof agentTaskStatusSchema>;
 export type CreateLaunchProjectInput = z.infer<typeof createLaunchProjectSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
+export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;
+export type WorkflowStep = z.infer<typeof workflowStepSchema>;
 
 export function calculateProjectProgress(tasks: AgentTask[]): number {
   if (tasks.length === 0) {
@@ -135,3 +153,12 @@ export function createInitialAgentTasks(now: string): AgentTask[] {
   ];
 }
 
+export function tasksFromWorkflowPlan(plan: LaunchWorkflowPlan, now: string): AgentTask[] {
+  return plan.steps.map((step) => ({
+    id: step.id,
+    agent: step.agent,
+    title: step.title,
+    status: step.status,
+    updatedAt: now
+  }));
+}

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { calculateProjectProgress, createInitialAgentTasks, createLaunchProjectSchema } from "./index.js";
+import {
+  calculateProjectProgress,
+  createInitialAgentTasks,
+  createLaunchProjectSchema,
+  launchWorkflowPlanSchema,
+  tasksFromWorkflowPlan
+} from "./index.js";
 
 describe("shared launch contracts", () => {
   it("validates useful launch ideas", () => {
@@ -26,5 +32,32 @@ describe("shared launch contracts", () => {
 
     expect(calculateProjectProgress(tasks)).toBe(29);
   });
-});
 
+  it("maps workflow plans into agent tasks", () => {
+    const plan = launchWorkflowPlanSchema.parse({
+      projectId: "project-1",
+      objective: "Launch a product",
+      summary: "A structured launch plan.",
+      createdAt: "2026-08-31T00:00:00.000Z",
+      steps: [
+        {
+          id: "orchestrator-plan",
+          agent: "orchestrator",
+          title: "Create launch plan",
+          dependsOn: [],
+          status: "complete"
+        }
+      ]
+    });
+
+    expect(tasksFromWorkflowPlan(plan, "2026-08-31T00:01:00.000Z")).toEqual([
+      {
+        id: "orchestrator-plan",
+        agent: "orchestrator",
+        title: "Create launch plan",
+        status: "complete",
+        updatedAt: "2026-08-31T00:01:00.000Z"
+      }
+    ]);
+  });
+});

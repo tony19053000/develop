@@ -6,7 +6,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 2 - Google ADK + Orchestrator is next.
+Phase 2 - Google ADK + Orchestrator is in progress and blocked on dependency audit.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -38,6 +38,16 @@ Phase 1 - Application Foundation is complete and approved.
   - Frontend command center shell with navigation, new launch form, project list, and live workspace task timeline.
   - Baseline unit/integration tests, typecheck, lint, build, and audit commands.
 - Pushed Phase 1 implementation commit `dd9b5ea` to `origin/main`.
+- Added Phase 2 local implementation:
+  - `packages/agents` workspace.
+  - `@google/adk@2.0.0` integration.
+  - ADK Orchestrator `Agent` with configurable model.
+  - ADK `FunctionTool` named `create_launch_workflow`.
+  - Deterministic credential-free workflow planner used through the ADK tool wrapper.
+  - Shared workflow plan schemas and task mapping helpers.
+  - API orchestration on project creation.
+  - API route `POST /api/projects/:projectId/orchestrate`.
+  - Tests for shared workflow mapping, ADK runtime construction, planner behavior, and API orchestration.
 
 ## Architecture Summary
 
@@ -49,6 +59,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - Google ADK agent runtime is next.
+- Google ADK Orchestrator package is implemented locally but not approved because of dependency audit findings.
 - Sponsor adapter layer for SerpApi, name.com, Xano, and Foxit is planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
@@ -63,6 +74,7 @@ Current architecture:
 - Do not claim TEE behavior is hardware-backed until a real platform is implemented.
 - Use npm workspaces with TypeScript, React/Vite, Express, Zod, Vitest, and ESLint for the Phase 1 foundation.
 - Use SSE for Phase 1 realtime server-to-client agent/project events.
+- Use `@google/adk@2.0.0` for Phase 2 because it is the current official TypeScript ADK package, with the caveat that its transitive dependency audit findings remain unresolved.
 
 ## Recent Commands
 
@@ -76,13 +88,16 @@ Current architecture:
 - `npm run lint`
 - `npm run build`
 - `npm audit --audit-level=moderate`
+- `npm view @google/adk version description`
+- `npm audit fix`
 
 ## Baseline Results
 
 - Git history: no commits at start.
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
-- Build/test: available and passing as of Phase 1.
+- Build/typecheck/test/lint: passing with Phase 2 code.
+- npm audit: failing because of `@google/adk@2.0.0` transitive dependencies.
 - Phase 0 foundation commit: `d5f824b`.
 - Phase 1 implementation commit: `dd9b5ea`.
 
@@ -94,8 +109,8 @@ Current architecture:
 
 ## Blockers
 
-None for Phase 1.
+Phase 2 blocker: `npm audit --audit-level=moderate` reports vulnerabilities introduced by the current official `@google/adk@2.0.0` dependency tree. `npm audit fix` cannot resolve them without npm suggesting a breaking package change. Attempted overrides made the dependency tree invalid, so they were removed.
 
 ## Next Exact Task
 
-Begin Phase 2 by integrating Google ADK behind a model/provider abstraction and implementing the first Orchestrator workflow that turns a launch request into structured workflow tasks and events.
+Next exact task: resolve the ADK dependency audit blocker, either by finding a compatible patched `@google/adk` release, selecting an approved older ADK version after verifying its API and audit state, or documenting an explicit user-approved audit exception.

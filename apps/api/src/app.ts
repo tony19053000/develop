@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import type { OrchestratorRuntime } from "@launchforge/agents";
 import { createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -10,9 +11,10 @@ export interface AppDependencies {
   config: ApiConfig;
   projects: ProjectRepository;
   events: EventBus;
+  orchestrator: OrchestratorRuntime;
 }
 
-export function createApp({ config, projects, events }: AppDependencies) {
+export function createApp({ config, projects, events, orchestrator }: AppDependencies) {
   const app = express();
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
@@ -37,12 +39,25 @@ export function createApp({ config, projects, events }: AppDependencies) {
   app.post("/api/projects", async (request, response, next) => {
     try {
       const input = createLaunchProjectSchema.parse(request.body);
-      const project = await projects.create(input);
+      const createdProject = await projects.create(input);
+      events.publish({
+        projectId: createdProject.id,
+        agent: "orchestrator",
+        level: "info",
+        message: "Launch project created. Orchestrator is creating the initial workflow."
+      });
+
+      const plan = await orchestrator.planLaunch({
+        projectId: createdProject.id,
+        idea: createdProject.idea
+      });
+      const project = await projects.applyWorkflowPlan(createdProject.id, plan);
+
       events.publish({
         projectId: project.id,
         agent: "orchestrator",
-        level: "info",
-        message: "Launch project created and orchestration is ready for Phase 2."
+        level: "success",
+        message: "Initial launch workflow created with Google ADK orchestration."
       });
       response.status(201).json({ project });
     } catch (error) {
@@ -59,6 +74,40 @@ export function createApp({ config, projects, events }: AppDependencies) {
       }
 
       response.json({ project });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/orchestrate", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "orchestrator",
+        level: "info",
+        message: "Orchestrator refresh requested."
+      });
+
+      const plan = await orchestrator.planLaunch({
+        projectId: existingProject.id,
+        idea: existingProject.idea
+      });
+      const project = await projects.applyWorkflowPlan(existingProject.id, plan);
+
+      events.publish({
+        projectId: project.id,
+        agent: "orchestrator",
+        level: "success",
+        message: "Launch workflow refreshed."
+      });
+
+      response.json({ project, plan });
     } catch (error) {
       next(error);
     }
@@ -104,4 +153,3 @@ export function createApp({ config, projects, events }: AppDependencies) {
 
   return app;
 }
-

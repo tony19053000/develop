@@ -8,7 +8,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | --- | --- | ---: | --- |
 | 0 | Project Analysis & Master Design | 4 | 100% complete |
 | 1 | Application Foundation | 6 | 100% complete |
-| 2 | Google ADK + Orchestrator | 6 | 0% pending |
+| 2 | Google ADK + Orchestrator | 6 | Implementation present, blocked on ADK dependency audit |
 | 3 | SerpApi + Market & Brand Agent | 6 | 0% pending |
 | 4 | name.com + Domain Agent | 5 | 0% pending |
 | 5 | AgentLatch Policy Engine | 7 | 0% pending |
@@ -33,7 +33,7 @@ Phase 2 - Google ADK + Orchestrator.
 
 ## Current Task
 
-Integrate Google ADK and implement the first Orchestrator workflow in the next development session.
+Resolve the `@google/adk@2.0.0` transitive dependency audit blocker or choose an approved ADK version/strategy.
 
 ## Baseline
 
@@ -42,18 +42,21 @@ Integrate Google ADK and implement the first Orchestrator workflow in the next d
 - Frontend: React + Vite command center shell.
 - Backend: Express API with validation, error handling, project routes, file-backed storage, and SSE event foundation.
 - Shared package: typed launch project, task, event, and validation contracts.
+- Phase 2 local implementation adds `@launchforge/agents`, Google ADK Orchestrator Agent construction, ADK FunctionTool workflow planning, API orchestration on project creation, and orchestration refresh endpoint.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 9 tests.
+- Tests: passed, 14 tests.
 - Lint: passed.
 - Build: passed.
-- npm audit: passed, 0 vulnerabilities.
+- npm audit: blocked by `@google/adk@2.0.0` transitive dependencies: OpenTelemetry packages, `adm-zip`, and `gaxios`/`uuid`.
 
 ## Review Status
 
-Reviewer/Tester result for Phase 1: APPROVED.
+Reviewer/Tester result for Phase 2: CHANGES REQUIRED.
+
+Required change: resolve or formally accept the current official Google ADK package dependency audit findings before Phase 2 can be approved.
 
 ## GitHub Status
 
@@ -80,3 +83,7 @@ Planned.
 ## Demo Readiness
 
 Partially demo-ready. A user can run the local app, create a launch project, and view the initial live workspace foundation. Real agents and sponsor integrations begin in later phases.
+
+## Blockers
+
+- Phase 2 cannot be marked complete while `npm audit --audit-level=moderate` reports vulnerabilities introduced by `@google/adk@2.0.0`.

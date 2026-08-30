@@ -5,14 +5,17 @@ import {
   calculateProjectProgress,
   createInitialAgentTasks,
   launchProjectListSchema,
+  tasksFromWorkflowPlan,
   type CreateLaunchProjectInput,
-  type LaunchProject
+  type LaunchProject,
+  type LaunchWorkflowPlan
 } from "@launchforge/shared";
 
 export interface ProjectRepository {
   list(): Promise<LaunchProject[]>;
   findById(id: string): Promise<LaunchProject | undefined>;
   create(input: CreateLaunchProjectInput): Promise<LaunchProject>;
+  applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject>;
 }
 
 export class FileProjectRepository implements ProjectRepository {
@@ -51,6 +54,35 @@ export class FileProjectRepository implements ProjectRepository {
     return project;
   }
 
+  async applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const tasks = tasksFromWorkflowPlan(plan, now);
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: "active",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
   private async readProjects(): Promise<LaunchProject[]> {
     try {
       const content = await readFile(this.filePath, "utf8");
@@ -87,4 +119,3 @@ function deriveWorkingName(idea: string): string {
 function isMissingFileError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
-
