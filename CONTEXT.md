@@ -6,11 +6,12 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 3 - SerpApi + Market & Brand Agent is in progress.
+Phase 4 - name.com + Domain Agent is next.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
 Phase 2 - LangGraph + Orchestrator is complete and approved.
+Phase 3 - SerpApi + Market & Brand Agent is complete and approved.
 
 ## Completed Work
 
@@ -57,6 +58,10 @@ Phase 2 - LangGraph + Orchestrator is complete and approved.
   - File-backed persistence for market research on launch projects.
   - Frontend research action and Market Intelligence result panel.
   - Unit and integration tests with mocked SerpApi responses.
+  - Live verification with a real `SERPAPI_API_KEY`, returning six competitor results, six market signal results, and six naming conflict results.
+- Added API config loading improvements:
+  - The API now discovers the nearest parent `.env` so root-level setup works with npm workspace commands.
+  - Relative `DATA_DIR` values resolve from the `.env` file directory.
 
 ## Architecture Summary
 
@@ -68,7 +73,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has a SerpApi implementation; name.com, Xano, and Foxit are planned.
+- Sponsor adapter layer has a live-verified SerpApi implementation; name.com, Xano, and Foxit are planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
 - Audit trail with redaction and exact action tracking is planned.
@@ -97,6 +102,8 @@ Current architecture:
 - `npm run lint`
 - `npm run build`
 - `npm audit --audit-level=moderate`
+- `npm run start -w @launchforge/api`
+- Live `POST /api/projects/:projectId/research/market`
 - `npm view @langchain/langgraph version description`
 - `npm audit fix`
 - `npm run typecheck`
@@ -111,21 +118,23 @@ Current architecture:
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/typecheck/test/lint: passing with Phase 3 implementation.
-- npm audit: passing after replacing ADK with LangGraph.
+- npm audit: passing, 0 vulnerabilities.
+- Live SerpApi endpoint verification: passed.
 - Phase 0 foundation commit: `d5f824b`.
 - Phase 1 implementation commit: `dd9b5ea`.
 - Phase 2 implementation commit: `742dfee`.
+- Phase 3 implementation commit: `9d9c646`.
 
 ## Environment Assumptions
 
 - Current workspace: `/home/aayush/Desktop/devlopment`.
 - Real credentials must be provided through local environment variables and never committed.
-- `SERPAPI_API_KEY` is required to verify live Phase 3 sponsor behavior.
+- `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
 
 ## Blockers
 
-Phase 3 cannot be marked complete until a real SerpApi key is configured and the live research endpoint is verified.
+None for Phase 3.
 
 ## Next Exact Task
 
-Set `SERPAPI_API_KEY` in `.env`, start the API/web app, create a project, and run `POST /api/projects/:projectId/research/market` or the web "Run Research" action to verify real SerpApi results.
+Begin Phase 4 by implementing the name.com domain adapter, Domain Agent, domain availability research, structured domain recommendations, tests, and initial UI handoff from Phase 3 brand output.

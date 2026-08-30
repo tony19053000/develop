@@ -1,6 +1,10 @@
-import "dotenv/config";
+import { existsSync } from "node:fs";
 import path from "node:path";
+import dotenv from "dotenv";
 import { z } from "zod";
+
+const envFilePath = findEnvFile(process.cwd());
+dotenv.config({ path: envFilePath });
 
 const configSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -13,5 +17,30 @@ const configSchema = z.object({
 export type ApiConfig = z.infer<typeof configSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
-  return configSchema.parse(env);
+  const config = configSchema.parse(env);
+
+  return {
+    ...config,
+    DATA_DIR: path.isAbsolute(config.DATA_DIR) ? config.DATA_DIR : path.resolve(path.dirname(envFilePath), config.DATA_DIR)
+  };
+}
+
+function findEnvFile(startDir: string): string {
+  let currentDir = startDir;
+
+  while (true) {
+    const candidate = path.join(currentDir, ".env");
+
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+
+    const parentDir = path.dirname(currentDir);
+
+    if (parentDir === currentDir) {
+      return path.join(startDir, ".env");
+    }
+
+    currentDir = parentDir;
+  }
 }

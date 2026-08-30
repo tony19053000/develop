@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 16%
+## Overall Completion: 22%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -9,7 +9,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 0 | Project Analysis & Master Design | 4 | 100% complete |
 | 1 | Application Foundation | 6 | 100% complete |
 | 2 | LangGraph + Orchestrator | 6 | 100% complete |
-| 3 | SerpApi + Market & Brand Agent | 6 | implementation present, pending real key verification |
+| 3 | SerpApi + Market & Brand Agent | 6 | 100% complete |
 | 4 | name.com + Domain Agent | 5 | 0% pending |
 | 5 | AgentLatch Policy Engine | 7 | 0% pending |
 | 6 | Human Approval System | 7 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 3 - SerpApi + Market & Brand Agent.
+Phase 4 - name.com + Domain Agent.
 
 ## Current Task
 
-Verify the Phase 3 SerpApi integration with a real `SERPAPI_API_KEY`.
+Begin the name.com domain search adapter and Domain Agent.
 
 ## Baseline
 
@@ -52,12 +52,13 @@ Verify the Phase 3 SerpApi integration with a real `SERPAPI_API_KEY`.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
+- Live SerpApi verification: passed with real `SERPAPI_API_KEY`; returned competitor, market signal, and naming conflict evidence.
 
 ## Review Status
 
 Reviewer/Tester result for Phase 2: APPROVED.
 
-Reviewer/Tester result for Phase 3: PENDING real SerpApi credential verification.
+Reviewer/Tester result for Phase 3: APPROVED.
 
 ## GitHub Status
 
@@ -66,11 +67,12 @@ Reviewer/Tester result for Phase 3: PENDING real SerpApi credential verification
 - Push status: pushed to `origin/main`.
 - Phase 1 implementation commit: `dd9b5ea`, pushed to `origin/main`.
 - Phase 2 implementation commit: `742dfee`, pushed to `origin/main`.
-- Phase 3 implementation commit: pending until commit/push completes.
+- Phase 3 implementation commit: `9d9c646`, pushed to `origin/main`.
+- Phase 3 verification/config commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
-- SerpApi: adapter and Market & Brand Agent implemented; pending verification with real `SERPAPI_API_KEY`.
+- SerpApi: implemented and live verified.
 - name.com: planned.
 - Xano: planned.
 - Foxit: planned.
@@ -85,8 +87,8 @@ Planned.
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, and trigger Market & Brand research after configuring `SERPAPI_API_KEY`.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, and trigger live SerpApi-backed Market & Brand research.
 
 ## Blockers
 
-Real SerpApi verification requires `SERPAPI_API_KEY` in the local environment.
+None for Phase 3. Phase 4 will require name.com credentials before protected registration can be live verified.

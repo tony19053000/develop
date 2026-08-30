@@ -28,7 +28,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Express backend application service exposing APIs and realtime event streams.
 - File-backed Phase 1 project state store for launch projects and initial agent tasks.
 - Agent/workflow runtime using LangGraph with replaceable model/provider configuration.
-- Tool adapter layer for sponsor integrations. SerpApi is implemented for Phase 3 market research; remaining sponsor adapters are planned.
+- Tool adapter layer for sponsor integrations. SerpApi is implemented and live verified for market research; remaining sponsor adapters are planned.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
 - SecureExecutor abstraction that later maps privileged execution to a real TEE/confidential computing platform.
 
@@ -95,7 +95,7 @@ The system must never claim a local simulation is hardware-backed.
 
 Each sponsor integration should live behind a narrow adapter:
 
-- SerpApiAdapter for web intelligence. PARTIAL: implemented with Google Search and organic result mapping; live verification requires `SERPAPI_API_KEY`.
+- SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS.
 - XanoAdapter for backend provisioning and metadata.
 - FoxitAdapter for document and eSign workflows.
