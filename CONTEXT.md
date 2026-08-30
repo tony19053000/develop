@@ -60,7 +60,7 @@ Planned architecture:
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/test: unavailable because no app exists yet.
-- Phase 0 local commit: `96a2cc9`.
+- Phase 0 foundation commit: `d5f824b`.
 
 ## Environment Assumptions
 
