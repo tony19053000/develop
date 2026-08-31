@@ -156,3 +156,23 @@ Reason: Availability lookup is safe research behavior, but registration is a sen
 Consequences: Phase 4 can recommend available domains once credentials are configured, while actual purchase remains blocked until AgentLatch and secure execution exist.
 
 Reversibility: High.
+
+## 2026-08-31 - Deterministic AgentLatch Policy Engine
+
+Decision: Implement AgentLatch as deterministic infrastructure, not as an LLM agent.
+
+Context: The core safety requirement is that agents may request sensitive actions but cannot authorize or execute them directly.
+
+Alternatives:
+
+- Let agents self-classify risk.
+- Add approval checks inside each sponsor adapter only.
+- Delay policy evaluation until human approval UI exists.
+
+Chosen Approach: Add `@launchforge/agentlatch` with structured action requests, fixed policy categories, exact payload hashing, and a protected tool executor that blocks non-executable decisions.
+
+Reason: A central deterministic gate gives later approval, secure execution, and audit phases a stable contract.
+
+Consequences: Phase 5 can block protected execution before approval storage exists. Phase 6 will persist approval requests and convert eligible approval decisions into executable authorizations.
+
+Reversibility: Medium.

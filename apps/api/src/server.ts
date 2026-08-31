@@ -1,3 +1,4 @@
+import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { createDomainAgent, createMarketBrandAgent, createOrchestratorRuntime, loadAgentModelConfig } from "@launchforge/agents";
 import { HttpNameComClient, HttpSerpApiClient } from "@launchforge/integrations";
 import { loadConfig } from "./config.js";
@@ -7,6 +8,7 @@ import { FileProjectRepository } from "./storage.js";
 
 const config = loadConfig();
 const orchestrator = createOrchestratorRuntime(loadAgentModelConfig());
+const agentLatch = createAgentLatchPolicyEngine();
 const marketBrand = createMarketBrandAgent(
   new HttpSerpApiClient(config.SERPAPI_API_KEY ? { apiKey: config.SERPAPI_API_KEY } : {})
 );
@@ -27,7 +29,8 @@ const app = createApp({
   events: new EventBus(),
   orchestrator,
   marketBrand,
-  domain
+  domain,
+  agentLatch
 });
 
 app.listen(config.API_PORT, () => {

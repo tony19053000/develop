@@ -13,7 +13,7 @@
 - Backend API: IMPLEMENTED.
 - Database/storage: PARTIAL.
 - LangGraph orchestration: IMPLEMENTED.
-- AgentLatch policy engine: PLANNED.
+- AgentLatch policy engine: IMPLEMENTED.
 - Approval system: PLANNED.
 - TEE secure executor: PLANNED.
 - Sponsor integrations: PARTIAL.
@@ -53,7 +53,7 @@ Secrets must not be available to the frontend, prompts, LLM outputs, browser log
 
 ## AgentLatch
 
-AgentLatch is deterministic infrastructure. It must classify structured action requests into:
+AgentLatch is deterministic infrastructure. It classifies structured action requests into:
 
 - AUTO_ALLOW.
 - APPROVAL_REQUIRED.
@@ -61,7 +61,7 @@ AgentLatch is deterministic infrastructure. It must classify structured action r
 - HUMAN_ONLY.
 - DENY.
 
-AgentLatch owns policy evaluation, authorization checks, replay prevention, exact payload binding, and audit events for action decisions.
+AgentLatch currently owns policy evaluation, protected execution interception, and exact payload hashing. Phase 6 adds approval persistence; later phases add replay prevention backed by durable authorization state and audit events.
 
 ## Approval System
 

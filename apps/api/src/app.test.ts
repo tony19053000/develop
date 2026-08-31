@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import {
   createDeterministicWorkflowPlan,
   type DomainAgent,
@@ -32,7 +33,8 @@ beforeEach(async () => {
     events: new EventBus(),
     orchestrator: createFakeOrchestrator(),
     marketBrand: createFakeMarketBrand(),
-    domain: createFakeDomainAgent()
+    domain: createFakeDomainAgent(),
+    agentLatch: createAgentLatchPolicyEngine()
   });
 });
 
@@ -130,6 +132,26 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.project.tasks).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "domain-research", status: "complete" })])
     );
+  });
+
+  it("evaluates protected action requests through AgentLatch", async () => {
+    const response = await request(app)
+      .post("/api/agentlatch/evaluate")
+      .send({
+        projectId: "project-1",
+        requestedBy: "domain",
+        actionType: "namecom.registerDomain",
+        resource: "evidenceforge.com",
+        payload: { domainName: "evidenceforge.com", years: 1, price: 12.99 },
+        reason: "Register the recommended domain."
+      })
+      .expect(200);
+
+    expect(response.body.decision).toMatchObject({
+      decision: "HIGH_RISK_APPROVAL",
+      requiresHumanApproval: true,
+      executable: false
+    });
   });
 });
 

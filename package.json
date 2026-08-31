@@ -10,9 +10,9 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w @launchforge/api\" \"npm run dev -w @launchforge/web\"",
-    "build": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agents && npm run build -w @launchforge/api && npm run build -w @launchforge/web",
-    "typecheck": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agents && npm run typecheck -w @launchforge/api && npm run typecheck -w @launchforge/web",
-    "test": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agents && npm run test -w @launchforge/shared && npm run test -w @launchforge/integrations && npm run test -w @launchforge/agents && npm run test -w @launchforge/api && npm run test -w @launchforge/web",
+    "build": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agentlatch && npm run build -w @launchforge/agents && npm run build -w @launchforge/api && npm run build -w @launchforge/web",
+    "typecheck": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agentlatch && npm run build -w @launchforge/agents && npm run typecheck -w @launchforge/api && npm run typecheck -w @launchforge/web",
+    "test": "npm run build -w @launchforge/shared && npm run build -w @launchforge/integrations && npm run build -w @launchforge/agentlatch && npm run build -w @launchforge/agents && npm run test -w @launchforge/shared && npm run test -w @launchforge/integrations && npm run test -w @launchforge/agentlatch && npm run test -w @launchforge/agents && npm run test -w @launchforge/api && npm run test -w @launchforge/web",
     "lint": "eslint ."
   },
   "devDependencies": {

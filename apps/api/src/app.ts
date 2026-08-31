@@ -1,5 +1,7 @@
 import cors from "cors";
 import express from "express";
+import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
+import { toolActionRequestSchema } from "@launchforge/agentlatch";
 import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
 import { NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
 import { createLaunchProjectSchema } from "@launchforge/shared";
@@ -15,9 +17,10 @@ export interface AppDependencies {
   orchestrator: OrchestratorRuntime;
   marketBrand: MarketBrandAgent;
   domain: DomainAgent;
+  agentLatch: AgentLatchPolicyEngine;
 }
 
-export function createApp({ config, projects, events, orchestrator, marketBrand, domain }: AppDependencies) {
+export function createApp({ config, projects, events, orchestrator, marketBrand, domain, agentLatch }: AppDependencies) {
   const app = express();
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
@@ -193,6 +196,24 @@ export function createApp({ config, projects, events, orchestrator, marketBrand,
         return;
       }
 
+      next(error);
+    }
+  });
+
+  app.post("/api/agentlatch/evaluate", async (request, response, next) => {
+    try {
+      const actionRequest = toolActionRequestSchema.parse(request.body);
+      const decision = agentLatch.evaluate(actionRequest);
+
+      events.publish({
+        projectId: actionRequest.projectId,
+        agent: "agentlatch",
+        level: decision.executable ? "success" : "warning",
+        message: `AgentLatch classified ${actionRequest.actionType} as ${decision.decision}.`
+      });
+
+      response.json({ decision });
+    } catch (error) {
       next(error);
     }
   });
