@@ -15,7 +15,7 @@
 - LangGraph orchestration: IMPLEMENTED.
 - AgentLatch policy engine: IMPLEMENTED.
 - Approval system: IMPLEMENTED.
-- TEE secure executor: PARTIAL.
+- TEE secure executor: IMPLEMENTED.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: PLANNED.
@@ -30,7 +30,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Agent/workflow runtime using LangGraph with replaceable model/provider configuration.
 - Tool adapter layer for sponsor integrations. SerpApi and name.com availability are implemented and live verified; remaining sponsor adapters are planned.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
-- SecureExecutor abstraction that maps privileged execution to development mode now and Google Confidential Space evidence mode for real TEE deployment.
+- SecureExecutor abstraction that maps privileged execution to development mode locally and Google Confidential Space mode in production with Google-signed attestation verification.
 
 ## Trust Boundaries
 
@@ -81,7 +81,7 @@ Human-only actions, such as signing legal documents as the user, cannot be conve
 
 ## TEE / Secure Execution
 
-The SecureExecutor abstraction is implemented. The selected real confidential computing technology is Google Confidential Space.
+The SecureExecutor abstraction is implemented. The selected and verified real confidential computing technology is Google Confidential Space.
 
 Considered platforms:
 
@@ -89,7 +89,7 @@ Considered platforms:
 - Google Confidential VM: viable platform family, but less specific to the single-workload secure execution path.
 - AWS Nitro Enclaves: viable alternative with strong isolation and attestation, but it requires an EC2/enclave architecture that is heavier for the current app shape.
 
-The system must never claim local development execution is hardware-backed. Hardware-backed status requires a real Google Confidential Space deployment and attestation verification.
+The system must never claim local development execution is hardware-backed. Hardware-backed status requires a real Google Confidential Space deployment and attestation verification. Phase 7 verified production Confidential Space execution in project `launchforge-tee` using workload image digest `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5` and service account `launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`.
 
 ## Sponsor Adapters
 
@@ -144,7 +144,9 @@ packages/
   agentlatch/
   integrations/
   agents/
-  integrations/
+  secure-executor/
+infra/
+  secure-executor/
 docs/
 tests/
 ```

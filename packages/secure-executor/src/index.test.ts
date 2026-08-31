@@ -7,7 +7,9 @@ import {
 import {
   createSecureExecutor,
   SecureExecutionError,
+  assertGoogleConfidentialSpaceClaims,
   verifySecureExecutionEvidence,
+  type AttestationVerifier,
   type SecretProvider
 } from "./index.js";
 
@@ -117,17 +119,17 @@ describe("SecureExecutor", () => {
     ).resolves.toMatchObject({ result: { tokenSeen: true } });
   });
 
-  it("requires attestation evidence in Google Confidential Space mode", () => {
-    expect(() =>
+  it("requires attestation evidence in Google Confidential Space mode", async () => {
+    await expect(
       verifySecureExecutionEvidence({
         mode: "google_confidential_space",
         allowedSecretNames: []
       })
-    ).toThrow(SecureExecutionError);
+    ).rejects.toThrow(SecureExecutionError);
   });
 
-  it("accepts structured Google Confidential Space evidence", () => {
-    expect(
+  it("accepts verified Google Confidential Space evidence", async () => {
+    await expect(
       verifySecureExecutionEvidence({
         mode: "google_confidential_space",
         allowedSecretNames: [],
@@ -137,9 +139,46 @@ describe("SecureExecutor", () => {
           workloadIdentity: "launchforge-secure-executor@project.iam.gserviceaccount.com",
           imageDigest: "sha256:1234567890abcdef",
           verifiedAt: "2026-08-31T00:00:00.000Z"
-        }
+        },
+        attestationVerifier: createFakeGoogleAttestationVerifier()
       })
-    ).toBe(true);
+    ).resolves.toBe(true);
+  });
+
+  it("rejects Google Confidential Space evidence for the wrong workload image", async () => {
+    await expect(
+      verifySecureExecutionEvidence({
+        mode: "google_confidential_space",
+        allowedSecretNames: [],
+        evidence: {
+          provider: "google_confidential_space",
+          attestationToken: "attestation-token-with-enough-length",
+          workloadIdentity: "launchforge-secure-executor@project.iam.gserviceaccount.com",
+          imageDigest: "sha256:approveddigest",
+          verifiedAt: "2026-08-31T00:00:00.000Z"
+        },
+        attestationVerifier: createFakeGoogleAttestationVerifier({ imageDigest: "sha256:tampereddigest" })
+      })
+    ).rejects.toThrow("image digest");
+  });
+
+  it("rejects Google Confidential Space evidence for the wrong workload identity", async () => {
+    await expect(
+      verifySecureExecutionEvidence({
+        mode: "google_confidential_space",
+        allowedSecretNames: [],
+        evidence: {
+          provider: "google_confidential_space",
+          attestationToken: "attestation-token-with-enough-length",
+          workloadIdentity: "launchforge-secure-executor@project.iam.gserviceaccount.com",
+          imageDigest: "sha256:1234567890abcdef",
+          verifiedAt: "2026-08-31T00:00:00.000Z"
+        },
+        attestationVerifier: createFakeGoogleAttestationVerifier({
+          workloadIdentity: "other-workload@project.iam.gserviceaccount.com"
+        })
+      })
+    ).rejects.toThrow("service account");
   });
 
   it("does not call protected operations when validation fails", async () => {
@@ -165,3 +204,41 @@ describe("SecureExecutor", () => {
     expect(operation).not.toHaveBeenCalled();
   });
 });
+
+function createFakeGoogleAttestationVerifier(
+  overrides: { workloadIdentity?: string; imageDigest?: string } = {}
+): AttestationVerifier {
+  return async (_evidence, policy) => {
+    const payload = createGoogleConfidentialSpaceClaimsForTest({
+      workloadIdentity: overrides.workloadIdentity ?? policy.expectedWorkloadIdentity ?? "",
+      imageDigest: overrides.imageDigest ?? policy.expectedImageDigest ?? "",
+      policy
+    });
+
+    assertGoogleConfidentialSpaceClaims(payload, policy);
+    return payload;
+  };
+}
+
+function createGoogleConfidentialSpaceClaimsForTest(input: {
+  workloadIdentity: string;
+  imageDigest: string;
+  policy: Parameters<AttestationVerifier>[1];
+}) {
+  return {
+    iss: "https://confidentialcomputing.googleapis.com",
+    aud: input.policy.audience,
+    swname: "CONFIDENTIAL_SPACE",
+    dbgstat: "disabled-since-boot",
+    secboot: true,
+    google_service_accounts: [input.workloadIdentity],
+    submods: {
+      confidential_space: {
+        support_attributes: ["STABLE", "USABLE"]
+      },
+      container: {
+        image_digest: input.imageDigest
+      }
+    }
+  };
+}

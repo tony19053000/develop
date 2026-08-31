@@ -117,6 +117,26 @@ Consequences: The master prompt's original Google ADK preference is superseded b
 
 Reversibility: Medium.
 
+## 2026-08-31 - Real Confidential Space Attestation Gate
+
+Decision: Require Google-signed Confidential Space attestation verification before SecureExecutor receipts can report `evidenceVerified: true`.
+
+Context: Phase 7 must prove real TEE execution without API keys, OAuth client secrets, service-account JSON keys, or long-lived cloud credentials.
+
+Alternatives:
+
+- Accept structured attestation fields without signature verification.
+- Keep Phase 7 in local development mode.
+- Use debug Confidential Space images for easier logging.
+
+Chosen Approach: Package the SecureExecutor workload as a container, push it to Artifact Registry, run it on a production Google Confidential Space VM, retrieve an attestation token from the launcher `/v1/token` endpoint, and verify the signed token against expected audience, workload service account, image digest, image reference, project, zone, secure boot, stable support attributes, and production debug status.
+
+Reason: This gives LaunchForge a concrete hardware-backed execution proof while preserving the rule that agents and the frontend never receive sponsor credentials.
+
+Consequences: Local execution remains available but always reports `evidenceVerified: false`. Production verified receipts require current Confidential Space evidence matching the deployed workload policy.
+
+Reversibility: Medium.
+
 ## 2026-08-31 - SerpApi Evidence Adapter
 
 Decision: Implement Phase 3 market research through a narrow SerpApi adapter and store structured evidence on the launch project.

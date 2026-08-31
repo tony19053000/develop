@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import {
   createProtectedToolExecutor,
   hashPayload,
@@ -13,12 +14,31 @@ export const secureExecutorModeSchema = z.enum(["development", "google_confident
 
 export const teeProviderSchema = z.enum(["google_confidential_space"]);
 
+const googleConfidentialSpaceIssuer = "https://confidentialcomputing.googleapis.com";
+const googleConfidentialSpaceJwksUrl =
+  "https://www.googleapis.com/service_accounts/v1/metadata/jwk/signer@confidentialspace-sign.iam.gserviceaccount.com";
+
 export const secureExecutionEvidenceSchema = z.object({
   provider: teeProviderSchema,
   attestationToken: z.string().min(24),
   workloadIdentity: z.string().min(1),
   imageDigest: z.string().min(12),
+  imageReference: z.string().min(1).optional(),
   verifiedAt: z.string().datetime().default(() => new Date().toISOString())
+});
+
+export const googleConfidentialSpacePolicySchema = z.object({
+  audience: z.string().min(1).default("launchforge-secure-executor"),
+  expectedWorkloadIdentity: z.string().min(1).optional(),
+  expectedImageDigest: z.string().min(12).optional(),
+  expectedImageReference: z.string().min(1).optional(),
+  expectedProjectId: z.string().min(1).optional(),
+  expectedZone: z.string().min(1).optional(),
+  issuer: z.string().url().default(googleConfidentialSpaceIssuer),
+  jwksUrl: z.string().url().default(googleConfidentialSpaceJwksUrl),
+  requireProductionImage: z.boolean().default(true),
+  requireStableImage: z.boolean().default(true),
+  requireSecureBoot: z.boolean().default(true)
 });
 
 export const secureExecutionReceiptSchema = z.object({
@@ -36,6 +56,21 @@ export const secureExecutionReceiptSchema = z.object({
 export type SecureExecutionEvidence = z.infer<typeof secureExecutionEvidenceSchema>;
 export type SecureExecutionReceipt = z.infer<typeof secureExecutionReceiptSchema>;
 export type SecureExecutorMode = z.infer<typeof secureExecutorModeSchema>;
+type ResolvedGoogleConfidentialSpacePolicy = z.output<typeof googleConfidentialSpacePolicySchema>;
+
+export interface GoogleConfidentialSpacePolicy {
+  audience?: string;
+  expectedWorkloadIdentity?: string | undefined;
+  expectedImageDigest?: string | undefined;
+  expectedImageReference?: string | undefined;
+  expectedProjectId?: string | undefined;
+  expectedZone?: string | undefined;
+  issuer?: string;
+  jwksUrl?: string;
+  requireProductionImage?: boolean;
+  requireStableImage?: boolean;
+  requireSecureBoot?: boolean;
+}
 
 export interface SecretHandle {
   name: string;
@@ -50,6 +85,8 @@ export interface SecureExecutorConfig {
   mode: SecureExecutorMode;
   allowedSecretNames: string[];
   evidence?: SecureExecutionEvidence;
+  attestationPolicy?: GoogleConfidentialSpacePolicy;
+  attestationVerifier?: AttestationVerifier;
 }
 
 export interface SecureExecutionInput<T> {
@@ -65,6 +102,11 @@ export interface SecureOperationContext {
 export interface SecureExecutor {
   execute<T extends Record<string, unknown>>(input: SecureExecutionInput<T>): Promise<SecureExecutionReceipt>;
 }
+
+export type AttestationVerifier = (
+  evidence: SecureExecutionEvidence,
+  policy: ResolvedGoogleConfidentialSpacePolicy
+) => Promise<JWTPayload>;
 
 export class SecureExecutionError extends Error {
   constructor(message: string) {
@@ -91,14 +133,17 @@ export function createSecureExecutor(
 ): SecureExecutor {
   const parsedConfig = {
     ...config,
-    ...(config.evidence ? { evidence: secureExecutionEvidenceSchema.parse(config.evidence) } : {})
+    ...(config.evidence ? { evidence: secureExecutionEvidenceSchema.parse(config.evidence) } : {}),
+    ...(config.attestationPolicy
+      ? { attestationPolicy: googleConfidentialSpacePolicySchema.parse(config.attestationPolicy) }
+      : {})
   };
   const executeProtectedTool = createProtectedToolExecutor(agentLatch);
 
   return {
     async execute(input) {
       validateApproval(input.request, input.approval);
-      const evidenceVerified = verifySecureExecutionEvidence(parsedConfig);
+      const evidenceVerified = await verifySecureExecutionEvidence(parsedConfig);
       const result = await executeProtectedTool(
         input.request,
         () => input.operation(createSecureOperationContext(parsedConfig.allowedSecretNames, secrets)),
@@ -118,7 +163,7 @@ export function createSecureExecutor(
   };
 }
 
-export function verifySecureExecutionEvidence(config: SecureExecutorConfig): boolean {
+export async function verifySecureExecutionEvidence(config: SecureExecutorConfig): Promise<boolean> {
   if (config.mode === "development") {
     return false;
   }
@@ -133,7 +178,30 @@ export function verifySecureExecutionEvidence(config: SecureExecutorConfig): boo
     throw new SecureExecutionError("Unsupported TEE evidence provider.");
   }
 
+  const policy = googleConfidentialSpacePolicySchema.parse({
+    ...config.attestationPolicy,
+    expectedWorkloadIdentity: config.attestationPolicy?.expectedWorkloadIdentity ?? evidence.workloadIdentity,
+    expectedImageDigest: config.attestationPolicy?.expectedImageDigest ?? evidence.imageDigest,
+    expectedImageReference: config.attestationPolicy?.expectedImageReference ?? evidence.imageReference
+  });
+  const verifier = config.attestationVerifier ?? verifyGoogleConfidentialSpaceAttestation;
+  await verifier(evidence, policy);
+
   return true;
+}
+
+export async function verifyGoogleConfidentialSpaceAttestation(
+  evidence: SecureExecutionEvidence,
+  policy: ResolvedGoogleConfidentialSpacePolicy
+): Promise<JWTPayload> {
+  const jwks = createRemoteJWKSet(new URL(policy.jwksUrl));
+  const { payload } = await jwtVerify(evidence.attestationToken, jwks, {
+    issuer: policy.issuer,
+    audience: policy.audience
+  });
+
+  assertGoogleConfidentialSpaceClaims(payload, policy);
+  return payload;
 }
 
 function validateApproval(request: ToolActionRequest, approval: AgentLatchPolicyResult): void {
@@ -148,6 +216,81 @@ function validateApproval(request: ToolActionRequest, approval: AgentLatchPolicy
   if (approval.payloadHash !== hashPayload(request.payload)) {
     throw new ProtectedToolExecutionError("SecureExecutor approval payload hash does not match the action request.");
   }
+}
+
+export function assertGoogleConfidentialSpaceClaims(
+  payload: JWTPayload,
+  policy: ResolvedGoogleConfidentialSpacePolicy
+): void {
+  if (payload.swname !== "CONFIDENTIAL_SPACE") {
+    throw new SecureExecutionError("Attestation token is not for Google Confidential Space.");
+  }
+
+  if (policy.requireProductionImage && payload.dbgstat !== "disabled-since-boot") {
+    throw new SecureExecutionError("Attestation token is not from a production Confidential Space image.");
+  }
+
+  if (policy.requireSecureBoot && payload.secboot !== true) {
+    throw new SecureExecutionError("Attestation token does not prove Secure Boot.");
+  }
+
+  const serviceAccounts = getStringArrayClaim(payload, ["google_service_accounts"]);
+  if (!serviceAccounts.includes(policy.expectedWorkloadIdentity ?? "")) {
+    throw new SecureExecutionError("Attestation token workload service account does not match policy.");
+  }
+
+  const imageDigest = getStringClaim(payload, ["submods", "container", "image_digest"]);
+  if (imageDigest !== policy.expectedImageDigest) {
+    throw new SecureExecutionError("Attestation token image digest does not match policy.");
+  }
+
+  if (policy.expectedImageReference) {
+    const imageReference = getStringClaim(payload, ["submods", "container", "image_reference"]);
+    if (imageReference !== policy.expectedImageReference) {
+      throw new SecureExecutionError("Attestation token image reference does not match policy.");
+    }
+  }
+
+  if (policy.expectedProjectId) {
+    const projectId = getStringClaim(payload, ["submods", "gce", "project_id"]);
+    if (projectId !== policy.expectedProjectId) {
+      throw new SecureExecutionError("Attestation token project does not match policy.");
+    }
+  }
+
+  if (policy.expectedZone) {
+    const zone = getStringClaim(payload, ["submods", "gce", "zone"]);
+    if (zone !== policy.expectedZone) {
+      throw new SecureExecutionError("Attestation token zone does not match policy.");
+    }
+  }
+
+  if (policy.requireStableImage) {
+    const supportAttributes = getStringArrayClaim(payload, ["submods", "confidential_space", "support_attributes"]);
+    if (!supportAttributes.includes("STABLE")) {
+      throw new SecureExecutionError("Attestation token is not from a stable Confidential Space image.");
+    }
+  }
+}
+
+function getStringClaim(payload: JWTPayload, path: string[]): string | undefined {
+  const value = getClaim(payload, path);
+  return typeof value === "string" ? value : undefined;
+}
+
+function getStringArrayClaim(payload: JWTPayload, path: string[]): string[] {
+  const value = getClaim(payload, path);
+  return Array.isArray(value) && value.every((item): item is string => typeof item === "string") ? value : [];
+}
+
+function getClaim(payload: JWTPayload, path: string[]): unknown {
+  return path.reduce<unknown>((value, key) => {
+    if (typeof value !== "object" || value === null || !(key in value)) {
+      return undefined;
+    }
+
+    return (value as Record<string, unknown>)[key];
+  }, payload);
 }
 
 function createSecureOperationContext(allowedSecretNames: string[], secrets: SecretProvider): SecureOperationContext {

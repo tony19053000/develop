@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
+import { createAgentLatchPolicyEngine, toolActionRequestSchema } from "@launchforge/agentlatch";
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
   createDeterministicWorkflowPlan,
@@ -193,6 +193,31 @@ describe("LaunchForge API foundation", () => {
       .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
       .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
       .expect(409);
+  });
+
+  it("rejects expired approval authorization before execution can become executable", async () => {
+    const approvals = new FileApprovalRepository(dataDir);
+    const agentLatch = createAgentLatchPolicyEngine();
+    const actionRequest = toolActionRequestSchema.parse({
+      projectId: "project-1",
+      requestedBy: "domain",
+      actionType: "namecom.updateDns",
+      resource: "evidenceforge.com",
+      payload: { type: "CNAME", host: "www", answer: "launchforge.example" },
+      reason: "Point the launch website at hosting."
+    });
+    const decision = agentLatch.evaluate(actionRequest);
+    const { approval, token } = await approvals.create({
+      actionRequest,
+      decision,
+      webOrigin: config.WEB_ORIGIN,
+      tokenSecret: config.APPROVAL_TOKEN_SECRET,
+      ttlMinutes: -1
+    });
+
+    await expect(approvals.approve(approval.id, token, config.APPROVAL_TOKEN_SECRET, "founder@example.com")).rejects.toThrow(
+      "expired"
+    );
   });
 
   it("dry-runs secure execution for an approved action", async () => {

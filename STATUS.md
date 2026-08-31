@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 41%
+## Overall Completion: 48%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -13,7 +13,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 4 | name.com + Domain Agent | 5 | 100% complete |
 | 5 | AgentLatch Policy Engine | 7 | 100% complete |
 | 6 | Human Approval System | 7 | 100% complete |
-| 7 | TEE / Secure Execution | 7 | implementation present, pending real Confidential Space attestation |
+| 7 | TEE / Secure Execution | 7 | 100% complete |
 | 8 | Protected name.com Registration | 5 | 0% pending |
 | 9 | Website / Product Agent | 6 | 0% pending |
 | 10 | Xano + Backend Agent | 6 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 7 - TEE / Secure Execution.
+Phase 8 - Protected name.com Registration.
 
 ## Current Task
 
-Verify SecureExecutor in a real Google Confidential Space deployment with attestation evidence.
+Begin protected name.com registration through AgentLatch, human approval, and SecureExecutor.
 
 ## Baseline
 
@@ -47,17 +47,19 @@ Verify SecureExecutor in a real Google Confidential Space deployment with attest
 - Phase 4 implementation adds name.com availability checking, Domain Agent candidate generation/ranking, project persistence for domain research, API route `POST /api/projects/:projectId/research/domains`, and frontend domain controls/results.
 - Phase 5 implementation adds `@launchforge/agentlatch`, structured action requests, deterministic policy categories, payload hashing, protected tool execution interception, API decision evaluation, and bypass/replay tests.
 - Phase 6 implementation adds file-backed approval storage, signed approval URLs, single-use approve/reject flows, project pause/resume state, and dashboard approval controls.
-- Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, and secure execution UI/API handoff.
+- Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, secure execution UI/API handoff, Google-signed attestation verification, a packaged Confidential Space workload container, and real production Confidential Space verification.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 48 tests.
+- Tests: passed, 51 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
 - Live SerpApi verification: passed with real `SERPAPI_API_KEY`; returned competitor, market signal, and naming conflict evidence.
 - Live name.com verification: passed with real credentials; checked 20 domains and recommended a purchasable standard-registration domain.
+- Live Google Confidential Space verification: passed in project `launchforge-tee` using service account `launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`.
+- SecureExecutor attestation policy verified `evidenceVerified: true` only for the Google-signed Confidential Space token matching image digest `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`, project `launchforge-tee`, zone `us-central1-c`, and the workload service account.
 
 ## Review Status
 
@@ -71,7 +73,7 @@ Reviewer/Tester result for Phase 5: APPROVED.
 
 Reviewer/Tester result for Phase 6: APPROVED.
 
-Reviewer/Tester result for Phase 7: PENDING real Google Confidential Space attestation verification.
+Reviewer/Tester result for Phase 7: APPROVED after real Google Confidential Space execution and attestation verification.
 
 ## GitHub Status
 
@@ -86,7 +88,8 @@ Reviewer/Tester result for Phase 7: PENDING real Google Confidential Space attes
 - Phase 4 verification commit: `20d6aaa`, pushed to `origin/main`.
 - Phase 5 implementation commit: `91cc45d`, pushed to `origin/main`.
 - Phase 6 implementation commit: `8e4094f`, pushed to `origin/main`.
-- Phase 7 implementation commit: this commit, pushed to `origin/main`.
+- Phase 7 implementation checkpoint commit: `787d5b4`, pushed to `origin/main`.
+- Phase 7 real Confidential Space completion commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
@@ -101,7 +104,7 @@ Implemented deterministic policy engine, signed approval request storage, dashbo
 
 ## TEE
 
-SecureExecutor implemented with Google Confidential Space selected as the real TEE target. Local development mode is not hardware-backed; live attestation verification is pending.
+SecureExecutor implemented with Google Confidential Space as the real TEE target. Local development mode is not hardware-backed and reports `evidenceVerified: false`. Real Google Confidential Space mode verifies Google-signed attestation claims before receipts may report `evidenceVerified: true`.
 
 ## Demo Readiness
 
@@ -109,4 +112,4 @@ Partially demo-ready. A user can run the local app, create a launch project, vie
 
 ## Blockers
 
-Real hardware-backed Phase 7 verification requires a Google Confidential Space deployment with valid attestation evidence.
+None for Phase 7. Phase 8 must keep real domain registration behind AgentLatch, human approval, SecureExecutor, and sponsor-secret isolation.

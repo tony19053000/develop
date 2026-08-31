@@ -6,7 +6,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 7 - TEE / Secure Execution is in progress.
+Phase 7 - TEE / Secure Execution is complete and approved.
+Current next phase: Phase 8 - Protected name.com Registration.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -15,6 +16,7 @@ Phase 3 - SerpApi + Market & Brand Agent is complete and approved.
 Phase 4 - name.com + Domain Agent is complete and approved.
 Phase 5 - AgentLatch Policy Engine is complete and approved.
 Phase 6 - Human Approval System is complete and approved.
+Phase 7 - TEE / Secure Execution is complete and approved.
 
 ## Completed Work
 
@@ -105,6 +107,16 @@ Phase 6 - Human Approval System is complete and approved.
   - Dashboard dry-run receipt display for approved actions.
   - Secure execution design note at `docs/SECURE_EXECUTION.md`.
   - Tests for non-executable rejection, altered-payload rejection, secret allowlisting, evidence requirements, receipt creation, API dry-run, and web receipt UI.
+- Completed real Phase 7 Google Confidential Space integration:
+  - Verified local gcloud and Application Default Credentials for project `launchforge-tee`.
+  - Verified required APIs: Compute Engine, Confidential Computing, Artifact Registry, and IAM Service Account Credentials.
+  - Created Artifact Registry repository `us-central1/launchforge-secure-executor`.
+  - Added a SecureExecutor workload container at `infra/secure-executor/Dockerfile`.
+  - Built and pushed `us-central1-docker.pkg.dev/launchforge-tee/launchforge-secure-executor/secure-executor@sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`.
+  - Deployed the workload to a production Google Confidential Space VM in `us-central1-c`.
+  - Obtained a real attestation token from `/v1/token` inside Confidential Space.
+  - Verified the Google-signed token against workload identity, image digest, image reference, project, zone, secure boot, stable support attributes, and production debug status.
+  - Created `gs://launchforge-tee-phase7-evidence` and granted the workload service account only `roles/storage.objectCreator` for evidence export.
 
 ## Architecture Summary
 
@@ -118,7 +130,7 @@ Current architecture:
 - LangGraph Orchestrator runtime is implemented.
 - Sponsor adapter layer has live-verified SerpApi and name.com availability implementations; Xano and Foxit are planned.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
-- SecureExecutor abstraction is implemented. Google Confidential Space is selected as the real TEE target, but local mode is not hardware-backed and live attestation verification is pending.
+- SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -149,6 +161,14 @@ Current architecture:
 - `npm run lint`
 - `npm run build`
 - `npm audit --audit-level=moderate`
+- `gcloud auth list --filter=status:ACTIVE --format='value(account)'`
+- `gcloud auth application-default set-quota-project launchforge-tee`
+- `gcloud services list --enabled --project launchforge-tee`
+- `gcloud artifacts repositories create launchforge-secure-executor --repository-format=docker --location=us-central1 --project=launchforge-tee`
+- `docker build -f infra/secure-executor/Dockerfile -t us-central1-docker.pkg.dev/launchforge-tee/launchforge-secure-executor/secure-executor:phase7-gcs .`
+- `docker push us-central1-docker.pkg.dev/launchforge-tee/launchforge-secure-executor/secure-executor:phase7-gcs`
+- `gcloud compute instances create launchforge-phase7-attest-gcs-20260831 ... --image-family=confidential-space --metadata=tee-image-reference=... --service-account=launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`
+- `gcloud storage cp gs://launchforge-tee-phase7-evidence/confidential-space-evidence.json /tmp/launchforge-phase7-evidence.json --project=launchforge-tee`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -178,6 +198,9 @@ Current architecture:
 - Phase 4 verification commit: `20d6aaa`.
 - Phase 5 implementation commit: `91cc45d`.
 - Phase 6 implementation commit: `8e4094f`.
+- Phase 7 checkpoint commit: `787d5b4`.
+- Phase 7 real Confidential Space image digest: `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`.
+- Phase 7 real attestation verification: passed with `evidenceVerified: true`.
 
 ## Environment Assumptions
 
@@ -188,8 +211,8 @@ Current architecture:
 
 ## Blockers
 
-Phase 7 cannot be marked complete until a real Google Confidential Space deployment provides valid attestation evidence.
+None for Phase 7.
 
 ## Next Exact Task
 
-Deploy the SecureExecutor workload to Google Confidential Space, provide `TEE_ATTESTATION_TOKEN`, `TEE_WORKLOAD_IDENTITY`, and `TEE_IMAGE_DIGEST`, then verify a protected dry-run or sponsor operation with `SECURE_EXECUTOR_MODE=google_confidential_space`.
+Start Phase 8 by routing real name.com registration through AgentLatch, human approval, and SecureExecutor. Do not expose name.com credentials to agents or the frontend.

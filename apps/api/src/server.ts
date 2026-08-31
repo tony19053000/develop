@@ -21,6 +21,7 @@ const secureExecutionEvidence =
         attestationToken: config.TEE_ATTESTATION_TOKEN,
         workloadIdentity: config.TEE_WORKLOAD_IDENTITY,
         imageDigest: config.TEE_IMAGE_DIGEST,
+        ...(config.TEE_IMAGE_REFERENCE ? { imageReference: config.TEE_IMAGE_REFERENCE } : {}),
         verifiedAt: new Date().toISOString()
       } satisfies SecureExecutionEvidence)
     : undefined;
@@ -28,7 +29,15 @@ const secureExecutor = createSecureExecutor(
   {
     mode: config.SECURE_EXECUTOR_MODE,
     allowedSecretNames: ["NAMECOM_USERNAME", "NAMECOM_API_TOKEN", "FOXIT_CLIENT_SECRET", "XANO_API_KEY"],
-    ...(secureExecutionEvidence ? { evidence: secureExecutionEvidence } : {})
+    ...(secureExecutionEvidence ? { evidence: secureExecutionEvidence } : {}),
+    attestationPolicy: {
+      audience: config.TEE_ATTESTATION_AUDIENCE,
+      ...(config.TEE_WORKLOAD_IDENTITY ? { expectedWorkloadIdentity: config.TEE_WORKLOAD_IDENTITY } : {}),
+      ...(config.TEE_IMAGE_DIGEST ? { expectedImageDigest: config.TEE_IMAGE_DIGEST } : {}),
+      ...(config.TEE_IMAGE_REFERENCE ? { expectedImageReference: config.TEE_IMAGE_REFERENCE } : {}),
+      ...(config.TEE_GCP_PROJECT_ID ? { expectedProjectId: config.TEE_GCP_PROJECT_ID } : {}),
+      ...(config.TEE_GCP_ZONE ? { expectedZone: config.TEE_GCP_ZONE } : {})
+    }
   },
   agentLatch,
   new EnvironmentSecretProvider()

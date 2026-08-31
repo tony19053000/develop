@@ -2,7 +2,7 @@
 
 ## Phase 7 Status
 
-LaunchForge now has a SecureExecutor abstraction and development-mode enforcement. It is not hardware-backed in local development.
+LaunchForge has a SecureExecutor abstraction, development-mode enforcement, and real Google Confidential Space attestation verification. It is not hardware-backed in local development.
 
 Selected real TEE path: Google Confidential Space.
 
@@ -46,8 +46,33 @@ Local mode must never be described as hardware-backed.
 - `TEE_ATTESTATION_TOKEN`
 - `TEE_WORKLOAD_IDENTITY`
 - `TEE_IMAGE_DIGEST`
+- `TEE_IMAGE_REFERENCE`
+- `TEE_ATTESTATION_AUDIENCE`
+- `TEE_GCP_PROJECT_ID`
+- `TEE_GCP_ZONE`
 
-Current code validates that evidence is present and structured before execution. A later cloud deployment must verify the attestation token against Google Cloud claims before production protected sponsor operations are enabled.
+The SecureExecutor verifies the Google-signed attestation token before execution can produce a receipt with `evidenceVerified: true`. Verification checks:
+
+- Issuer `https://confidentialcomputing.googleapis.com`.
+- Expected audience.
+- `swname=CONFIDENTIAL_SPACE`.
+- Production debug status `disabled-since-boot`.
+- Secure Boot.
+- Stable Confidential Space support attributes.
+- Expected workload service account.
+- Expected container image digest and image reference.
+- Expected Google Cloud project and zone when configured.
+
+Phase 7 was verified against:
+
+- Project: `launchforge-tee`
+- Workload service account: `launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`
+- Artifact Registry repository: `us-central1/launchforge-secure-executor`
+- Workload image: `us-central1-docker.pkg.dev/launchforge-tee/launchforge-secure-executor/secure-executor@sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`
+- Confidential Space zone: `us-central1-c`
+- Evidence export bucket: `gs://launchforge-tee-phase7-evidence`
+
+The workload service account received only the additional bucket-level `roles/storage.objectCreator` role needed to write attestation evidence. Sponsor secrets are not written to the bucket, logs, frontend, or agent context.
 
 ## Phase 8 Handoff
 

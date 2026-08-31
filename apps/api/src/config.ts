@@ -20,7 +20,11 @@ const configSchema = z.object({
   TEE_PROVIDER: z.enum(["google_confidential_space"]).default("google_confidential_space"),
   TEE_ATTESTATION_TOKEN: z.string().optional(),
   TEE_WORKLOAD_IDENTITY: z.string().optional(),
-  TEE_IMAGE_DIGEST: z.string().optional()
+  TEE_IMAGE_DIGEST: z.string().optional(),
+  TEE_IMAGE_REFERENCE: z.string().optional(),
+  TEE_ATTESTATION_AUDIENCE: z.string().min(1).default("launchforge-secure-executor"),
+  TEE_GCP_PROJECT_ID: z.string().optional(),
+  TEE_GCP_ZONE: z.string().optional()
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;
