@@ -249,6 +249,78 @@ textarea:focus {
   gap: 8px;
 }
 
+.approval-panel {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #dce4dc;
+}
+
+.approval-list {
+  display: grid;
+  gap: 8px;
+}
+
+.approval-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid #d9e2da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.approval-row.pending {
+  border-color: #d6b660;
+}
+
+.approval-row.approved {
+  border-color: #82b58e;
+}
+
+.approval-row.rejected {
+  border-color: #d58a82;
+}
+
+.approval-row strong,
+.approval-row span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-row span,
+.approval-row small {
+  margin-top: 2px;
+  color: #65746a;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.approval-actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #c8d8cc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f5e3d;
+}
+
+.approval-actions button:last-child {
+  color: #9b2c23;
+}
+
 .project-row {
   display: flex;
   align-items: center;
@@ -518,6 +590,31 @@ textarea:focus {
   background: #ffffff;
 }
 
+.approval-request-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #d6b660;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.approval-request-band strong,
+.approval-request-band span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.approval-request-band span {
+  margin-top: 2px;
+  color: #6d5b27;
+  font-size: 0.84rem;
+}
+
 .domain-row.purchasable {
   border-color: #82b58e;
 }
@@ -600,7 +697,8 @@ textarea:focus {
   }
 
   .domain-row,
-  .domain-recommendation {
+  .domain-recommendation,
+  .approval-request-band {
     grid-template-columns: 1fr;
   }
 

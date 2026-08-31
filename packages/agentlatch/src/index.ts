@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { agentRoleSchema } from "@launchforge/shared";
 
@@ -45,8 +45,35 @@ export const agentLatchPolicyResultSchema = z.object({
   evaluatedAt: z.string().datetime().default(() => new Date().toISOString())
 });
 
+export const approvalStatusSchema = z.enum(["pending", "approved", "rejected", "expired"]);
+
+export const approvalRequestSchema = z.object({
+  id: z.string().default(() => randomUUID()),
+  projectId: z.string(),
+  actionRequest: toolActionRequestSchema,
+  decision: agentLatchPolicyResultSchema,
+  status: approvalStatusSchema.default("pending"),
+  approvalUrl: z.string().url(),
+  tokenExpiresAt: z.string().datetime(),
+  decidedAt: z.string().datetime().optional(),
+  decidedBy: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  createdAt: z.string().datetime().default(() => new Date().toISOString()),
+  updatedAt: z.string().datetime().default(() => new Date().toISOString())
+});
+
+export const approvalTokenPayloadSchema = z.object({
+  approvalId: z.string(),
+  requestId: z.string(),
+  payloadHash: z.string(),
+  expiresAt: z.string().datetime()
+});
+
 export type AgentLatchDecision = z.infer<typeof agentLatchDecisionSchema>;
 export type AgentLatchPolicyResult = z.infer<typeof agentLatchPolicyResultSchema>;
+export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
+export type ApprovalStatus = z.infer<typeof approvalStatusSchema>;
+export type ApprovalTokenPayload = z.infer<typeof approvalTokenPayloadSchema>;
 export type ToolActionRequest = z.infer<typeof toolActionRequestSchema>;
 export type ToolActionType = z.infer<typeof toolActionTypeSchema>;
 
@@ -99,6 +126,48 @@ export function createProtectedToolExecutor(engine: AgentLatchPolicyEngine) {
 
 export function hashPayload(payload: Record<string, unknown>): string {
   return createHash("sha256").update(JSON.stringify(sortValue(payload))).digest("hex");
+}
+
+export function createApprovalToken(payload: ApprovalTokenPayload, secret: string): string {
+  const encodedPayload = Buffer.from(JSON.stringify(approvalTokenPayloadSchema.parse(payload))).toString("base64url");
+  const signature = signTokenPayload(encodedPayload, secret);
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifyApprovalToken(token: string, secret: string, now = new Date()): ApprovalTokenPayload {
+  const [encodedPayload, signature] = token.split(".");
+
+  if (!encodedPayload || !signature) {
+    throw new ProtectedToolExecutionError("Approval token is malformed.");
+  }
+
+  const expectedSignature = signTokenPayload(encodedPayload, secret);
+  const provided = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    throw new ProtectedToolExecutionError("Approval token signature is invalid.");
+  }
+
+  const payload = approvalTokenPayloadSchema.parse(JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")));
+
+  if (Date.parse(payload.expiresAt) <= now.getTime()) {
+    throw new ProtectedToolExecutionError("Approval token has expired.");
+  }
+
+  return payload;
+}
+
+export function createExecutableApprovalDecision(decision: AgentLatchPolicyResult): AgentLatchPolicyResult {
+  if (decision.decision !== "APPROVAL_REQUIRED" && decision.decision !== "HIGH_RISK_APPROVAL") {
+    throw new ProtectedToolExecutionError(`AgentLatch decision ${decision.decision} cannot be converted by approval.`);
+  }
+
+  return agentLatchPolicyResultSchema.parse({
+    ...decision,
+    executable: true,
+    requiresHumanApproval: false
+  });
 }
 
 function classifyRequest(request: ToolActionRequest): Omit<
@@ -168,4 +237,8 @@ function sortValue(value: unknown): unknown {
   }
 
   return value;
+}
+
+function signTokenPayload(encodedPayload: string, secret: string): string {
+  return createHmac("sha256", secret).update(encodedPayload).digest("base64url");
 }

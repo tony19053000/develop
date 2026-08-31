@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createAgentLatchPolicyEngine,
+  createApprovalToken,
+  createExecutableApprovalDecision,
   createProtectedToolExecutor,
   hashPayload,
   ProtectedToolExecutionError,
-  toolActionRequestSchema
+  toolActionRequestSchema,
+  verifyApprovalToken
 } from "./index.js";
 
 describe("AgentLatch Policy Engine", () => {
@@ -102,5 +105,41 @@ describe("AgentLatch Policy Engine", () => {
 
   it("hashes payloads deterministically independent of object key order", () => {
     expect(hashPayload({ b: 2, a: { y: 2, x: 1 } })).toBe(hashPayload({ a: { x: 1, y: 2 }, b: 2 }));
+  });
+
+  it("creates and verifies signed approval tokens", () => {
+    const token = createApprovalToken(
+      {
+        approvalId: "approval-1",
+        requestId: "request-1",
+        payloadHash: hashPayload({ domainName: "preporbit.com" }),
+        expiresAt: "2026-08-31T01:00:00.000Z"
+      },
+      "test-secret"
+    );
+
+    expect(verifyApprovalToken(token, "test-secret", new Date("2026-08-31T00:00:00.000Z"))).toMatchObject({
+      approvalId: "approval-1",
+      requestId: "request-1"
+    });
+    expect(() => verifyApprovalToken(token, "wrong-secret", new Date("2026-08-31T00:00:00.000Z"))).toThrow(
+      ProtectedToolExecutionError
+    );
+  });
+
+  it("converts approval-required decisions into executable exact-action decisions", async () => {
+    const engine = createAgentLatchPolicyEngine();
+    const executeProtectedTool = createProtectedToolExecutor(engine);
+    const request = toolActionRequestSchema.parse({
+      projectId: "project-1",
+      requestedBy: "domain",
+      actionType: "namecom.updateDns",
+      resource: "preporbit.com",
+      payload: { type: "CNAME", host: "www", answer: "launchforge.example" },
+      reason: "Point the launch site to hosting."
+    });
+    const decision = createExecutableApprovalDecision(engine.evaluate(request));
+
+    await expect(executeProtectedTool(request, async () => "updated", decision)).resolves.toBe("updated");
   });
 });

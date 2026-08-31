@@ -3,6 +3,7 @@ import { createDomainAgent, createMarketBrandAgent, createOrchestratorRuntime, l
 import { HttpNameComClient, HttpSerpApiClient } from "@launchforge/integrations";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
+import { FileApprovalRepository } from "./approvals.js";
 import { EventBus } from "./events.js";
 import { FileProjectRepository } from "./storage.js";
 
@@ -30,7 +31,8 @@ const app = createApp({
   orchestrator,
   marketBrand,
   domain,
-  agentLatch
+  agentLatch,
+  approvals: new FileApprovalRepository(config.DATA_DIR)
 });
 
 app.listen(config.API_PORT, () => {

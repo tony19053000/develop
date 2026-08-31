@@ -11,6 +11,7 @@ import {
   type OrchestratorRuntime
 } from "@launchforge/agents";
 import { createApp } from "./app.js";
+import { FileApprovalRepository } from "./approvals.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
 import { FileProjectRepository } from "./storage.js";
@@ -22,7 +23,8 @@ const config: ApiConfig = {
   NODE_ENV: "test",
   API_PORT: 4000,
   WEB_ORIGIN: "http://localhost:5173",
-  DATA_DIR: ""
+  DATA_DIR: "",
+  APPROVAL_TOKEN_SECRET: "test-approval-secret"
 };
 
 beforeEach(async () => {
@@ -34,7 +36,8 @@ beforeEach(async () => {
     orchestrator: createFakeOrchestrator(),
     marketBrand: createFakeMarketBrand(),
     domain: createFakeDomainAgent(),
-    agentLatch: createAgentLatchPolicyEngine()
+    agentLatch: createAgentLatchPolicyEngine(),
+    approvals: new FileApprovalRepository(dataDir)
   });
 });
 
@@ -152,6 +155,69 @@ describe("LaunchForge API foundation", () => {
       requiresHumanApproval: true,
       executable: false
     });
+  });
+
+  it("creates and approves a protected action request once", async () => {
+    const createProjectResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const approvalResponse = await request(app)
+      .post("/api/approvals")
+      .send({
+        projectId: createProjectResponse.body.project.id,
+        requestedBy: "domain",
+        actionType: "namecom.registerDomain",
+        resource: "evidenceforge.com",
+        payload: { domainName: "evidenceforge.com", years: 1, price: 12.99 },
+        reason: "Register the recommended domain."
+      })
+      .expect(201);
+
+    expect(approvalResponse.body.approval.status).toBe("pending");
+    expect(approvalResponse.body.project.status).toBe("waiting_for_approval");
+
+    const approveResponse = await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
+      .expect(200);
+
+    expect(approveResponse.body.approval.status).toBe("approved");
+    expect(approveResponse.body.approval.decision.executable).toBe(true);
+    expect(approveResponse.body.project.status).toBe("active");
+
+    await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
+      .expect(409);
+  });
+
+  it("rejects a protected action request and stops the project", async () => {
+    const createProjectResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const approvalResponse = await request(app)
+      .post("/api/approvals")
+      .send({
+        projectId: createProjectResponse.body.project.id,
+        requestedBy: "domain",
+        actionType: "namecom.updateDns",
+        resource: "evidenceforge.com",
+        payload: { type: "CNAME", host: "www", answer: "launchforge.example" },
+        reason: "Point the launch website at hosting."
+      })
+      .expect(201);
+
+    const rejectResponse = await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/reject`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com", reason: "Not ready." })
+      .expect(200);
+
+    expect(rejectResponse.body.approval.status).toBe("rejected");
+    expect(rejectResponse.body.project.status).toBe("failed");
   });
 });
 

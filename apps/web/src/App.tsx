@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult } from "@launchforge/shared";
 import {
   Activity,
@@ -16,9 +17,20 @@ import {
   Radio,
   Rocket,
   Search,
-  Server
+  Server,
+  ShieldCheck,
+  ShieldX
 } from "lucide-react";
-import { createProject, listProjects, runDomainResearch, runMarketResearch } from "./api.js";
+import {
+  approveRequest,
+  createProject,
+  listApprovals,
+  listProjects,
+  rejectRequest,
+  requestDomainRegistrationApproval,
+  runDomainResearch,
+  runMarketResearch
+} from "./api.js";
 
 const navigation = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -41,16 +53,19 @@ const agentMeta: Record<AgentRole, { label: string; icon: typeof Bot }> = {
 
 export function App() {
   const [projects, setProjects] = useState<LaunchProject[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
   const [isFindingDomains, setIsFindingDomains] = useState(false);
+  const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void refreshProjects();
+    void refreshApprovals();
   }, []);
 
   const selectedProject = useMemo(
@@ -70,6 +85,14 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to load projects.");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function refreshApprovals() {
+    try {
+      setApprovals(await listApprovals());
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to load approvals.");
     }
   }
 
@@ -116,6 +139,34 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to run domain research.");
     } finally {
       setIsFindingDomains(false);
+    }
+  }
+
+  async function handleRequestApproval(project: LaunchProject) {
+    setIsRequestingApproval(true);
+    setError(null);
+
+    try {
+      const response = await requestDomainRegistrationApproval(project);
+      setApprovals((current) => [response.approval, ...current.filter((approval) => approval.id !== response.approval.id)]);
+      setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
+      setSelectedProjectId(response.project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to request approval.");
+    } finally {
+      setIsRequestingApproval(false);
+    }
+  }
+
+  async function handleApprovalDecision(approval: ApprovalRequest, decision: "approve" | "reject") {
+    setError(null);
+
+    try {
+      const response = decision === "approve" ? await approveRequest(approval) : await rejectRequest(approval);
+      setApprovals((current) => current.map((item) => (item.id === response.approval.id ? response.approval : item)));
+      setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to decide approval.");
     }
   }
 
@@ -203,6 +254,8 @@ export function App() {
                 ))}
               </div>
             )}
+
+            <ApprovalPanel approvals={approvals} onDecision={handleApprovalDecision} />
           </div>
 
           <div className="live-panel">
@@ -253,6 +306,24 @@ export function App() {
                 ) : null}
 
                 {selectedProject.domainResearch ? <DomainResearchPanel project={selectedProject} /> : null}
+
+                {selectedProject.domainResearch?.recommendedDomain ? (
+                  <div className="approval-request-band">
+                    <div>
+                      <strong>{selectedProject.domainResearch.recommendedDomain.domainName}</strong>
+                      <span>Protected registration requires approval.</span>
+                    </div>
+                    <button
+                      className="secondary-button"
+                      disabled={isRequestingApproval}
+                      onClick={() => void handleRequestApproval(selectedProject)}
+                      type="button"
+                    >
+                      <LockKeyhole size={18} aria-hidden="true" />
+                      {isRequestingApproval ? "Requesting..." : "Request Approval"}
+                    </button>
+                  </div>
+                ) : null}
               </>
             ) : (
               <p className="empty-state">Start a launch to populate the workspace.</p>
@@ -261,6 +332,61 @@ export function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+function ApprovalPanel({
+  approvals,
+  onDecision
+}: {
+  approvals: ApprovalRequest[];
+  onDecision: (approval: ApprovalRequest, decision: "approve" | "reject") => Promise<void>;
+}) {
+  const visibleApprovals = approvals.slice(0, 4);
+
+  return (
+    <section className="approval-panel" aria-labelledby="approval-panel-title">
+      <div className="section-heading">
+        <p className="eyebrow">Approvals</p>
+        <h2 id="approval-panel-title">Protected Actions</h2>
+      </div>
+      {visibleApprovals.length === 0 ? (
+        <p className="empty-state">No approval requests.</p>
+      ) : (
+        <div className="approval-list">
+          {visibleApprovals.map((approval) => (
+            <div className={`approval-row ${approval.status}`} key={approval.id}>
+              <div>
+                <strong>{approval.actionRequest.resource}</strong>
+                <span>{approval.decision.decision.replaceAll("_", " ")}</span>
+              </div>
+              {approval.status === "pending" ? (
+                <div className="approval-actions">
+                  <button
+                    aria-label={`Approve ${approval.actionRequest.resource}`}
+                    onClick={() => void onDecision(approval, "approve")}
+                    title="Approve"
+                    type="button"
+                  >
+                    <ShieldCheck size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    aria-label={`Reject ${approval.actionRequest.resource}`}
+                    onClick={() => void onDecision(approval, "reject")}
+                    title="Reject"
+                    type="button"
+                  >
+                    <ShieldX size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <small>{approval.status}</small>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

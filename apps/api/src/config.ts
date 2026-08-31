@@ -14,7 +14,8 @@ const configSchema = z.object({
   SERPAPI_API_KEY: z.string().optional(),
   NAMECOM_USERNAME: z.string().optional(),
   NAMECOM_API_TOKEN: z.string().optional(),
-  NAMECOM_API_BASE_URL: z.string().url().default("https://api.dev.name.com")
+  NAMECOM_API_BASE_URL: z.string().url().default("https://api.dev.name.com"),
+  APPROVAL_TOKEN_SECRET: z.string().min(16).default("development-approval-secret")
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

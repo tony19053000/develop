@@ -34,6 +34,10 @@ describe("LaunchForge web foundation", () => {
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({
           project: {
             id: "project-1",
@@ -79,6 +83,10 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ approvals: [] })
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
@@ -158,6 +166,10 @@ describe("LaunchForge web foundation", () => {
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({
           project: {
             id: "project-1",
@@ -221,5 +233,144 @@ describe("LaunchForge web foundation", () => {
     expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/research/domains", {
       method: "POST"
     });
+  });
+
+  it("requests and approves protected domain registration", async () => {
+    const pendingApproval = {
+      id: "approval-1",
+      projectId: "project-1",
+      actionRequest: {
+        id: "request-1",
+        projectId: "project-1",
+        requestedBy: "domain",
+        actionType: "namecom.registerDomain",
+        resource: "interviewforge.com",
+        payload: { domainName: "interviewforge.com", years: 1, price: 12.99 },
+        reason: "Register the recommended domain.",
+        createdAt: "2026-08-31T00:00:00.000Z"
+      },
+      decision: {
+        id: "decision-1",
+        requestId: "request-1",
+        decision: "HIGH_RISK_APPROVAL",
+        category: "paid-domain-registration",
+        explanation: "Domain registration requires approval.",
+        payloadHash: "hash",
+        requiresHumanApproval: true,
+        executable: false,
+        evaluatedAt: "2026-08-31T00:00:00.000Z"
+      },
+      status: "pending",
+      approvalUrl: "http://localhost:5173/approvals/approval-1?token=test-token",
+      tokenExpiresAt: "2026-08-31T01:00:00.000Z",
+      createdAt: "2026-08-31T00:00:00.000Z",
+      updatedAt: "2026-08-31T00:00:00.000Z"
+    };
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 63,
+              tasks: [],
+              domainResearch: {
+                id: "domain-research-1",
+                projectId: "project-1",
+                brandName: "InterviewForge",
+                checkedDomains: ["interviewforge.com"],
+                candidates: [],
+                recommendedDomain: {
+                  domainName: "interviewforge.com",
+                  sld: "interviewforge",
+                  tld: "com",
+                  purchasable: true,
+                  premium: false,
+                  purchaseType: "registration",
+                  purchasePrice: 12.99,
+                  renewalPrice: 14.99,
+                  reason: "",
+                  score: 100,
+                  recommendation: "Available for standard registration."
+                },
+                generatedAt: "2026-08-31T00:00:00.000Z"
+              },
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          approval: pendingApproval,
+          token: "test-token",
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "waiting_for_approval",
+            progress: 63,
+            tasks: [],
+            domainResearch: {
+              id: "domain-research-1",
+              projectId: "project-1",
+              brandName: "InterviewForge",
+              checkedDomains: ["interviewforge.com"],
+              candidates: [],
+              recommendedDomain: {
+                domainName: "interviewforge.com",
+                sld: "interviewforge",
+                tld: "com",
+                purchasable: true,
+                premium: false,
+                purchaseType: "registration",
+                purchasePrice: 12.99,
+                renewalPrice: 14.99,
+                reason: "",
+                score: 100,
+                recommendation: "Available for standard registration."
+              },
+              generatedAt: "2026-08-31T00:00:00.000Z"
+            },
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          }
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          approval: { ...pendingApproval, status: "approved" },
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 75,
+            tasks: [],
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:02:00.000Z"
+          }
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Request Approval/i }));
+    expect(await screen.findByText("HIGH RISK APPROVAL")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Approve interviewforge.com/i }));
+    expect(await screen.findByText("approved")).toBeInTheDocument();
   });
 });

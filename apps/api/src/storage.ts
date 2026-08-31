@@ -20,6 +20,8 @@ export interface ProjectRepository {
   applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject>;
   saveMarketResearch(projectId: string, research: MarketResearch): Promise<LaunchProject>;
   saveDomainResearch(projectId: string, research: DomainResearch): Promise<LaunchProject>;
+  markApprovalPending(projectId: string): Promise<LaunchProject>;
+  markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject>;
 }
 
 export class FileProjectRepository implements ProjectRepository {
@@ -145,6 +147,49 @@ export class FileProjectRepository implements ProjectRepository {
       progress: calculateProjectProgress(tasks),
       tasks,
       domainResearch: research,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async markApprovalPending(projectId: string): Promise<LaunchProject> {
+    return this.updateApprovalTask(projectId, "waiting_for_approval", "running");
+  }
+
+  async markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject> {
+    return this.updateApprovalTask(projectId, approved ? "active" : "failed", approved ? "complete" : "failed");
+  }
+
+  private async updateApprovalTask(
+    projectId: string,
+    status: LaunchProject["status"],
+    taskStatus: "running" | "complete" | "failed"
+  ): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const tasks = project.tasks.map((task) =>
+      task.id === "approval-boundary" ? { ...task, status: taskStatus, updatedAt: now } : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status,
+      progress: calculateProjectProgress(tasks),
+      tasks,
       updatedAt: now
     };
 

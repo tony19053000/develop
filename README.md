@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 5 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability, and a deterministic AgentLatch policy engine.
+Phase 6 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability, deterministic AgentLatch policies, and signed human approval flows.
 
 ## Sponsor Integrations
 
@@ -62,6 +62,12 @@ For Phase 4 live domain availability, set:
 NAMECOM_USERNAME=your_namecom_username
 NAMECOM_API_TOKEN=your_namecom_api_token
 NAMECOM_API_BASE_URL=https://api.dev.name.com
+```
+
+For local approval tokens, set a private secret:
+
+```bash
+APPROVAL_TOKEN_SECRET=replace_with_a_long_random_secret
 ```
 
 Install dependencies:

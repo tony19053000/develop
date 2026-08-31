@@ -14,7 +14,7 @@
 - Database/storage: PARTIAL.
 - LangGraph orchestration: IMPLEMENTED.
 - AgentLatch policy engine: IMPLEMENTED.
-- Approval system: PLANNED.
+- Approval system: IMPLEMENTED.
 - TEE secure executor: PLANNED.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
@@ -65,19 +65,19 @@ AgentLatch currently owns policy evaluation, protected execution interception, a
 
 ## Approval System
 
-Approvals must support:
+Approvals support:
 
 - Dashboard approval.
-- Email approval links.
+- Signed approval links suitable for email routing.
 - Signed tokens.
 - Expiration.
 - Single use.
 - Exact payload binding.
-- Owner authentication.
-- Replay protection.
+- Founder decision attribution.
+- Replay protection for pending approval transitions.
 - Approval and rejection audit events.
 
-Human-only actions, such as signing legal documents as the user, cannot be converted into normal approvals.
+Human-only actions, such as signing legal documents as the user, cannot be converted into normal approvals. Durable owner authentication and full audit browsing are expanded in later phases.
 
 ## TEE / Secure Execution
 

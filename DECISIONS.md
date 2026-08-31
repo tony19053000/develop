@@ -176,3 +176,23 @@ Reason: A central deterministic gate gives later approval, secure execution, and
 Consequences: Phase 5 can block protected execution before approval storage exists. Phase 6 will persist approval requests and convert eligible approval decisions into executable authorizations.
 
 Reversibility: Medium.
+
+## 2026-08-31 - Signed Approval Requests
+
+Decision: Store approval requests separately from projects and bind approval tokens to exact AgentLatch payload hashes.
+
+Context: Protected workflows need to pause for human decision before secure execution exists, while still preventing replay and altered-payload approval reuse.
+
+Alternatives:
+
+- Store approval status only on the project.
+- Use unsigned approval IDs from the dashboard.
+- Wait for email delivery before building approval tokens.
+
+Chosen Approach: Add a file-backed approval repository, HMAC tokens with approval ID, request ID, payload hash, and expiration, plus API/dashboard approve and reject flows.
+
+Reason: This gives Phase 7 and Phase 8 a precise authorization artifact without exposing sponsor credentials or letting agents self-authorize.
+
+Consequences: Approval links are ready for email routing, and pending approvals are single-use. Full owner authentication and persistent audit browsing are left to later security/audit phases.
+
+Reversibility: Medium.
