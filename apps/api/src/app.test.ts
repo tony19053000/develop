@@ -4,6 +4,7 @@ import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
+import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
   createDeterministicWorkflowPlan,
   type DomainAgent,
@@ -37,7 +38,8 @@ beforeEach(async () => {
     marketBrand: createFakeMarketBrand(),
     domain: createFakeDomainAgent(),
     agentLatch: createAgentLatchPolicyEngine(),
-    approvals: new FileApprovalRepository(dataDir)
+    approvals: new FileApprovalRepository(dataDir),
+    secureExecutor: createFakeSecureExecutor()
   });
 });
 
@@ -193,6 +195,44 @@ describe("LaunchForge API foundation", () => {
       .expect(409);
   });
 
+  it("dry-runs secure execution for an approved action", async () => {
+    const createProjectResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const approvalResponse = await request(app)
+      .post("/api/approvals")
+      .send({
+        projectId: createProjectResponse.body.project.id,
+        requestedBy: "domain",
+        actionType: "namecom.updateDns",
+        resource: "evidenceforge.com",
+        payload: { type: "CNAME", host: "www", answer: "launchforge.example" },
+        reason: "Point the launch website at hosting."
+      })
+      .expect(201);
+
+    await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
+      .expect(200);
+
+    const response = await request(app)
+      .post("/api/secure-executions/dry-run")
+      .send({ approvalId: approvalResponse.body.approval.id })
+      .expect(200);
+
+    expect(response.body.receipt).toMatchObject({
+      requestId: approvalResponse.body.approval.actionRequest.id,
+      actionType: "namecom.updateDns",
+      evidenceVerified: false,
+      result: {
+        dryRun: true
+      }
+    });
+  });
+
   it("rejects a protected action request and stops the project", async () => {
     const createProjectResponse = await request(app)
       .post("/api/projects")
@@ -312,6 +352,27 @@ function createFakeDomainAgent(): DomainAgent {
           recommendation: "Available for standard registration."
         },
         generatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeSecureExecutor(): SecureExecutor {
+  return {
+    async execute(input) {
+      return {
+        id: "receipt-1",
+        requestId: input.request.id,
+        actionType: input.request.actionType,
+        payloadHash: input.approval.payloadHash,
+        mode: "development",
+        evidenceVerified: false,
+        result: await input.operation({
+          async getSecret() {
+            return "test-secret";
+          }
+        }),
+        executedAt: "2026-08-31T00:00:00.000Z"
       };
     }
   };

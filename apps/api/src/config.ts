@@ -15,7 +15,12 @@ const configSchema = z.object({
   NAMECOM_USERNAME: z.string().optional(),
   NAMECOM_API_TOKEN: z.string().optional(),
   NAMECOM_API_BASE_URL: z.string().url().default("https://api.dev.name.com"),
-  APPROVAL_TOKEN_SECRET: z.string().min(16).default("development-approval-secret")
+  APPROVAL_TOKEN_SECRET: z.string().min(16).default("development-approval-secret"),
+  SECURE_EXECUTOR_MODE: z.enum(["development", "google_confidential_space"]).default("development"),
+  TEE_PROVIDER: z.enum(["google_confidential_space"]).default("google_confidential_space"),
+  TEE_ATTESTATION_TOKEN: z.string().optional(),
+  TEE_WORKLOAD_IDENTITY: z.string().optional(),
+  TEE_IMAGE_DIGEST: z.string().optional()
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

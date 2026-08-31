@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ApprovalRequest } from "@launchforge/agentlatch";
+import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult } from "@launchforge/shared";
 import {
   Activity,
@@ -24,6 +25,7 @@ import {
 import {
   approveRequest,
   createProject,
+  dryRunSecureExecution,
   listApprovals,
   listProjects,
   rejectRequest,
@@ -54,6 +56,7 @@ const agentMeta: Record<AgentRole, { label: string; icon: typeof Bot }> = {
 export function App() {
   const [projects, setProjects] = useState<LaunchProject[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [secureReceipts, setSecureReceipts] = useState<SecureExecutionReceipt[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
   const [isLoading, setIsLoading] = useState(true);
@@ -170,6 +173,17 @@ export function App() {
     }
   }
 
+  async function handleDryRunSecureExecution(approval: ApprovalRequest) {
+    setError(null);
+
+    try {
+      const receipt = await dryRunSecureExecution(approval);
+      setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to run secure execution.");
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="LaunchForge navigation">
@@ -255,7 +269,12 @@ export function App() {
               </div>
             )}
 
-            <ApprovalPanel approvals={approvals} onDecision={handleApprovalDecision} />
+            <ApprovalPanel
+              approvals={approvals}
+              receipts={secureReceipts}
+              onDecision={handleApprovalDecision}
+              onDryRun={handleDryRunSecureExecution}
+            />
           </div>
 
           <div className="live-panel">
@@ -337,10 +356,14 @@ export function App() {
 
 function ApprovalPanel({
   approvals,
-  onDecision
+  receipts,
+  onDecision,
+  onDryRun
 }: {
   approvals: ApprovalRequest[];
+  receipts: SecureExecutionReceipt[];
   onDecision: (approval: ApprovalRequest, decision: "approve" | "reject") => Promise<void>;
+  onDryRun: (approval: ApprovalRequest) => Promise<void>;
 }) {
   const visibleApprovals = approvals.slice(0, 4);
 
@@ -379,11 +402,21 @@ function ApprovalPanel({
                     <ShieldX size={16} aria-hidden="true" />
                   </button>
                 </div>
+              ) : approval.status === "approved" ? (
+                <button className="mini-action-button" onClick={() => void onDryRun(approval)} type="button">
+                  Dry Run
+                </button>
               ) : (
                 <small>{approval.status}</small>
               )}
             </div>
           ))}
+          {receipts[0] ? (
+            <div className="receipt-row">
+              <strong>{receipts[0].actionType}</strong>
+              <span>{receipts[0].evidenceVerified ? "TEE evidence verified" : "development boundary"}</span>
+            </div>
+          ) : null}
         </div>
       )}
     </section>

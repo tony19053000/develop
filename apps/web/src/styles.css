@@ -321,6 +321,39 @@ textarea:focus {
   color: #9b2c23;
 }
 
+.mini-action-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #c8d8cc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f5e3d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.receipt-row {
+  padding: 10px 12px;
+  border: 1px solid #b8d4bf;
+  border-radius: 8px;
+  background: #f5fbf6;
+}
+
+.receipt-row strong,
+.receipt-row span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.receipt-row span {
+  margin-top: 2px;
+  color: #4f5f55;
+  font-size: 0.82rem;
+}
+
 .project-row {
   display: flex;
   align-items: center;

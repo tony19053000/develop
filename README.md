@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 6 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability, deterministic AgentLatch policies, and signed human approval flows.
+Phase 7 is in progress. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability, deterministic AgentLatch policies, signed human approval flows, and a SecureExecutor boundary pending real Google Confidential Space attestation.
 
 ## Sponsor Integrations
 
@@ -26,6 +26,8 @@ LaunchForge will be built as a full-stack application with:
 - A future hardware-backed TEE or confidential computing executor for privileged sponsor operations.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design.
+
+See [docs/SECURE_EXECUTION.md](./docs/SECURE_EXECUTION.md) for the selected TEE path and local-vs-hardware-backed boundary.
 
 ## Development Flow
 

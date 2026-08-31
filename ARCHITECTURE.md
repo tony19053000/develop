@@ -15,7 +15,7 @@
 - LangGraph orchestration: IMPLEMENTED.
 - AgentLatch policy engine: IMPLEMENTED.
 - Approval system: IMPLEMENTED.
-- TEE secure executor: PLANNED.
+- TEE secure executor: PARTIAL.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: PLANNED.
@@ -30,7 +30,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Agent/workflow runtime using LangGraph with replaceable model/provider configuration.
 - Tool adapter layer for sponsor integrations. SerpApi and name.com availability are implemented and live verified; remaining sponsor adapters are planned.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
-- SecureExecutor abstraction that later maps privileged execution to a real TEE/confidential computing platform.
+- SecureExecutor abstraction that maps privileged execution to development mode now and Google Confidential Space evidence mode for real TEE deployment.
 
 ## Trust Boundaries
 
@@ -81,15 +81,15 @@ Human-only actions, such as signing legal documents as the user, cannot be conve
 
 ## TEE / Secure Execution
 
-The first implementation may include a development SecureExecutor abstraction, but the TEE phase must select and document a real confidential computing technology.
+The SecureExecutor abstraction is implemented. The selected real confidential computing technology is Google Confidential Space.
 
-Candidate platforms:
+Considered platforms:
 
-- Google Confidential Space.
-- Google Confidential VM.
-- AWS Nitro Enclaves.
+- Google Confidential Space: selected target.
+- Google Confidential VM: viable platform family, but less specific to the single-workload secure execution path.
+- AWS Nitro Enclaves: viable alternative with strong isolation and attestation, but it requires an EC2/enclave architecture that is heavier for the current app shape.
 
-The system must never claim a local simulation is hardware-backed.
+The system must never claim local development execution is hardware-backed. Hardware-backed status requires a real Google Confidential Space deployment and attestation verification.
 
 ## Sponsor Adapters
 

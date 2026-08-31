@@ -1,6 +1,7 @@
 import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { createDomainAgent, createMarketBrandAgent, createOrchestratorRuntime, loadAgentModelConfig } from "@launchforge/agents";
 import { HttpNameComClient, HttpSerpApiClient } from "@launchforge/integrations";
+import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEvidence } from "@launchforge/secure-executor";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
@@ -10,6 +11,28 @@ import { FileProjectRepository } from "./storage.js";
 const config = loadConfig();
 const orchestrator = createOrchestratorRuntime(loadAgentModelConfig());
 const agentLatch = createAgentLatchPolicyEngine();
+const secureExecutionEvidence =
+  config.SECURE_EXECUTOR_MODE === "google_confidential_space" &&
+  config.TEE_ATTESTATION_TOKEN &&
+  config.TEE_WORKLOAD_IDENTITY &&
+  config.TEE_IMAGE_DIGEST
+    ? ({
+        provider: config.TEE_PROVIDER,
+        attestationToken: config.TEE_ATTESTATION_TOKEN,
+        workloadIdentity: config.TEE_WORKLOAD_IDENTITY,
+        imageDigest: config.TEE_IMAGE_DIGEST,
+        verifiedAt: new Date().toISOString()
+      } satisfies SecureExecutionEvidence)
+    : undefined;
+const secureExecutor = createSecureExecutor(
+  {
+    mode: config.SECURE_EXECUTOR_MODE,
+    allowedSecretNames: ["NAMECOM_USERNAME", "NAMECOM_API_TOKEN", "FOXIT_CLIENT_SECRET", "XANO_API_KEY"],
+    ...(secureExecutionEvidence ? { evidence: secureExecutionEvidence } : {})
+  },
+  agentLatch,
+  new EnvironmentSecretProvider()
+);
 const marketBrand = createMarketBrandAgent(
   new HttpSerpApiClient(config.SERPAPI_API_KEY ? { apiKey: config.SERPAPI_API_KEY } : {})
 );
@@ -32,7 +55,8 @@ const app = createApp({
   marketBrand,
   domain,
   agentLatch,
-  approvals: new FileApprovalRepository(config.DATA_DIR)
+  approvals: new FileApprovalRepository(config.DATA_DIR),
+  secureExecutor
 });
 
 app.listen(config.API_PORT, () => {

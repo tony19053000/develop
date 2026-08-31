@@ -4,6 +4,7 @@ import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
 import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
 import { NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
+import type { SecureExecutor } from "@launchforge/secure-executor";
 import { createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -20,6 +21,7 @@ export interface AppDependencies {
   domain: DomainAgent;
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
+  secureExecutor: SecureExecutor;
 }
 
 export function createApp({
@@ -30,7 +32,8 @@ export function createApp({
   marketBrand,
   domain,
   agentLatch,
-  approvals
+  approvals,
+  secureExecutor
 }: AppDependencies) {
   const app = express();
 
@@ -316,6 +319,38 @@ export function createApp({
     }
   });
 
+  app.post("/api/secure-executions/dry-run", async (request, response, next) => {
+    try {
+      const approvalId = parseApprovalId(request.body);
+      const approval = await approvals.findById(approvalId);
+
+      if (!approval) {
+        throw new ApiError(404, "Approval not found.");
+      }
+
+      const receipt = await secureExecutor.execute({
+        request: approval.actionRequest,
+        approval: approval.decision,
+        operation: async () => ({
+          dryRun: true,
+          protectedAction: approval.actionRequest.actionType,
+          resource: approval.actionRequest.resource
+        })
+      });
+
+      events.publish({
+        projectId: approval.projectId,
+        agent: "agentlatch",
+        level: "success",
+        message: `SecureExecutor dry-run completed for ${approval.actionRequest.actionType}.`
+      });
+
+      response.json({ receipt });
+    } catch (error) {
+      next(mapApprovalError(error));
+    }
+  });
+
   app.get("/api/projects/:projectId/events", async (request, response, next) => {
     try {
       const project = await projects.findById(request.params.projectId);
@@ -371,6 +406,14 @@ function parseDecidedBy(body: unknown): string {
   }
 
   return "founder";
+}
+
+function parseApprovalId(body: unknown): string {
+  if (typeof body === "object" && body !== null && "approvalId" in body && typeof body.approvalId === "string") {
+    return body.approvalId;
+  }
+
+  throw new ApiError(400, "Approval id is required.");
 }
 
 function mapApprovalError(error: unknown): unknown {

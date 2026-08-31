@@ -1,4 +1,5 @@
 import type { ApprovalRequest } from "@launchforge/agentlatch";
+import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type { CreateLaunchProjectInput, DomainResearch, LaunchProject, MarketResearch } from "@launchforge/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -29,6 +30,10 @@ interface ApprovalResponse {
   approval: ApprovalRequest;
   token?: string;
   project: LaunchProject;
+}
+
+interface SecureExecutionResponse {
+  receipt: SecureExecutionReceipt;
 }
 
 export async function listProjects(): Promise<LaunchProject[]> {
@@ -124,6 +129,18 @@ export async function rejectRequest(approval: ApprovalRequest): Promise<Approval
     })
   });
   return readJson<ApprovalResponse>(response);
+}
+
+export async function dryRunSecureExecution(approval: ApprovalRequest): Promise<SecureExecutionReceipt> {
+  const response = await fetch(`${API_BASE_URL}/api/secure-executions/dry-run`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ approvalId: approval.id })
+  });
+  const body = await readJson<SecureExecutionResponse>(response);
+  return body.receipt;
 }
 
 async function readJson<T>(response: Response): Promise<T> {

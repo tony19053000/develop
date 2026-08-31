@@ -196,3 +196,23 @@ Reason: This gives Phase 7 and Phase 8 a precise authorization artifact without 
 Consequences: Approval links are ready for email routing, and pending approvals are single-use. Full owner authentication and persistent audit browsing are left to later security/audit phases.
 
 Reversibility: Medium.
+
+## 2026-08-31 - Google Confidential Space SecureExecutor Target
+
+Decision: Select Google Confidential Space as the real TEE target for LaunchForge protected execution.
+
+Context: Phase 7 needs a secure execution boundary that prevents agents from seeing protected credentials and prepares later paid sponsor operations for hardware-backed confidential execution.
+
+Alternatives:
+
+- AWS Nitro Enclaves.
+- Google Confidential VM without Confidential Space.
+- Keep only a local secure executor simulation.
+
+Chosen Approach: Add `@launchforge/secure-executor` with local development enforcement, Google Confidential Space evidence requirements, allowlisted secret access, exact AgentLatch approval validation, and secure execution receipts.
+
+Reason: Google Confidential Space is container-oriented and fits a single-purpose protected workload model for sponsor operations. The local executor gives testable safety behavior while clearly reporting `evidenceVerified: false`.
+
+Consequences: Phase 7 has an implemented boundary and selected TEE target, but cannot be called hardware-backed until deployed to Google Confidential Space with valid attestation evidence.
+
+Reversibility: Medium.

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@launchforge/agentlatch": "0.1.0",
+    "@launchforge/secure-executor": "0.1.0",
     "@launchforge/shared": "0.1.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
