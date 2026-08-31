@@ -11,7 +11,10 @@ const configSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
   WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
   DATA_DIR: z.string().min(1).default(path.resolve(process.cwd(), "data")),
-  SERPAPI_API_KEY: z.string().optional()
+  SERPAPI_API_KEY: z.string().optional(),
+  NAMECOM_USERNAME: z.string().optional(),
+  NAMECOM_API_TOKEN: z.string().optional(),
+  NAMECOM_API_BASE_URL: z.string().url().default("https://api.dev.name.com")
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

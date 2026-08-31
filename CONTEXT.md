@@ -6,7 +6,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 4 - name.com + Domain Agent is next.
+Phase 4 - name.com + Domain Agent is in progress.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -62,6 +62,15 @@ Phase 3 - SerpApi + Market & Brand Agent is complete and approved.
 - Added API config loading improvements:
   - The API now discovers the nearest parent `.env` so root-level setup works with npm workspace commands.
   - Relative `DATA_DIR` values resolve from the `.env` file directory.
+- Added Phase 4 implementation:
+  - name.com availability adapter using `POST /core/v1/domains:checkAvailability`.
+  - Domain Agent that builds candidate names from Phase 3 brand output or the startup idea.
+  - Domain ranking for purchasable, standard-registration, non-premium, brand-matching domains.
+  - Shared domain research schemas.
+  - API route `POST /api/projects/:projectId/research/domains`.
+  - File-backed persistence for domain research on launch projects.
+  - Frontend `Find Domains` action and Domain Intelligence panel.
+  - Unit and integration tests with mocked name.com responses.
 
 ## Architecture Summary
 
@@ -73,7 +82,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has a live-verified SerpApi implementation; name.com, Xano, and Foxit are planned.
+- Sponsor adapter layer has a live-verified SerpApi implementation and a name.com availability implementation pending live credentials; Xano and Foxit are planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
 - Audit trail with redaction and exact action tracking is planned.
@@ -89,6 +98,7 @@ Current architecture:
 - Use SSE for Phase 1 realtime server-to-client agent/project events.
 - Use LangGraph instead of Google ADK by latest explicit user instruction. This resolved the prior ADK transitive dependency audit blocker.
 - Use a narrow SerpApi adapter and store evidence-backed research results before downstream domain, website, backend, and document phases consume the brand direction.
+- Use name.com only for availability/ranking in Phase 4. Registration remains a protected AgentLatch/approval/secure-executor flow for Phase 8.
 
 ## Recent Commands
 
@@ -117,7 +127,7 @@ Current architecture:
 - Git history: no commits at start.
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
-- Build/typecheck/test/lint: passing with Phase 3 implementation.
+- Build/typecheck/test/lint: passing with Phase 4 implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
 - Phase 0 foundation commit: `d5f824b`.
@@ -130,11 +140,12 @@ Current architecture:
 - Current workspace: `/home/aayush/Desktop/devlopment`.
 - Real credentials must be provided through local environment variables and never committed.
 - `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
+- `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are required to verify live Phase 4 sponsor behavior.
 
 ## Blockers
 
-None for Phase 3.
+Phase 4 cannot be marked complete until real name.com credentials are configured and the live domain availability endpoint is verified.
 
 ## Next Exact Task
 
-Begin Phase 4 by implementing the name.com domain adapter, Domain Agent, domain availability research, structured domain recommendations, tests, and initial UI handoff from Phase 3 brand output.
+Set `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` in `.env`, start the API/web app, create or select a project, and run `POST /api/projects/:projectId/research/domains` or the web "Find Domains" action to verify real name.com results.

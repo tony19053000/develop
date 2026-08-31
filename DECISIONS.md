@@ -136,3 +136,23 @@ Reason: This keeps sponsor credentials and network behavior isolated while letti
 Consequences: Phase 3 implementation can be tested locally without a key, but the phase cannot be marked complete until a real `SERPAPI_API_KEY` verifies live results.
 
 Reversibility: High.
+
+## 2026-08-31 - name.com Availability Before Registration
+
+Decision: Limit Phase 4 name.com integration to domain availability search and recommendation ranking.
+
+Context: Phase 4 needs real domain recommendations, while later protected registration must pass through AgentLatch, human approval, and secure execution.
+
+Alternatives:
+
+- Implement domain registration immediately.
+- Generate domain ideas without checking real availability.
+- Combine availability and registration in one adapter method.
+
+Chosen Approach: Add a name.com availability client, a Domain Agent that ranks candidates, project persistence for domain research, and UI/API handoff without any registration execution.
+
+Reason: Availability lookup is safe research behavior, but registration is a sensitive paid action that belongs behind the protected Phase 8 path.
+
+Consequences: Phase 4 can recommend available domains once credentials are configured, while actual purchase remains blocked until AgentLatch and secure execution exist.
+
+Reversibility: High.

@@ -136,4 +136,90 @@ describe("LaunchForge web foundation", () => {
       method: "POST"
     });
   });
+
+  it("runs domain research and renders the recommended domain", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 50,
+              tasks: [],
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 63,
+            tasks: [],
+            domainResearch: {
+              id: "domain-research-1",
+              projectId: "project-1",
+              brandName: "InterviewForge",
+              checkedDomains: ["interviewforge.com"],
+              candidates: [
+                {
+                  domainName: "interviewforge.com",
+                  sld: "interviewforge",
+                  tld: "com",
+                  purchasable: true,
+                  premium: false,
+                  purchaseType: "registration",
+                  purchasePrice: 12.99,
+                  renewalPrice: 14.99,
+                  reason: "",
+                  score: 100,
+                  recommendation: "Available for standard registration."
+                }
+              ],
+              recommendedDomain: {
+                domainName: "interviewforge.com",
+                sld: "interviewforge",
+                tld: "com",
+                purchasable: true,
+                premium: false,
+                purchaseType: "registration",
+                purchasePrice: 12.99,
+                renewalPrice: 14.99,
+                reason: "",
+                score: 100,
+                recommendation: "Available for standard registration."
+              },
+              generatedAt: "2026-08-31T00:00:00.000Z"
+            },
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          },
+          research: {
+            recommendedDomain: {
+              domainName: "interviewforge.com"
+            }
+          }
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Find Domains/i }));
+
+    expect(await screen.findByRole("heading", { name: "interviewforge.com" })).toBeInTheDocument();
+    expect(screen.getAllByText("Available for standard registration.")).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/research/domains", {
+      method: "POST"
+    });
+  });
 });

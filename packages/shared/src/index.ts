@@ -75,6 +75,30 @@ export const marketResearchSchema = z.object({
   generatedAt: z.string().datetime()
 });
 
+export const domainCandidateSchema = z.object({
+  domainName: z.string(),
+  sld: z.string(),
+  tld: z.string(),
+  purchasable: z.boolean(),
+  premium: z.boolean(),
+  purchaseType: z.string(),
+  purchasePrice: z.number().nullable(),
+  renewalPrice: z.number().nullable(),
+  reason: z.string().default(""),
+  score: z.number().min(0).max(100),
+  recommendation: z.string()
+});
+
+export const domainResearchSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  brandName: z.string(),
+  checkedDomains: z.array(z.string()).min(1),
+  candidates: z.array(domainCandidateSchema),
+  recommendedDomain: domainCandidateSchema.optional(),
+  generatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -100,6 +124,7 @@ export const launchProjectSchema = z.object({
   progress: z.number().min(0).max(100),
   tasks: z.array(agentTaskSchema),
   marketResearch: marketResearchSchema.optional(),
+  domainResearch: domainResearchSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -112,6 +137,8 @@ export type AgentRole = z.infer<typeof agentRoleSchema>;
 export type AgentTask = z.infer<typeof agentTaskSchema>;
 export type AgentTaskStatus = z.infer<typeof agentTaskStatusSchema>;
 export type CreateLaunchProjectInput = z.infer<typeof createLaunchProjectSchema>;
+export type DomainCandidate = z.infer<typeof domainCandidateSchema>;
+export type DomainResearch = z.infer<typeof domainResearchSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;

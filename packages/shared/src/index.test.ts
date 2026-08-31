@@ -3,6 +3,7 @@ import {
   calculateProjectProgress,
   createInitialAgentTasks,
   createLaunchProjectSchema,
+  domainResearchSchema,
   launchWorkflowPlanSchema,
   marketResearchSchema,
   tasksFromWorkflowPlan
@@ -90,5 +91,45 @@ describe("shared launch contracts", () => {
     };
 
     expect(() => marketResearchSchema.parse(research)).not.toThrow();
+  });
+
+  it("validates domain research output with recommendations", () => {
+    const research = {
+      id: "domain-research-1",
+      projectId: "project-1",
+      brandName: "PrepOrbit",
+      checkedDomains: ["preporbit.com"],
+      candidates: [
+        {
+          domainName: "preporbit.com",
+          sld: "preporbit",
+          tld: "com",
+          purchasable: true,
+          premium: false,
+          purchaseType: "registration",
+          purchasePrice: 12.99,
+          renewalPrice: 14.99,
+          reason: "",
+          score: 98,
+          recommendation: "Strong exact-match registration domain."
+        }
+      ],
+      recommendedDomain: {
+        domainName: "preporbit.com",
+        sld: "preporbit",
+        tld: "com",
+        purchasable: true,
+        premium: false,
+        purchaseType: "registration",
+        purchasePrice: 12.99,
+        renewalPrice: 14.99,
+        reason: "",
+        score: 98,
+        recommendation: "Strong exact-match registration domain."
+      },
+      generatedAt: "2026-08-31T00:00:00.000Z"
+    };
+
+    expect(() => domainResearchSchema.parse(research)).not.toThrow();
   });
 });

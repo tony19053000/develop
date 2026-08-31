@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AgentRole, AgentTask, LaunchProject, ResearchResult } from "@launchforge/shared";
+import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult } from "@launchforge/shared";
 import {
   Activity,
   BadgeCheck,
@@ -18,7 +18,7 @@ import {
   Search,
   Server
 } from "lucide-react";
-import { createProject, listProjects, runMarketResearch } from "./api.js";
+import { createProject, listProjects, runDomainResearch, runMarketResearch } from "./api.js";
 
 const navigation = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -46,6 +46,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
+  const [isFindingDomains, setIsFindingDomains] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,6 +104,21 @@ export function App() {
     }
   }
 
+  async function handleRunDomainResearch(projectId: string) {
+    setIsFindingDomains(true);
+    setError(null);
+
+    try {
+      const { project } = await runDomainResearch(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to run domain research.");
+    } finally {
+      setIsFindingDomains(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="LaunchForge navigation">
@@ -132,7 +148,7 @@ export function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Phase 1 foundation</p>
+            <p className="eyebrow">Launch Workspace</p>
             <h1>AI Launch Command Center</h1>
           </div>
           <div className="status-pill">
@@ -207,6 +223,15 @@ export function App() {
                     <Search size={18} aria-hidden="true" />
                     {isResearching ? "Researching..." : "Run Research"}
                   </button>
+                  <button
+                    className="secondary-button"
+                    disabled={isFindingDomains}
+                    onClick={() => void handleRunDomainResearch(selectedProject.id)}
+                    type="button"
+                  >
+                    <Globe2 size={18} aria-hidden="true" />
+                    {isFindingDomains ? "Checking..." : "Find Domains"}
+                  </button>
                 </div>
 
                 <div className="progress-block">
@@ -226,6 +251,8 @@ export function App() {
                 {selectedProject.marketResearch ? (
                   <MarketResearchPanel project={selectedProject} />
                 ) : null}
+
+                {selectedProject.domainResearch ? <DomainResearchPanel project={selectedProject} /> : null}
               </>
             ) : (
               <p className="empty-state">Start a launch to populate the workspace.</p>
@@ -235,6 +262,59 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function DomainResearchPanel({ project }: { project: LaunchProject }) {
+  const research = project.domainResearch;
+
+  if (!research) {
+    return null;
+  }
+
+  return (
+    <section className="domain-panel" aria-labelledby="domain-intelligence-title">
+      <div className="section-heading">
+        <p className="eyebrow">Domain Intelligence</p>
+        <h2 id="domain-intelligence-title">{research.recommendedDomain?.domainName ?? research.brandName}</h2>
+      </div>
+
+      {research.recommendedDomain ? (
+        <div className="domain-recommendation">
+          <strong>{research.recommendedDomain.domainName}</strong>
+          <span>{formatDomainPrice(research.recommendedDomain.purchasePrice)}</span>
+          <p>{research.recommendedDomain.recommendation}</p>
+        </div>
+      ) : (
+        <p className="empty-state">No purchasable domain recommendation found.</p>
+      )}
+
+      <div className="domain-list">
+        {research.candidates.slice(0, 8).map((candidate) => (
+          <DomainCandidateRow candidate={candidate} key={candidate.domainName} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DomainCandidateRow({ candidate }: { candidate: DomainCandidate }) {
+  return (
+    <div className={candidate.purchasable ? "domain-row purchasable" : "domain-row"}>
+      <div>
+        <strong>{candidate.domainName}</strong>
+        <span>{candidate.recommendation}</span>
+      </div>
+      <div className="domain-meta">
+        <small>{candidate.score}</small>
+        <small>{candidate.premium ? "premium" : candidate.purchaseType}</small>
+        <small>{formatDomainPrice(candidate.purchasePrice)}</small>
+      </div>
+    </div>
+  );
+}
+
+function formatDomainPrice(price: number | null): string {
+  return price === null ? "No price" : `$${price.toFixed(2)}`;
 }
 
 function MarketResearchPanel({ project }: { project: LaunchProject }) {

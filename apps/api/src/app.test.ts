@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createDeterministicWorkflowPlan, type MarketBrandAgent, type OrchestratorRuntime } from "@launchforge/agents";
+import {
+  createDeterministicWorkflowPlan,
+  type DomainAgent,
+  type MarketBrandAgent,
+  type OrchestratorRuntime
+} from "@launchforge/agents";
 import { createApp } from "./app.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
@@ -26,7 +31,8 @@ beforeEach(async () => {
     projects: new FileProjectRepository(dataDir),
     events: new EventBus(),
     orchestrator: createFakeOrchestrator(),
-    marketBrand: createFakeMarketBrand()
+    marketBrand: createFakeMarketBrand(),
+    domain: createFakeDomainAgent()
   });
 });
 
@@ -106,6 +112,25 @@ describe("LaunchForge API foundation", () => {
       ])
     );
   });
+
+  it("runs domain research for an existing project", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/research/market`).expect(200);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/research/domains`)
+      .expect(200);
+
+    expect(response.body.research.recommendedDomain.domainName).toBe("evidenceforge.com");
+    expect(response.body.project.domainResearch.candidates).toHaveLength(2);
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "domain-research", status: "complete" })])
+    );
+  });
 });
 
 function createFakeOrchestrator(): OrchestratorRuntime {
@@ -143,6 +168,61 @@ function createFakeMarketBrand(): MarketBrandAgent {
           positioning: "Fast launch execution for legal operators."
         },
         evidenceSummary: "Found 1 competitor result.",
+        generatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeDomainAgent(): DomainAgent {
+  return {
+    async research(input) {
+      return {
+        id: "domain-research-1",
+        projectId: input.projectId,
+        brandName: input.marketResearch?.brand.name ?? "EvidenceForge",
+        checkedDomains: ["evidenceforge.com", "evidenceforge.ai"],
+        candidates: [
+          {
+            domainName: "evidenceforge.com",
+            sld: "evidenceforge",
+            tld: "com",
+            purchasable: true,
+            premium: false,
+            purchaseType: "registration",
+            purchasePrice: 12.99,
+            renewalPrice: 14.99,
+            reason: "",
+            score: 100,
+            recommendation: "Available for standard registration."
+          },
+          {
+            domainName: "evidenceforge.ai",
+            sld: "evidenceforge",
+            tld: "ai",
+            purchasable: false,
+            premium: false,
+            purchaseType: "registration",
+            purchasePrice: null,
+            renewalPrice: null,
+            reason: "Already registered",
+            score: 51,
+            recommendation: "Already registered"
+          }
+        ],
+        recommendedDomain: {
+          domainName: "evidenceforge.com",
+          sld: "evidenceforge",
+          tld: "com",
+          purchasable: true,
+          premium: false,
+          purchaseType: "registration",
+          purchasePrice: 12.99,
+          renewalPrice: 14.99,
+          reason: "",
+          score: 100,
+          recommendation: "Available for standard registration."
+        },
         generatedAt: "2026-08-31T00:00:00.000Z"
       };
     }

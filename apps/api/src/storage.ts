@@ -7,6 +7,7 @@ import {
   launchProjectListSchema,
   tasksFromWorkflowPlan,
   type CreateLaunchProjectInput,
+  type DomainResearch,
   type LaunchProject,
   type LaunchWorkflowPlan,
   type MarketResearch
@@ -18,6 +19,7 @@ export interface ProjectRepository {
   create(input: CreateLaunchProjectInput): Promise<LaunchProject>;
   applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject>;
   saveMarketResearch(projectId: string, research: MarketResearch): Promise<LaunchProject>;
+  saveDomainResearch(projectId: string, research: DomainResearch): Promise<LaunchProject>;
 }
 
 export class FileProjectRepository implements ProjectRepository {
@@ -111,6 +113,38 @@ export class FileProjectRepository implements ProjectRepository {
       progress: calculateProjectProgress(tasks),
       tasks,
       marketResearch: research,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveDomainResearch(projectId: string, research: DomainResearch): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const tasks = project.tasks.map((task) =>
+      task.id === "domain-research" ? { ...task, status: "complete" as const, updatedAt: now } : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: "active",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      domainResearch: research,
       updatedAt: now
     };
 

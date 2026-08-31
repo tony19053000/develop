@@ -1,5 +1,5 @@
-import { createMarketBrandAgent, createOrchestratorRuntime, loadAgentModelConfig } from "@launchforge/agents";
-import { HttpSerpApiClient } from "@launchforge/integrations";
+import { createDomainAgent, createMarketBrandAgent, createOrchestratorRuntime, loadAgentModelConfig } from "@launchforge/agents";
+import { HttpNameComClient, HttpSerpApiClient } from "@launchforge/integrations";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 import { EventBus } from "./events.js";
@@ -10,12 +10,24 @@ const orchestrator = createOrchestratorRuntime(loadAgentModelConfig());
 const marketBrand = createMarketBrandAgent(
   new HttpSerpApiClient(config.SERPAPI_API_KEY ? { apiKey: config.SERPAPI_API_KEY } : {})
 );
+const domain = createDomainAgent(
+  new HttpNameComClient(
+    config.NAMECOM_USERNAME && config.NAMECOM_API_TOKEN
+      ? {
+          username: config.NAMECOM_USERNAME,
+          apiToken: config.NAMECOM_API_TOKEN,
+          baseUrl: config.NAMECOM_API_BASE_URL
+        }
+      : { baseUrl: config.NAMECOM_API_BASE_URL }
+  )
+);
 const app = createApp({
   config,
   projects: new FileProjectRepository(config.DATA_DIR),
   events: new EventBus(),
   orchestrator,
-  marketBrand
+  marketBrand,
+  domain
 });
 
 app.listen(config.API_PORT, () => {

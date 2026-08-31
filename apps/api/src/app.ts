@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
-import type { MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
-import { SerpApiConfigurationError } from "@launchforge/integrations";
+import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
+import { NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
 import { createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -14,9 +14,10 @@ export interface AppDependencies {
   events: EventBus;
   orchestrator: OrchestratorRuntime;
   marketBrand: MarketBrandAgent;
+  domain: DomainAgent;
 }
 
-export function createApp({ config, projects, events, orchestrator, marketBrand }: AppDependencies) {
+export function createApp({ config, projects, events, orchestrator, marketBrand, domain }: AppDependencies) {
   const app = express();
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
@@ -146,6 +147,48 @@ export function createApp({ config, projects, events, orchestrator, marketBrand 
       response.json({ project, research });
     } catch (error) {
       if (error instanceof SerpApiConfigurationError) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/research/domains", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "domain",
+        level: "info",
+        message: "Domain Agent started name.com availability search."
+      });
+
+      const research = await domain.research({
+        projectId: existingProject.id,
+        idea: existingProject.idea,
+        ...(existingProject.marketResearch ? { marketResearch: existingProject.marketResearch } : {})
+      });
+      const project = await projects.saveDomainResearch(existingProject.id, research);
+
+      events.publish({
+        projectId: project.id,
+        agent: "domain",
+        level: "success",
+        message: research.recommendedDomain
+          ? `Domain research complete. Recommended ${research.recommendedDomain.domainName}.`
+          : "Domain research complete. No purchasable recommendation found."
+      });
+
+      response.json({ project, research });
+    } catch (error) {
+      if (error instanceof NameComConfigurationError) {
         next(new ApiError(424, error.message));
         return;
       }
