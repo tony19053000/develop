@@ -14,7 +14,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 5 | AgentLatch Policy Engine | 7 | 100% complete |
 | 6 | Human Approval System | 7 | 100% complete |
 | 7 | TEE / Secure Execution | 7 | 100% complete |
-| 8 | Protected name.com Registration | 5 | 0% pending |
+| 8 | Protected name.com Registration | 5 | implementation started, pending sandbox/live protected execution |
 | 9 | Website / Product Agent | 6 | 0% pending |
 | 10 | Xano + Backend Agent | 6 | 0% pending |
 | 11 | Deployment System | 3 | 0% pending |
@@ -33,7 +33,7 @@ Phase 8 - Protected name.com Registration.
 
 ## Current Task
 
-Begin protected name.com registration through AgentLatch, human approval, and SecureExecutor.
+Implement protected name.com registration through AgentLatch, human approval, and SecureExecutor.
 
 ## Baseline
 
@@ -48,6 +48,7 @@ Begin protected name.com registration through AgentLatch, human approval, and Se
 - Phase 5 implementation adds `@launchforge/agentlatch`, structured action requests, deterministic policy categories, payload hashing, protected tool execution interception, API decision evaluation, and bypass/replay tests.
 - Phase 6 implementation adds file-backed approval storage, signed approval URLs, single-use approve/reject flows, project pause/resume state, and dashboard approval controls.
 - Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, secure execution UI/API handoff, Google-signed attestation verification, a packaged Confidential Space workload container, and real production Confidential Space verification.
+- Phase 8 implementation started with a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, and dashboard execution control for approved registrations.
 
 ## Test Status
 
@@ -60,6 +61,7 @@ Begin protected name.com registration through AgentLatch, human approval, and Se
 - Live name.com verification: passed with real credentials; checked 20 domains and recommended a purchasable standard-registration domain.
 - Live Google Confidential Space verification: passed in project `launchforge-tee` using service account `launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`.
 - SecureExecutor attestation policy verified `evidenceVerified: true` only for the Google-signed Confidential Space token matching image digest `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`, project `launchforge-tee`, zone `us-central1-c`, and the workload service account.
+- Phase 8 automated tests: protected registration flow passes with mocked name.com create-domain responses. Live registration was not run because local `.env` points at production `https://api.name.com`.
 
 ## Review Status
 
@@ -112,4 +114,4 @@ Partially demo-ready. A user can run the local app, create a launch project, vie
 
 ## Blockers
 
-None for Phase 7. Phase 8 must keep real domain registration behind AgentLatch, human approval, SecureExecutor, and sponsor-secret isolation.
+Phase 8 live verification needs sandbox name.com credentials/base URL or an explicit production purchase confirmation for a specific domain.

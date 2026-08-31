@@ -1,9 +1,10 @@
 import cors from "cors";
 import express from "express";
+import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
 import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
-import { NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
+import { HttpNameComClient, NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import { createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
@@ -11,6 +12,12 @@ import { ApiError, errorHandler, notFound } from "./errors.js";
 import { EventBus } from "./events.js";
 import { ApprovalRepositoryError, type ApprovalRepository } from "./approvals.js";
 import type { ProjectRepository } from "./storage.js";
+
+const registerDomainPayloadSchema = z.object({
+  domainName: z.string().min(1),
+  years: z.number().int().min(1).max(10),
+  price: z.number().nullable().optional()
+});
 
 export interface AppDependencies {
   config: ApiConfig;
@@ -343,6 +350,75 @@ export function createApp({
         agent: "agentlatch",
         level: "success",
         message: `SecureExecutor dry-run completed for ${approval.actionRequest.actionType}.`
+      });
+
+      response.json({ receipt });
+    } catch (error) {
+      next(mapApprovalError(error));
+    }
+  });
+
+  app.post("/api/secure-executions/namecom/register-domain", async (request, response, next) => {
+    try {
+      const approvalId = parseApprovalId(request.body);
+      const approval = await approvals.findById(approvalId);
+
+      if (!approval) {
+        throw new ApiError(404, "Approval not found.");
+      }
+
+      if (approval.status !== "approved") {
+        throw new ApiError(409, "Domain registration requires an approved action.");
+      }
+
+      if (approval.actionRequest.actionType !== "namecom.registerDomain") {
+        throw new ApiError(409, "Approval is not for domain registration.");
+      }
+
+      const payload = registerDomainPayloadSchema.parse(approval.actionRequest.payload);
+      const receipt = await secureExecutor.execute({
+        request: approval.actionRequest,
+        approval: approval.decision,
+        operation: async (context) => {
+          const nameCom = new HttpNameComClient({
+            username: await context.getSecret("NAMECOM_USERNAME"),
+            apiToken: await context.getSecret("NAMECOM_API_TOKEN"),
+            baseUrl: config.NAMECOM_API_BASE_URL
+          });
+          const [availability] = await nameCom.checkAvailability({ domainNames: [payload.domainName] });
+
+          if (!availability?.purchasable) {
+            throw new ApiError(409, `Domain is no longer purchasable: ${payload.domainName}.`);
+          }
+
+          if (availability.premium || availability.purchaseType !== "registration") {
+            throw new ApiError(409, "Phase 8 only permits standard non-premium registrations.");
+          }
+
+          const registeredDomain = await nameCom.registerDomain({
+            domainName: payload.domainName,
+            years: payload.years,
+            idempotencyKey: approval.id
+          });
+
+          return {
+            registered: true,
+            domainName: registeredDomain.domainName,
+            expireDate: registeredDomain.expireDate,
+            autorenewEnabled: registeredDomain.autorenewEnabled,
+            locked: registeredDomain.locked,
+            privacyEnabled: registeredDomain.privacyEnabled,
+            order: registeredDomain.order,
+            totalPaid: registeredDomain.totalPaid
+          };
+        }
+      });
+
+      events.publish({
+        projectId: approval.projectId,
+        agent: "agentlatch",
+        level: "success",
+        message: `SecureExecutor registered ${payload.domainName} through name.com.`
       });
 
       response.json({ receipt });

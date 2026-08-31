@@ -10,5 +10,7 @@ export {
   NameComConfigurationError,
   type CheckDomainAvailabilityInput,
   type NameComClient,
-  type NameComConfig
+  type NameComConfig,
+  type RegisteredDomain,
+  type RegisterDomainInput
 } from "./namecom.js";

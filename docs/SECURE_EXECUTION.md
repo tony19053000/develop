@@ -83,3 +83,5 @@ Protected name.com registration must use the SecureExecutor after AgentLatch and
 - The payload hash matches the registration payload.
 - The secure executor mode and evidence requirements pass.
 - Sponsor credentials are only resolved inside the secure execution operation.
+
+Phase 8 registration now uses the name.com Create Domain endpoint only after a fresh availability re-check inside SecureExecutor. The approval ID is sent as the name.com `X-Idempotency-Key` so retries do not double-purchase. Phase 8 currently permits only standard non-premium `registration` purchases; premium, aftermarket, expiring, or backorder acquisitions remain blocked until separate pricing and claims controls are added.

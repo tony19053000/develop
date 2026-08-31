@@ -61,4 +61,55 @@ describe("HttpNameComClient", () => {
       expect.objectContaining({ method: "POST" })
     );
   });
+
+  it("registers a domain with an idempotency key", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        domain: {
+          domainName: "preporbit.com",
+          createDate: "2026-08-31T00:00:00Z",
+          expireDate: "2027-08-31T00:00:00Z",
+          autorenewEnabled: true,
+          locked: true,
+          privacyEnabled: true,
+          renewalPrice: 14.99
+        },
+        order: 123,
+        totalPaid: 12.99
+      })
+    } as Response);
+
+    const client = new HttpNameComClient({ username: "founder-test", apiToken: "test-token" });
+    const result = await client.registerDomain({
+      domainName: "preporbit.com",
+      years: 1,
+      idempotencyKey: "approval-1"
+    });
+
+    expect(result).toMatchObject({
+      domainName: "preporbit.com",
+      order: 123,
+      totalPaid: 12.99
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("https://api.dev.name.com/core/v1/domains"),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "X-Idempotency-Key": "approval-1"
+        }),
+        body: JSON.stringify({
+          domain: {
+            domainName: "preporbit.com",
+            years: 1,
+            purchaseType: "registration",
+            autorenewEnabled: true,
+            locked: true,
+            privacyEnabled: true
+          }
+        })
+      })
+    );
+  });
 });

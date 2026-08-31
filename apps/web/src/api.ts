@@ -143,6 +143,18 @@ export async function dryRunSecureExecution(approval: ApprovalRequest): Promise<
   return body.receipt;
 }
 
+export async function executeDomainRegistration(approval: ApprovalRequest): Promise<SecureExecutionReceipt> {
+  const response = await fetch(`${API_BASE_URL}/api/secure-executions/namecom/register-domain`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ approvalId: approval.id })
+  });
+  const body = await readJson<SecureExecutionResponse>(response);
+  return body.receipt;
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   const body = await response.json();
 

@@ -26,6 +26,7 @@ import {
   approveRequest,
   createProject,
   dryRunSecureExecution,
+  executeDomainRegistration,
   listApprovals,
   listProjects,
   rejectRequest,
@@ -184,6 +185,17 @@ export function App() {
     }
   }
 
+  async function handleExecuteDomainRegistration(approval: ApprovalRequest) {
+    setError(null);
+
+    try {
+      const receipt = await executeDomainRegistration(approval);
+      setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to register domain.");
+    }
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="LaunchForge navigation">
@@ -274,6 +286,7 @@ export function App() {
               receipts={secureReceipts}
               onDecision={handleApprovalDecision}
               onDryRun={handleDryRunSecureExecution}
+              onRegister={handleExecuteDomainRegistration}
             />
           </div>
 
@@ -358,12 +371,14 @@ function ApprovalPanel({
   approvals,
   receipts,
   onDecision,
-  onDryRun
+  onDryRun,
+  onRegister
 }: {
   approvals: ApprovalRequest[];
   receipts: SecureExecutionReceipt[];
   onDecision: (approval: ApprovalRequest, decision: "approve" | "reject") => Promise<void>;
   onDryRun: (approval: ApprovalRequest) => Promise<void>;
+  onRegister: (approval: ApprovalRequest) => Promise<void>;
 }) {
   const visibleApprovals = approvals.slice(0, 4);
 
@@ -403,9 +418,26 @@ function ApprovalPanel({
                   </button>
                 </div>
               ) : approval.status === "approved" ? (
-                <button className="mini-action-button" onClick={() => void onDryRun(approval)} type="button">
-                  Dry Run
-                </button>
+                <div className="approval-actions compact">
+                  <button
+                    aria-label={`Dry run ${approval.actionRequest.resource}`}
+                    onClick={() => void onDryRun(approval)}
+                    title="Dry run"
+                    type="button"
+                  >
+                    <ShieldCheck size={16} aria-hidden="true" />
+                  </button>
+                  {approval.actionRequest.actionType === "namecom.registerDomain" ? (
+                    <button
+                      aria-label={`Register ${approval.actionRequest.resource}`}
+                      onClick={() => void onRegister(approval)}
+                      title="Register"
+                      type="button"
+                    >
+                      <Globe2 size={16} aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
               ) : (
                 <small>{approval.status}</small>
               )}
@@ -414,7 +446,13 @@ function ApprovalPanel({
           {receipts[0] ? (
             <div className="receipt-row">
               <strong>{receipts[0].actionType}</strong>
-              <span>{receipts[0].evidenceVerified ? "TEE evidence verified" : "development boundary"}</span>
+              <span>
+                {receipts[0].result.registered === true
+                  ? `registered ${String(receipts[0].result.domainName)}`
+                  : receipts[0].evidenceVerified
+                    ? "TEE evidence verified"
+                    : "development boundary"}
+              </span>
             </div>
           ) : null}
         </div>

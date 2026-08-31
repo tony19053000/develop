@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAgentLatchPolicyEngine, toolActionRequestSchema } from "@launchforge/agentlatch";
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
@@ -44,6 +44,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await rm(dataDir, { recursive: true, force: true });
 });
 
@@ -256,6 +257,89 @@ describe("LaunchForge API foundation", () => {
         dryRun: true
       }
     });
+  });
+
+  it("executes approved standard domain registration through SecureExecutor", async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    globalThis.fetch = fetchMock;
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [
+            {
+              domainName: "evidenceforge.com",
+              purchasable: true,
+              sld: "evidenceforge",
+              tld: "com",
+              premium: false,
+              purchasePrice: 12.99,
+              purchaseType: "registration",
+              renewalPrice: 14.99,
+              reason: ""
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          domain: {
+            domainName: "evidenceforge.com",
+            expireDate: "2027-08-31T00:00:00Z",
+            autorenewEnabled: true,
+            locked: true,
+            privacyEnabled: true
+          },
+          order: 123,
+          totalPaid: 12.99
+        })
+      } as Response);
+    const createProjectResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+    const approvalResponse = await request(app)
+      .post("/api/approvals")
+      .send({
+        projectId: createProjectResponse.body.project.id,
+        requestedBy: "domain",
+        actionType: "namecom.registerDomain",
+        resource: "evidenceforge.com",
+        payload: { domainName: "evidenceforge.com", years: 1, price: 12.99 },
+        reason: "Register the recommended domain."
+      })
+      .expect(201);
+
+    await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
+      .expect(200);
+
+    const response = await request(app)
+      .post("/api/secure-executions/namecom/register-domain")
+      .send({ approvalId: approvalResponse.body.approval.id })
+      .expect(200);
+
+    expect(response.body.receipt).toMatchObject({
+      actionType: "namecom.registerDomain",
+      evidenceVerified: false,
+      result: {
+        registered: true,
+        domainName: "evidenceforge.com",
+        order: 123,
+        totalPaid: 12.99
+      }
+    });
+    expect(JSON.stringify(response.body)).not.toContain("test-secret");
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      new URL("https://api.dev.name.com/core/v1/domains"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Idempotency-Key": approvalResponse.body.approval.id
+        })
+      })
+    );
   });
 
   it("rejects a protected action request and stops the project", async () => {

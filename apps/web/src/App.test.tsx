@@ -380,6 +380,24 @@ describe("LaunchForge web foundation", () => {
             executedAt: "2026-08-31T00:03:00.000Z"
           }
         })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          receipt: {
+            id: "receipt-2",
+            requestId: "request-1",
+            actionType: "namecom.registerDomain",
+            payloadHash: "hash",
+            mode: "development",
+            evidenceVerified: false,
+            result: {
+              registered: true,
+              domainName: "interviewforge.com"
+            },
+            executedAt: "2026-08-31T00:04:00.000Z"
+          }
+        })
       } as Response);
 
     render(<App />);
@@ -388,9 +406,12 @@ describe("LaunchForge web foundation", () => {
     expect(await screen.findByText("HIGH RISK APPROVAL")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /Approve interviewforge.com/i }));
-    expect(await screen.findByRole("button", { name: /Dry Run/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Dry run interviewforge.com/i })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Dry Run/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Dry run interviewforge.com/i }));
     expect(await screen.findByText("development boundary")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Register interviewforge.com/i }));
+    expect(await screen.findByText("registered interviewforge.com")).toBeInTheDocument();
   });
 });

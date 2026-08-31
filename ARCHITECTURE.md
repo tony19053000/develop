@@ -96,7 +96,7 @@ The system must never claim local development execution is hardware-backed. Hard
 Each sponsor integration should live behind a narrow adapter:
 
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
-- NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking implemented and live verified; registration and DNS remain protected later-phase operations.
+- NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
 - XanoAdapter for backend provisioning and metadata.
 - FoxitAdapter for document and eSign workflows.
 
@@ -179,6 +179,8 @@ Domain Agent
   -> Human Approval
   -> Signed Authorization
   -> SecureExecutor / TEE
+  -> Re-check name.com availability
+  -> Idempotent Create Domain
   -> name.com API
   -> Audit Event
 ```

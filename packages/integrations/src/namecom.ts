@@ -19,6 +19,24 @@ const nameComResponseSchema = z.object({
   details: z.string().optional()
 });
 
+const nameComCreateDomainResponseSchema = z.object({
+  domain: z
+    .object({
+      domainName: z.string(),
+      createDate: z.string().optional(),
+      expireDate: z.string().optional(),
+      autorenewEnabled: z.boolean().optional(),
+      locked: z.boolean().optional(),
+      privacyEnabled: z.boolean().optional(),
+      renewalPrice: z.number().optional()
+    })
+    .passthrough(),
+  order: z.number().optional(),
+  totalPaid: z.number().optional(),
+  message: z.string().optional(),
+  details: z.string().optional()
+});
+
 export interface NameComConfig {
   username?: string;
   apiToken?: string;
@@ -29,8 +47,32 @@ export interface CheckDomainAvailabilityInput {
   domainNames: string[];
 }
 
+export interface RegisterDomainInput {
+  domainName: string;
+  years: number;
+  idempotencyKey: string;
+  purchaseType?: string;
+  purchasePrice?: number;
+  autorenewEnabled?: boolean;
+  locked?: boolean;
+  privacyEnabled?: boolean;
+}
+
+export interface RegisteredDomain {
+  domainName: string;
+  createDate?: string;
+  expireDate?: string;
+  autorenewEnabled?: boolean;
+  locked?: boolean;
+  privacyEnabled?: boolean;
+  renewalPrice?: number;
+  order?: number;
+  totalPaid?: number;
+}
+
 export interface NameComClient {
   checkAvailability(input: CheckDomainAvailabilityInput): Promise<Omit<DomainCandidate, "score" | "recommendation">[]>;
+  registerDomain(input: RegisterDomainInput): Promise<RegisteredDomain>;
 }
 
 export class NameComConfigurationError extends Error {
@@ -87,5 +129,50 @@ export class HttpNameComClient implements NameComClient {
       renewalPrice: result.renewalPrice ?? null,
       reason: result.reason
     }));
+  }
+
+  async registerDomain(input: RegisterDomainInput): Promise<RegisteredDomain> {
+    if (!this.username || !this.apiToken) {
+      throw new NameComConfigurationError();
+    }
+
+    const url = new URL("/core/v1/domains", this.baseUrl);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${this.username}:${this.apiToken}`).toString("base64")}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": input.idempotencyKey
+      },
+      body: JSON.stringify({
+        domain: {
+          domainName: input.domainName,
+          years: input.years,
+          purchaseType: input.purchaseType ?? "registration",
+          autorenewEnabled: input.autorenewEnabled ?? true,
+          locked: input.locked ?? true,
+          privacyEnabled: input.privacyEnabled ?? true,
+          ...(input.purchasePrice !== undefined ? { purchasePrice: input.purchasePrice } : {})
+        }
+      })
+    });
+
+    const body = nameComCreateDomainResponseSchema.parse(await response.json());
+
+    if (!response.ok) {
+      throw new Error(`name.com registration failed with status ${response.status}: ${body.message ?? "Unknown error"}.`);
+    }
+
+    return {
+      domainName: body.domain.domainName,
+      ...(body.domain.createDate ? { createDate: body.domain.createDate } : {}),
+      ...(body.domain.expireDate ? { expireDate: body.domain.expireDate } : {}),
+      ...(body.domain.autorenewEnabled !== undefined ? { autorenewEnabled: body.domain.autorenewEnabled } : {}),
+      ...(body.domain.locked !== undefined ? { locked: body.domain.locked } : {}),
+      ...(body.domain.privacyEnabled !== undefined ? { privacyEnabled: body.domain.privacyEnabled } : {}),
+      ...(body.domain.renewalPrice !== undefined ? { renewalPrice: body.domain.renewalPrice } : {}),
+      ...(body.order !== undefined ? { order: body.order } : {}),
+      ...(body.totalPaid !== undefined ? { totalPaid: body.totalPaid } : {})
+    };
   }
 }

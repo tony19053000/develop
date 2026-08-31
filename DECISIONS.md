@@ -236,3 +236,23 @@ Reason: Google Confidential Space is container-oriented and fits a single-purpos
 Consequences: Phase 7 has an implemented boundary and selected TEE target, but cannot be called hardware-backed until deployed to Google Confidential Space with valid attestation evidence.
 
 Reversibility: Medium.
+
+## 2026-08-31 - Protected name.com Registration Start
+
+Decision: Implement name.com Create Domain only behind approved SecureExecutor execution.
+
+Context: Phase 8 introduces a paid domain purchase path. The local `.env` currently points at production `https://api.name.com`, so automated verification must not perform a live purchase without explicit domain confirmation.
+
+Alternatives:
+
+- Call Create Domain directly from the Domain Agent.
+- Reuse dry-run execution as if registration were complete.
+- Execute a production purchase immediately.
+
+Chosen Approach: Add a `registerDomain` method to the name.com adapter, require an approved `namecom.registerDomain` action, re-check availability inside SecureExecutor, block premium/non-registration purchases for Phase 8, and use the approval ID as the name.com `X-Idempotency-Key`.
+
+Reason: This preserves AgentLatch exact-action authorization, prevents double purchase retries, and keeps name.com credentials available only inside the secure operation context.
+
+Consequences: Registration is implemented and locally tested with mocks. Phase 8 should not be marked complete until sandbox or explicitly approved live protected execution succeeds.
+
+Reversibility: Medium.

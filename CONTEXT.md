@@ -215,4 +215,4 @@ None for Phase 7.
 
 ## Next Exact Task
 
-Start Phase 8 by routing real name.com registration through AgentLatch, human approval, and SecureExecutor. Do not expose name.com credentials to agents or the frontend.
+Continue Phase 8 by sandbox-verifying protected name.com registration through AgentLatch, human approval, and SecureExecutor. Do not expose name.com credentials to agents or the frontend.
