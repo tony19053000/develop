@@ -6,12 +6,13 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 4 - name.com + Domain Agent is in progress.
+Phase 5 - AgentLatch Policy Engine is next.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
 Phase 2 - LangGraph + Orchestrator is complete and approved.
 Phase 3 - SerpApi + Market & Brand Agent is complete and approved.
+Phase 4 - name.com + Domain Agent is complete and approved.
 
 ## Completed Work
 
@@ -71,6 +72,7 @@ Phase 3 - SerpApi + Market & Brand Agent is complete and approved.
   - File-backed persistence for domain research on launch projects.
   - Frontend `Find Domains` action and Domain Intelligence panel.
   - Unit and integration tests with mocked name.com responses.
+  - Live verification with real name.com credentials, checking 20 domains and recommending a purchasable standard-registration domain.
 
 ## Architecture Summary
 
@@ -82,7 +84,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has a live-verified SerpApi implementation and a name.com availability implementation pending live credentials; Xano and Foxit are planned.
+- Sponsor adapter layer has live-verified SerpApi and name.com availability implementations; Xano and Foxit are planned.
 - AgentLatch deterministic policy and approval boundary is planned.
 - SecureExecutor abstraction, later backed by a real TEE/confidential computing platform, is planned.
 - Audit trail with redaction and exact action tracking is planned.
@@ -114,6 +116,7 @@ Current architecture:
 - `npm audit --audit-level=moderate`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
+- Live `POST /api/projects/:projectId/research/domains`
 - `npm view @langchain/langgraph version description`
 - `npm audit fix`
 - `npm run typecheck`
@@ -130,22 +133,25 @@ Current architecture:
 - Build/typecheck/test/lint: passing with Phase 4 implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
+- Live name.com endpoint verification: passed.
 - Phase 0 foundation commit: `d5f824b`.
 - Phase 1 implementation commit: `dd9b5ea`.
 - Phase 2 implementation commit: `742dfee`.
 - Phase 3 implementation commit: `9d9c646`.
+- Phase 3 verification commit: `a9e9893`.
+- Phase 4 implementation commit: `3db3a8a`.
 
 ## Environment Assumptions
 
 - Current workspace: `/home/aayush/Desktop/devlopment`.
 - Real credentials must be provided through local environment variables and never committed.
 - `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
-- `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are required to verify live Phase 4 sponsor behavior.
+- `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 
 ## Blockers
 
-Phase 4 cannot be marked complete until real name.com credentials are configured and the live domain availability endpoint is verified.
+None for Phase 4.
 
 ## Next Exact Task
 
-Set `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` in `.env`, start the API/web app, create or select a project, and run `POST /api/projects/:projectId/research/domains` or the web "Find Domains" action to verify real name.com results.
+Begin Phase 5 by implementing AgentLatch action schemas, deterministic policy categories, protected tool interception, policy tests, and bypass tests.

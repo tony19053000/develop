@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 22%
+## Overall Completion: 27%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -10,7 +10,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 1 | Application Foundation | 6 | 100% complete |
 | 2 | LangGraph + Orchestrator | 6 | 100% complete |
 | 3 | SerpApi + Market & Brand Agent | 6 | 100% complete |
-| 4 | name.com + Domain Agent | 5 | implementation present, pending real credential verification |
+| 4 | name.com + Domain Agent | 5 | 100% complete |
 | 5 | AgentLatch Policy Engine | 7 | 0% pending |
 | 6 | Human Approval System | 7 | 0% pending |
 | 7 | TEE / Secure Execution | 7 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 4 - name.com + Domain Agent.
+Phase 5 - AgentLatch Policy Engine.
 
 ## Current Task
 
-Verify the Phase 4 name.com integration with real `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN`.
+Begin the deterministic AgentLatch policy engine and protected tool interception model.
 
 ## Baseline
 
@@ -54,6 +54,7 @@ Verify the Phase 4 name.com integration with real `NAMECOM_USERNAME` and `NAMECO
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
 - Live SerpApi verification: passed with real `SERPAPI_API_KEY`; returned competitor, market signal, and naming conflict evidence.
+- Live name.com verification: passed with real credentials; checked 20 domains and recommended a purchasable standard-registration domain.
 
 ## Review Status
 
@@ -61,7 +62,7 @@ Reviewer/Tester result for Phase 2: APPROVED.
 
 Reviewer/Tester result for Phase 3: APPROVED.
 
-Reviewer/Tester result for Phase 4: PENDING real name.com credential verification.
+Reviewer/Tester result for Phase 4: APPROVED.
 
 ## GitHub Status
 
@@ -72,11 +73,13 @@ Reviewer/Tester result for Phase 4: PENDING real name.com credential verificatio
 - Phase 2 implementation commit: `742dfee`, pushed to `origin/main`.
 - Phase 3 implementation commit: `9d9c646`, pushed to `origin/main`.
 - Phase 3 verification/config commit: `a9e9893`, pushed to `origin/main`.
+- Phase 4 implementation commit: `3db3a8a`, pushed to `origin/main`.
+- Phase 4 verification commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
 - SerpApi: implemented and live verified.
-- name.com: adapter and Domain Agent implemented; pending verification with real `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN`.
+- name.com: availability search implemented and live verified.
 - Xano: planned.
 - Foxit: planned.
 
@@ -90,8 +93,8 @@ Planned.
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, and use the Domain Agent after configuring name.com credentials.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, and run live name.com domain availability recommendations.
 
 ## Blockers
 
-Real name.com verification requires `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` in the local environment.
+None for Phase 4. Phase 5 begins AgentLatch policy enforcement.

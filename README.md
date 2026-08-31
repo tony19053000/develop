@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 4 is in progress. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, a live-verified SerpApi-backed Market & Brand Agent, and a name.com Domain Agent pending live credential verification.
+Phase 4 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, a live-verified SerpApi-backed Market & Brand Agent, and live-verified name.com domain availability recommendations.
 
 ## Sponsor Integrations
 
