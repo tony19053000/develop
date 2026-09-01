@@ -6,14 +6,14 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 12 is implemented as a checkpoint and awaits live Foxit credential verification. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, and a SecureExecutor-gated Foxit document workflow.
+Phase 12 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, and live-verified SecureExecutor-gated Foxit PDF document generation.
 
 ## Sponsor Integrations
 
 - SerpApi: market intelligence, competitor research, naming conflict research.
 - name.com: domain search, availability, registration, DNS operations.
 - Xano: generated product backend, APIs, data models, auth where appropriate.
-- Foxit: business document generation and PDF workflows implemented as a checkpoint; eSign routing remains human-only for Phase 13.
+- Foxit: business document generation and PDF workflows live verified; eSign routing remains human-only for Phase 13.
 
 ## Architecture Summary
 
@@ -80,13 +80,7 @@ XANO_WORKSPACE_ID=your_xano_workspace_id
 XANO_INSTANCE_BASE_URL=https://your-instance.xano.io
 ```
 
-For Phase 12 live Foxit document generation, set either:
-
-```bash
-FOXIT_API_KEY=your_foxit_api_key
-```
-
-or:
+For Phase 12 live Foxit document generation, set:
 
 ```bash
 FOXIT_CLIENT_ID=your_foxit_client_id
@@ -96,8 +90,8 @@ FOXIT_CLIENT_SECRET=your_foxit_client_secret
 Optional Foxit endpoint overrides:
 
 ```bash
-FOXIT_API_BASE_URL=https://api.developer-api.foxit.com
-FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/v1/documents/generate
+FOXIT_API_BASE_URL=https://na1.fusion.foxit.com
+FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/GenerateDocumentBase64
 ```
 
 Install dependencies:

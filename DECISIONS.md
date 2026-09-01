@@ -333,6 +333,6 @@ Chosen Approach: The Document Agent prepares founder launch brief, investor one-
 
 Reason: This preserves the sponsor credential boundary while avoiding unnecessary human approval for non-signature document generation.
 
-Consequences: The implementation can be tested locally with mocked Foxit responses and refuses to fake live sponsor output when credentials are missing. Phase 12 remains pending until real Foxit credentials are configured and a live document generation run is verified.
+Consequences: The implementation can be tested locally with mocked Foxit responses and refuses to fake live sponsor output when credentials are missing. Phase 12 was completed only after real Foxit credentials were configured, `GenerateDocumentBase64` returned valid PDF payloads, and generated files were verified with `%PDF-` signatures.
 
 Reversibility: Medium.

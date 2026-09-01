@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 68%
+## Overall Completion: 72%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -18,7 +18,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 9 | Website / Product Agent | 6 | 100% complete |
 | 10 | Xano + Backend Agent | 6 | 100% complete |
 | 11 | Deployment System | 3 | 100% complete |
-| 12 | Foxit + Document Agent | 4 | implementation checkpoint; live Foxit verification pending |
+| 12 | Foxit + Document Agent | 4 | 100% complete |
 | 13 | Foxit eSign + Human-Only Boundary | 4 | 0% pending |
 | 14 | Full Multi-Agent Orchestration | 6 | 0% pending |
 | 15 | Audit + Security Center | 5 | 0% pending |
@@ -33,7 +33,7 @@ Phase 12 - Foxit + Document Agent.
 
 ## Current Task
 
-Add real Foxit credentials and verify sponsor-powered PDF generation.
+Begin Phase 13 - Foxit eSign + Human-Only Boundary.
 
 ## Baseline
 
@@ -52,7 +52,7 @@ Add real Foxit credentials and verify sponsor-powered PDF generation.
 - Phase 9 implementation adds a Website/Product Agent, generated static product-site artifact files, build-style validation checks, project artifact persistence, an API generation route, and an embedded dashboard preview.
 - Phase 10 implementation adds a Xano Metadata API adapter, Backend Agent backend plan generation, protected Xano provisioning execution route, backend artifact persistence, dashboard backend planning/provisioning controls, and real Xano workspace verification.
 - Phase 11 implementation adds local static deployment records, generated website file publishing, API static serving, deployment health checks, dashboard deployment controls, and deployment documentation.
-- Phase 12 checkpoint adds typed document artifacts, a credential-free Document Agent, a Foxit HTTP adapter, SecureExecutor-gated Foxit generation, dashboard document controls, and mocked protected-path tests.
+- Phase 12 implementation adds typed document artifacts, a credential-free Document Agent, a real Foxit DocGen HTTP adapter, SecureExecutor-gated Foxit generation, dashboard document controls, local PDF storage/serving, mocked protected-path tests, and real Foxit verification.
 
 ## Test Status
 
@@ -77,6 +77,10 @@ Add real Foxit credentials and verify sponsor-powered PDF generation.
 - Phase 11 live local verification: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`, health `healthy`, and served HTTP 200.
 - Phase 12 automated checkpoint tests: Document Agent, Foxit adapter, API protected generation route, and dashboard type coverage pass.
 - Phase 12 local no-credential smoke test: `POST /api/projects/68d5b4b2-7855-4256-9af5-b2a81a463359/documents` returned HTTP 424 with a Foxit credential requirement, correctly refusing to fake sponsor PDF generation.
+- Phase 12 live Foxit verification: passed through `Document Agent -> AgentLatch AUTO_ALLOW -> SecureExecutor -> Foxit DocGen API` using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64`.
+- Phase 12 generated three real PDF files for project `68d5b4b2-7855-4256-9af5-b2a81a463359`: founder launch brief `6523` bytes, investor one-pager `6399` bytes, and technical delivery summary `6527` bytes.
+- Phase 12 PDF serving verification: passed with HTTP 200, `Content-Type: application/pdf`, and `%PDF-` file signatures.
+- Phase 12 local SecureExecutor receipt correctly reported `evidenceVerified: false`.
 
 ## Review Status
 
@@ -100,7 +104,7 @@ Reviewer/Tester result for Phase 10: APPROVED after real Xano Metadata API provi
 
 Reviewer/Tester result for Phase 11: APPROVED after local deployment publishing, health checks, static serving, and dashboard controls were verified.
 
-Reviewer/Tester result for Phase 12: PENDING real Foxit credential verification.
+Reviewer/Tester result for Phase 12: APPROVED after real Foxit DocGen execution, PDF signature checks, static PDF serving, and no-secret scan.
 
 ## GitHub Status
 
@@ -124,14 +128,15 @@ Reviewer/Tester result for Phase 12: PENDING real Foxit credential verification.
 - Phase 10 Xano/backend checkpoint commit: `8676d99`, pushed to `origin/main`.
 - Phase 10 real Xano verification completion commit: `803cef9`, pushed to `origin/main`.
 - Phase 11 deployment system commit: `3bff34b`, pushed to `origin/main`.
-- Phase 12 Foxit/document checkpoint commit: pending.
+- Phase 12 Foxit/document checkpoint commit: `fd1210d`, pushed to `origin/main`.
+- Phase 12 real Foxit completion commit: pending.
 
 ## Sponsor Integrations
 
 - SerpApi: implemented and live verified.
 - name.com: availability search implemented and live verified; protected development/test registration implemented and sandbox verified.
 - Xano: backend planning, protected provisioning, and real Metadata API workspace provisioning implemented and verified.
-- Foxit: implementation checkpoint; real credential verification pending.
+- Foxit: real document generation and PDF workflow implemented and live verified; eSign is planned for Phase 13.
 
 ## AgentLatch
 
@@ -143,13 +148,10 @@ SecureExecutor implemented with Google Confidential Space as the real TEE target
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, execute a name.com development/test registration after approval, generate/preview a functional static product website artifact, provision a Xano-backed waitlist backend through approval and SecureExecutor, deploy the generated website to a local served URL with health checks, and prepare Foxit-bound founder documents. Real Foxit PDF generation waits for Foxit credentials.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, execute a name.com development/test registration after approval, generate/preview a functional static product website artifact, provision a Xano-backed waitlist backend through approval and SecureExecutor, deploy the generated website to a local served URL with health checks, and generate real Foxit-powered founder PDF documents.
 
 ## Blockers
 
 Production domain registration still requires an explicit user confirmation for the exact real domain before any production purchase.
 
-Phase 12 completion requires one real Foxit API credential path:
-
-- `FOXIT_API_KEY`, or
-- `FOXIT_CLIENT_ID` plus `FOXIT_CLIENT_SECRET`.
+Phase 13 must preserve the human-only boundary for any eSign send/sign action.

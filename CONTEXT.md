@@ -7,7 +7,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 ## Current Phase
 
 Phase 11 - Deployment System is complete and approved.
-Current phase: Phase 12 - Foxit + Document Agent is implemented as a checkpoint; live Foxit credential verification is pending.
+Phase 12 - Foxit + Document Agent is complete and approved.
+Current next phase: Phase 13 - Foxit eSign + Human-Only Boundary.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -21,6 +22,7 @@ Phase 8 - Protected name.com Registration is complete and approved.
 Phase 9 - Website / Product Agent is complete and approved.
 Phase 10 - Xano + Backend Agent is complete and approved.
 Phase 11 - Deployment System is complete and approved.
+Phase 12 - Foxit + Document Agent is complete and approved.
 
 ## Completed Work
 
@@ -167,10 +169,10 @@ Phase 11 - Deployment System is complete and approved.
   - Added dashboard deployment action, deployment status, health checks, and access link.
   - Added `docs/DEPLOYMENT_SYSTEM.md`.
   - Live local verification deployed project `68d5b4b2-7855-4256-9af5-b2a81a463359` to `http://localhost:4000/deployments/73feef18-a64c-4d15-bd22-9319b23d3f8e/` with HTTP 200 and healthy checks.
-- Added Phase 12 Foxit + Document Agent checkpoint:
+- Completed Phase 12 Foxit + Document Agent:
   - Added typed `DocumentArtifact` and `GeneratedDocument` shared contracts.
   - Added a credential-free Document Agent that prepares founder launch brief, investor one-pager, and technical delivery summary document payloads.
-  - Added `HttpFoxitClient` for sponsor-backed PDF document generation using either `FOXIT_API_KEY` or `FOXIT_CLIENT_ID` plus `FOXIT_CLIENT_SECRET`.
+  - Added `HttpFoxitClient` for sponsor-backed PDF document generation using Foxit DocGen `client_id` and `client_secret` headers.
   - Added `POST /api/projects/:projectId/documents`.
   - Routes `foxit.generateDocument` through AgentLatch and SecureExecutor before calling Foxit.
   - Keeps `foxit.sendForSignature` human-only for Phase 13.
@@ -178,6 +180,11 @@ Phase 11 - Deployment System is complete and approved.
   - Added `docs/FOXIT_DOCUMENTS.md`.
   - Automated tests pass with mocked Foxit API responses.
   - Local no-credential smoke test correctly returned HTTP 424 instead of faking sponsor PDF generation.
+  - Corrected the live DocGen endpoint to `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` from Foxit's current docs/blog examples.
+  - Added API local PDF storage under `DATA_DIR/documents/{project_id}` and static serving under `/documents`.
+  - Verified real Foxit PDF generation for project `68d5b4b2-7855-4256-9af5-b2a81a463359`.
+  - Generated three PDF files: founder launch brief `6523` bytes, investor one-pager `6399` bytes, and technical delivery summary `6527` bytes.
+  - Verified generated files have `%PDF-` signatures and are served as `application/pdf`.
 
 ## Architecture Summary
 
@@ -189,13 +196,13 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, and a Foxit document-generation checkpoint awaiting live credentials.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, and live-verified Foxit DocGen PDF generation.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
-- Document Agent is implemented with Foxit-bound founder document generation payloads and SecureExecutor-gated sponsor execution.
+- Document Agent is implemented and live verified with Foxit DocGen PDF generation through SecureExecutor-gated sponsor execution.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -282,6 +289,7 @@ Current architecture:
 - Phase 10 real Xano provisioning: passed in workspace `168062`.
 - Phase 11 local deployment smoke test: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`.
 - Phase 12 no-credential Foxit smoke test: passed with HTTP 424, confirming LaunchForge refuses to fake sponsor PDF generation.
+- Phase 12 real Foxit DocGen run: passed with receipt `6c62ef48-43b0-40fd-b215-7235dd35ea54` and three valid PDF outputs.
 
 ## Environment Assumptions
 
@@ -290,14 +298,14 @@ Current architecture:
 - `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 - `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are configured locally and must not be committed.
-- Foxit credentials are not configured locally yet. Phase 12 completion needs `FOXIT_API_KEY` or `FOXIT_CLIENT_ID` plus `FOXIT_CLIENT_SECRET`.
+- Foxit credentials are configured locally and must not be committed.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
-Phase 12 cannot be marked complete until a real Foxit PDF generation request succeeds and Reviewer/Tester approves it.
+Phase 13 must preserve `foxit.sendForSignature` as a human-only action.
 
 ## Next Exact Task
 
-Configure Foxit credentials locally, run real sponsor-powered document generation through `POST /api/projects/:projectId/documents`, verify returned Foxit evidence, then update Phase 12 to complete only after Reviewer/Tester approval.
+Start Phase 13 by adding Foxit eSign preparation/routing while preserving the human-only boundary. Do not allow the AI agent to send or sign documents as the user.

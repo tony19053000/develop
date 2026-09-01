@@ -25,9 +25,9 @@ const configSchema = z.object({
   FOXIT_API_KEY: blankAsUndefined(z.string().optional()),
   FOXIT_CLIENT_ID: blankAsUndefined(z.string().optional()),
   FOXIT_CLIENT_SECRET: blankAsUndefined(z.string().optional()),
-  FOXIT_API_BASE_URL: blankAsUndefined(z.string().url().default("https://api.developer-api.foxit.com")),
+  FOXIT_API_BASE_URL: blankAsUndefined(z.string().url().default("https://na1.fusion.foxit.com")),
   FOXIT_DOCUMENT_GENERATION_PATH: blankAsUndefined(
-    z.string().min(1).default("/document-generation/api/v1/documents/generate")
+    z.string().min(1).default("/document-generation/api/GenerateDocumentBase64")
   ),
   SECURE_EXECUTOR_MODE: blankAsUndefined(z.enum(["development", "google_confidential_space"]).default("development")),
   TEE_PROVIDER: blankAsUndefined(z.enum(["google_confidential_space"]).default("google_confidential_space")),

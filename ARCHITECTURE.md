@@ -21,7 +21,7 @@
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: IMPLEMENTED.
-- Foxit + Document Agent: CHECKPOINT.
+- Foxit + Document Agent: IMPLEMENTED.
 
 ## Proposed System Shape
 
@@ -31,7 +31,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Express backend application service exposing APIs and realtime event streams.
 - File-backed Phase 1 project state store for launch projects and initial agent tasks.
 - Agent/workflow runtime using LangGraph with replaceable model/provider configuration.
-- Tool adapter layer for sponsor integrations. SerpApi, name.com availability, and Xano are implemented and live verified; Foxit document generation is implemented and awaiting live credentials.
+- Tool adapter layer for sponsor integrations. SerpApi, name.com availability, Xano, and Foxit document generation are implemented and live verified.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
 - SecureExecutor abstraction that maps privileged execution to development mode locally and Google Confidential Space mode in production with Google-signed attestation verification.
 - Website/Product Agent that creates static product website artifacts, validates them, persists them with the project, and previews them in the command center.
@@ -105,7 +105,7 @@ Each sponsor integration should live behind a narrow adapter:
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
 - XanoAdapter for backend provisioning and metadata. IMPLEMENTED: Metadata API adapter, backend planning, approval, protected provisioning route, real workspace provisioning, and read-back verification are complete.
-- FoxitAdapter for document and eSign workflows. CHECKPOINT: document generation client is implemented for PDF generation with API key or client id/secret authentication; live sponsor verification is pending. eSign remains human-only and deferred to Phase 13.
+- FoxitAdapter for document and eSign workflows. IMPLEMENTED for DocGen PDF generation using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` with `client_id` and `client_secret` headers. eSign remains human-only and deferred to Phase 13.
 
 Adapters must handle authentication failure, timeout, rate limit, malformed response, unavailable dependency, partial execution, retries where safe, and redaction.
 

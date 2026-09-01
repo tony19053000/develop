@@ -27,21 +27,22 @@ describe("HttpFoxitClient", () => {
     ).rejects.toBeInstanceOf(FoxitConfigurationError);
   });
 
-  it("generates a PDF document with bearer auth", async () => {
+  it("generates a PDF document with Foxit DocGen client headers", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () =>
         JSON.stringify({
-          documentId: "foxit-doc-1",
-          downloadUrl: "https://example.foxit.com/documents/foxit-doc-1.pdf",
-          size: 4096
+          base64FileString: Buffer.from("%PDF-1.7 generated").toString("base64"),
+          fileExtension: "pdf",
+          message: "PDF Document Generated Successfully"
         })
     } as Response);
 
     const client = new HttpFoxitClient({
-      apiKey: "foxit-api-key",
+      clientId: "foxit-client",
+      clientSecret: "foxit-secret",
       baseUrl: "https://example.foxit.com",
-      documentGenerationPath: "/generate"
+      documentGenerationPath: "/document-generation/api/GenerateDocumentBase64"
     });
     const document = await client.generateDocument({
       title: "Founder Launch Brief",
@@ -52,24 +53,26 @@ describe("HttpFoxitClient", () => {
     });
 
     expect(document).toEqual({
-      id: "foxit-doc-1",
-      downloadUrl: "https://example.foxit.com/documents/foxit-doc-1.pdf",
-      size: 4096
+      id: "founder_launch_brief:founder-launch-brief.pdf",
+      base64FileString: Buffer.from("%PDF-1.7 generated").toString("base64"),
+      fileExtension: "pdf",
+      message: "PDF Document Generated Successfully"
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      new URL("https://example.foxit.com/generate"),
+      new URL("https://example.foxit.com/document-generation/api/GenerateDocumentBase64"),
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          Authorization: "Bearer foxit-api-key",
+          client_id: "foxit-client",
+          client_secret: "foxit-secret",
           "Content-Type": "application/json"
         }),
-        body: expect.stringContaining('"templateKey":"founder_launch_brief"')
+        body: expect.stringContaining('"documentValues"')
       })
     );
   });
 
-  it("supports client id and secret auth without placing credentials in the body", async () => {
+  it("does not place credentials in the request body", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => JSON.stringify({ id: "foxit-doc-2" })
@@ -89,11 +92,7 @@ describe("HttpFoxitClient", () => {
     });
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
-    expect(requestInit?.headers).toEqual(
-      expect.objectContaining({
-        Authorization: `Basic ${Buffer.from("foxit-client:foxit-secret").toString("base64")}`
-      })
-    );
+    expect(requestInit?.headers).toEqual(expect.objectContaining({ client_id: "foxit-client", client_secret: "foxit-secret" }));
     expect(String(requestInit?.body)).not.toContain("foxit-secret");
   });
 });

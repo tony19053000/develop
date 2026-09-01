@@ -97,8 +97,8 @@ Document Agent
   -> foxit.generateDocument request
   -> AgentLatch AUTO_ALLOW executable decision
   -> SecureExecutor
-  -> FOXIT_API_KEY or FOXIT_CLIENT_SECRET secret resolution
-  -> Foxit API
+  -> FOXIT_CLIENT_SECRET secret resolution
+  -> Foxit DocGen API
   -> receipt
 ```
 
@@ -107,3 +107,5 @@ The Document Agent prepares founder-facing business documents without credential
 Local development execution must still report `evidenceVerified: false`. Phase 12 cannot be marked complete until a real Foxit call succeeds. In Google Confidential Space mode, `evidenceVerified: true` remains tied to the Phase 7 attestation policy and not to the mere presence of Foxit credentials.
 
 `foxit.sendForSignature` remains `HUMAN_ONLY` and is reserved for Phase 13.
+
+Phase 12 was live verified with `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64`. The local development receipt correctly reported `evidenceVerified: false`; the generated PDF files were stored under `/documents`, served as `application/pdf`, and validated with `%PDF-` signatures.

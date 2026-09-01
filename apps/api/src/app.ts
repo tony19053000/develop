@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import cors from "cors";
 import express from "express";
 import { z } from "zod";
@@ -84,10 +86,12 @@ export function createApp({
   deployments
 }: AppDependencies) {
   const app = express();
+  const documentsRoot = path.join(config.DATA_DIR, "documents");
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
   app.use(express.json({ limit: "1mb" }));
   app.use("/deployments", express.static(deployments.publicRoot, { extensions: ["html"], index: "index.html" }));
+  app.use("/documents", express.static(documentsRoot));
 
   app.get("/health", (_request, response) => {
     response.json({
@@ -444,11 +448,20 @@ export function createApp({
                 documentType: sourceDocument.type
               }
             });
+            const storedDownloadUrl = generated.base64FileString
+              ? await storeGeneratedPdf({
+                  documentsRoot,
+                  projectId: preparedArtifact.projectId,
+                  fileName: sourceDocument.fileName,
+                  base64FileString: generated.base64FileString,
+                  baseUrl: `http://localhost:${config.API_PORT}`
+                })
+              : generated.downloadUrl;
             generatedDocuments.push({
               sourceDocumentId: sourceDocument.id,
               foxitDocumentId: generated.id,
-              ...(generated.downloadUrl ? { downloadUrl: generated.downloadUrl } : {}),
-              ...(generated.size !== undefined ? { size: generated.size } : {})
+              ...(storedDownloadUrl ? { downloadUrl: storedDownloadUrl } : {}),
+              size: generated.size ?? Buffer.byteLength(generated.base64FileString ?? "", "base64")
             });
           }
 
@@ -807,6 +820,41 @@ export function createApp({
   app.use(errorHandler);
 
   return app;
+}
+
+async function storeGeneratedPdf({
+  documentsRoot,
+  projectId,
+  fileName,
+  base64FileString,
+  baseUrl
+}: {
+  documentsRoot: string;
+  projectId: string;
+  fileName: string;
+  base64FileString: string;
+  baseUrl: string;
+}): Promise<string> {
+  const safeFileName = path.basename(fileName);
+  const projectDir = path.join(documentsRoot, projectId);
+  const outputPath = path.join(projectDir, safeFileName);
+  const normalizedRoot = path.resolve(documentsRoot);
+  const normalizedOutput = path.resolve(outputPath);
+
+  if (!normalizedOutput.startsWith(`${normalizedRoot}${path.sep}`)) {
+    throw new ApiError(400, "Document path is invalid.");
+  }
+
+  const pdfBytes = Buffer.from(base64FileString, "base64");
+
+  if (pdfBytes.subarray(0, 5).toString("utf8") !== "%PDF-") {
+    throw new ApiError(502, "Foxit response did not contain a valid PDF.");
+  }
+
+  await mkdir(projectDir, { recursive: true });
+  await writeFile(outputPath, pdfBytes);
+
+  return `${baseUrl}/documents/${encodeURIComponent(projectId)}/${encodeURIComponent(safeFileName)}`;
 }
 
 function parseApprovalToken(body: unknown): string {

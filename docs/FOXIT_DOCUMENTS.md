@@ -2,15 +2,14 @@
 
 ## Phase 12 Status
 
-Phase 12 is implemented as a checkpoint and awaits live Foxit credential verification.
+Phase 12 is complete and live verified.
 
-The implemented workflow follows Foxit's public API direction: Foxit provides cloud PDF Services and Document Generation APIs for generating documents from structured data and templates. The public reference describes a document-generation endpoint that merges structured JSON input into predefined templates.
+The implemented workflow follows Foxit's current DocGen API direction: `GenerateDocumentBase64` receives a base64 DOCX template, structured `documentValues`, and an output format, then returns the generated PDF as base64 in the same response.
 
 References:
 
 - https://developer-api.foxit.com/
-- https://app.developer-api.foxit.com/reference/tag/document-generation-overview
-- https://app.developer-api.foxit.com/reference/tag/generate-a-document
+- https://developer-api.foxit.com/developer-blogs/api-guides-tutorials/document-generation-api-quickstart/
 
 ## Runtime Flow
 
@@ -21,7 +20,8 @@ Document Agent
   -> AgentLatch AUTO_ALLOW
   -> SecureExecutor
   -> Foxit credential resolution
-  -> Foxit document generation API
+  -> Foxit GenerateDocumentBase64 API
+  -> PDF bytes stored under /documents
   -> persisted DocumentArtifact
 ```
 
@@ -52,13 +52,7 @@ Behavior:
 
 ## Required Environment
 
-Set either:
-
-```bash
-FOXIT_API_KEY=your_foxit_api_key
-```
-
-or:
+Set:
 
 ```bash
 FOXIT_CLIENT_ID=your_foxit_client_id
@@ -68,8 +62,8 @@ FOXIT_CLIENT_SECRET=your_foxit_client_secret
 Optional endpoint overrides:
 
 ```bash
-FOXIT_API_BASE_URL=https://api.developer-api.foxit.com
-FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/v1/documents/generate
+FOXIT_API_BASE_URL=https://na1.fusion.foxit.com
+FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/GenerateDocumentBase64
 ```
 
 ## Security Boundary
@@ -82,16 +76,22 @@ Local development mode reports `evidenceVerified: false`. Only a real Google Con
 
 ## Verification
 
-Checkpoint verification:
+Verification:
 
 - `npm run typecheck`
 - `npm run test`
+- `npm run lint`
+- `npm run build`
+- `npm audit --audit-level=moderate`
 - Local no-credential smoke test: HTTP 424 from `POST /api/projects/:projectId/documents`.
+- Live Foxit smoke test: HTTP 200 from `POST /api/projects/68d5b4b2-7855-4256-9af5-b2a81a463359/documents`.
+- PDF signature checks passed for all generated files.
+- Static serving check passed with `Content-Type: application/pdf`.
 
-Completion verification still required:
+Live outputs:
 
-- Configure real Foxit credentials in local `.env`.
-- Run `POST /api/projects/:projectId/documents`.
-- Confirm Foxit returns document metadata for all generated founder PDFs.
-- Confirm no credential values are present in project JSON, frontend state, logs, or generated documents.
-- Reviewer/Tester independently verifies the run.
+- Founder launch brief: `6523` bytes.
+- Investor one-pager: `6399` bytes.
+- Technical delivery summary: `6527` bytes.
+
+Reviewer/Tester independently verified Phase 12 after the real Foxit run.
