@@ -105,12 +105,14 @@ const app = createApp({
       baseUrl: config.FOXIT_API_BASE_URL,
       documentGenerationPath: config.FOXIT_DOCUMENT_GENERATION_PATH
     }),
-  createFoxitESignClient: (clientSecret) =>
-    new HttpFoxitESignClient({
-      ...(config.FOXIT_ESIGN_CLIENT_ID ? { clientId: config.FOXIT_ESIGN_CLIENT_ID } : {}),
+  createFoxitESignClient: (clientSecret) => {
+    const clientId = config.FOXIT_ESIGN_CLIENT_SECRET ? config.FOXIT_ESIGN_CLIENT_ID : config.FOXIT_CLIENT_ID;
+    return new HttpFoxitESignClient({
+      ...(clientId ? { clientId } : {}),
       clientSecret,
       baseUrl: config.FOXIT_ESIGN_BASE_URL
-    }),
+    });
+  },
   agentLatch,
   approvals: new FileApprovalRepository(config.DATA_DIR),
   secureExecutor,

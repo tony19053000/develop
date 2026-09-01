@@ -31,7 +31,7 @@ const configSchema = z.object({
   ),
   FOXIT_ESIGN_CLIENT_ID: blankAsUndefined(z.string().optional()),
   FOXIT_ESIGN_CLIENT_SECRET: blankAsUndefined(z.string().optional()),
-  FOXIT_ESIGN_BASE_URL: blankAsUndefined(z.string().url().default("https://na1.foxitesign.foxit.com")),
+  FOXIT_ESIGN_BASE_URL: blankAsUndefined(z.string().url().default("https://na1.fusion.foxit.com")),
   SECURE_EXECUTOR_MODE: blankAsUndefined(z.enum(["development", "google_confidential_space"]).default("development")),
   TEE_PROVIDER: blankAsUndefined(z.enum(["google_confidential_space"]).default("google_confidential_space")),
   TEE_ATTESTATION_TOKEN: blankAsUndefined(z.string().optional()),

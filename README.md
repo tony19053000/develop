@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 13 is implemented as a checkpoint and awaits live Foxit eSign credential verification. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, live-verified SecureExecutor-gated Foxit PDF document generation, and human-only Foxit eSign preparation.
+Phase 13 is implemented as a checkpoint and awaits live Fusion eSign activation/workflow verification. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, live-verified SecureExecutor-gated Foxit PDF document generation, and human-only Foxit eSign preparation.
 
 ## Sponsor Integrations
 
@@ -94,13 +94,15 @@ FOXIT_API_BASE_URL=https://na1.fusion.foxit.com
 FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/GenerateDocumentBase64
 ```
 
-For Phase 13 Foxit eSign status verification, set eSign-specific credentials:
+For Phase 13 Foxit eSign status verification, current Fusion eSign uses the same Foxit application credentials after eSign is activated in the Foxit Developer Portal:
 
 ```bash
-FOXIT_ESIGN_CLIENT_ID=your_foxit_esign_client_id
-FOXIT_ESIGN_CLIENT_SECRET=your_foxit_esign_client_secret
-FOXIT_ESIGN_BASE_URL=https://na1.foxitesign.foxit.com
+FOXIT_CLIENT_ID=your_foxit_client_id
+FOXIT_CLIENT_SECRET=your_foxit_client_secret
+FOXIT_ESIGN_BASE_URL=https://na1.fusion.foxit.com
 ```
+
+Use `FOXIT_ESIGN_CLIENT_ID` and `FOXIT_ESIGN_CLIENT_SECRET` only when intentionally integrating Foxit's legacy eSign API credential model.
 
 Install dependencies:
 

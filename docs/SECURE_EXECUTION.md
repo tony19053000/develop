@@ -131,9 +131,9 @@ Read-only status refresh path:
 foxit.getEnvelopeStatus
   -> AgentLatch AUTO_ALLOW
   -> SecureExecutor
-  -> FOXIT_ESIGN_CLIENT_SECRET resolution
-  -> Foxit eSign status endpoint
+  -> FOXIT_CLIENT_SECRET resolution
+  -> Foxit Fusion eSign status endpoint
   -> status receipt
 ```
 
-The current DocGen credentials did not authenticate against the Foxit eSign OAuth endpoint, so live eSign status verification is pending eSign-specific credentials. This does not weaken the send/sign boundary: the AI path still returns `HUMAN_ONLY` before any sponsor send action can occur.
+The current Fusion eSign adapter uses the existing Foxit Developer Portal application credentials as `client_id` and `client_secret` headers against `https://na1.fusion.foxit.com/esign/api/v1/...`. Live eSign verification is pending activation/access for that existing application and a real folder/signing workflow. This does not weaken the send/sign boundary: the AI path still returns `HUMAN_ONLY` before any sponsor send action can occur.

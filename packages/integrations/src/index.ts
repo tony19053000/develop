@@ -34,6 +34,7 @@ export {
 export {
   HttpFoxitESignClient,
   FoxitESignConfigurationError,
+  FoxitESignRequestError,
   type FoxitEnvelopeStatus,
   type FoxitESignClient,
   type FoxitESignConfig

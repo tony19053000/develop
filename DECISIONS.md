@@ -353,6 +353,6 @@ Chosen Approach: Add typed `FoxitESignPackage` state, dashboard preparation cont
 
 Reason: This gives the founder a prepared package and completion-state tracking while preserving signer identity and consent as human-only acts.
 
-Consequences: Phase 13 is implemented as a checkpoint. The available Foxit DocGen credentials returned `invalid_client` against Foxit eSign OAuth, so live eSign verification requires separate eSign credentials before the phase can be marked complete.
+Consequences: Phase 13 is implemented as a checkpoint. The current Fusion eSign adapter uses the existing Foxit Developer Portal application credentials as `client_id` and `client_secret` request headers. Live eSign verification still requires that eSign be activated for that existing application and that a real folder/signing workflow succeeds before the phase can be marked complete. Separate `FOXIT_ESIGN_CLIENT_ID` / `FOXIT_ESIGN_CLIENT_SECRET` values are reserved only for an intentional switch to Foxit's legacy eSign credential model.
 
 Reversibility: Medium.

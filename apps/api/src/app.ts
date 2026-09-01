@@ -22,6 +22,7 @@ import {
   XanoConfigurationError,
   type FoxitClient,
   FoxitESignConfigurationError,
+  FoxitESignRequestError,
   type FoxitESignClient,
   type XanoClient
 } from "@launchforge/integrations";
@@ -687,7 +688,8 @@ export function createApp({
         request: actionRequest,
         approval: decision,
         operation: async (context) => {
-          const foxitESign = createFoxitESignClient(await context.getSecret("FOXIT_ESIGN_CLIENT_SECRET"));
+          const secretName = config.FOXIT_ESIGN_CLIENT_SECRET ? "FOXIT_ESIGN_CLIENT_SECRET" : "FOXIT_CLIENT_SECRET";
+          const foxitESign = createFoxitESignClient(await context.getSecret(secretName));
           const status = await foxitESign.getEnvelopeStatus(envelopeId);
           return {
             refreshed: true,
@@ -715,7 +717,11 @@ export function createApp({
 
       response.json({ project, esignPackage, receipt });
     } catch (error) {
-      if (error instanceof FoxitESignConfigurationError || (error instanceof Error && error.message.includes("FOXIT_ESIGN_"))) {
+      if (
+        error instanceof FoxitESignConfigurationError ||
+        error instanceof FoxitESignRequestError ||
+        (error instanceof Error && error.message.includes("FOXIT_"))
+      ) {
         next(new ApiError(424, error.message));
         return;
       }

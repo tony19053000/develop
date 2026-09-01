@@ -8,7 +8,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 Phase 11 - Deployment System is complete and approved.
 Phase 12 - Foxit + Document Agent is complete and approved.
-Current phase: Phase 13 - Foxit eSign + Human-Only Boundary is implemented as a checkpoint; live eSign credential verification is pending.
+Current phase: Phase 13 - Foxit eSign + Human-Only Boundary is implemented as a checkpoint; live Fusion eSign activation/workflow verification is pending.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -195,7 +195,8 @@ Phase 12 - Foxit + Document Agent is complete and approved.
   - Added dashboard eSign preparation and AI send-check controls.
   - Added `docs/FOXIT_ESIGN.md`.
   - Verified local eSign preparation, human-only send blocking, and manual executed-state recording.
-  - Attempted live eSign OAuth with the available DocGen credentials; Foxit eSign returned `invalid_client`, so live eSign verification is pending eSign-specific credentials.
+  - Corrected eSign integration to Foxit's current Fusion eSign API using `client_id` and `client_secret` request headers against `https://na1.fusion.foxit.com/esign/api/v1/...`.
+  - Current Fusion eSign activation probe returns HTTP 502 with the existing Foxit application credentials, while dummy credentials return JSON `401 Invalid credentials`. This suggests the existing app credentials are not yet usable for activated eSign workflows.
 
 ## Architecture Summary
 
@@ -207,14 +208,14 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, live-verified Foxit DocGen PDF generation, and a Foxit eSign status checkpoint awaiting eSign credentials.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, live-verified Foxit DocGen PDF generation, and a current Fusion Foxit eSign checkpoint awaiting app activation.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
 - Document Agent is implemented and live verified with Foxit DocGen PDF generation through SecureExecutor-gated sponsor execution.
-- Foxit eSign preparation and human-only send blocking are implemented; read-only eSign status refresh awaits valid eSign credentials.
+- Foxit eSign preparation and human-only send blocking are implemented; read-only Fusion eSign status refresh awaits activated eSign access for the existing Foxit app credentials.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -312,14 +313,14 @@ Current architecture:
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 - `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are configured locally and must not be committed.
 - Foxit credentials are configured locally and must not be committed.
-- Foxit eSign credentials are not yet configured. The DocGen credentials returned `invalid_client` against the eSign OAuth host.
+- Foxit current Fusion eSign uses existing `FOXIT_CLIENT_ID` and `FOXIT_CLIENT_SECRET`. The current blocker is Foxit Developer Portal eSign activation/access for that application, not a legacy OAuth credential requirement.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
-Phase 13 completion requires valid Foxit eSign credentials or user-side Foxit dashboard/API access that can issue eSign OAuth credentials.
+Phase 13 completion requires a real current Fusion eSign folder/signing workflow to succeed with eSign activated for the existing Foxit Developer Portal application.
 
 ## Next Exact Task
 
-Obtain Foxit eSign API credentials, verify read-only OAuth/status access, then complete Phase 13 without enabling AI send/sign execution.
+Verify eSign is activated for the Foxit Developer Portal application, retry current Fusion eSign folder/status access with `FOXIT_CLIENT_ID` and `FOXIT_CLIENT_SECRET`, then complete Phase 13 without enabling AI send/sign execution.

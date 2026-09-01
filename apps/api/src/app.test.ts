@@ -37,7 +37,7 @@ const config: ApiConfig = {
   FOXIT_API_BASE_URL: "https://example.foxit.com",
   FOXIT_DOCUMENT_GENERATION_PATH: "/generate",
   FOXIT_ESIGN_CLIENT_ID: "configured",
-  FOXIT_ESIGN_BASE_URL: "https://example.foxitesign.com"
+  FOXIT_ESIGN_BASE_URL: "https://example.fusion.foxit.com"
 };
 
 beforeEach(async () => {

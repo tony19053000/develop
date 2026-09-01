@@ -107,7 +107,7 @@ Each sponsor integration should live behind a narrow adapter:
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
 - XanoAdapter for backend provisioning and metadata. IMPLEMENTED: Metadata API adapter, backend planning, approval, protected provisioning route, real workspace provisioning, and read-back verification are complete.
-- FoxitAdapter for document and eSign workflows. IMPLEMENTED for DocGen PDF generation using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` with `client_id` and `client_secret` headers. CHECKPOINT for eSign status reads using `https://na1.foxitesign.foxit.com`; send/sign execution remains human-only.
+- FoxitAdapter for document and eSign workflows. IMPLEMENTED for DocGen PDF generation using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` with `client_id` and `client_secret` headers. CHECKPOINT for current Fusion eSign status reads using `https://na1.fusion.foxit.com/esign/api/v1/...` with `client_id` and `client_secret` headers after eSign activation; send/sign execution remains human-only.
 
 Adapters must handle authentication failure, timeout, rate limit, malformed response, unavailable dependency, partial execution, retries where safe, and redaction.
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FoxitESignConfigurationError, HttpFoxitESignClient } from "./foxitEsign.js";
+import { FoxitESignConfigurationError, FoxitESignRequestError, HttpFoxitESignClient } from "./foxitEsign.js";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -13,47 +13,49 @@ afterEach(() => {
 });
 
 describe("HttpFoxitESignClient", () => {
-  it("requires separate Foxit eSign credentials", async () => {
+  it("requires Foxit Fusion credentials", async () => {
     const client = new HttpFoxitESignClient({});
 
     await expect(client.getEnvelopeStatus("folder-1")).rejects.toBeInstanceOf(FoxitESignConfigurationError);
   });
 
-  it("checks envelope status using OAuth bearer auth", async () => {
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify({ access_token: "access-token" })
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify({ folder: { folderId: "folder-1", folderStatus: "EXECUTED" } })
-      } as Response);
+  it("checks envelope status using current Fusion client headers", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => JSON.stringify({ folder: { folderId: "folder-1", folderStatus: "EXECUTED" } })
+    } as Response);
 
     const client = new HttpFoxitESignClient({
-      clientId: "esign-client",
-      clientSecret: "esign-secret",
-      baseUrl: "https://example.foxitesign.com"
+      clientId: "foxit-client",
+      clientSecret: "foxit-secret",
+      baseUrl: "https://example.fusion.foxit.com"
     });
     const status = await client.getEnvelopeStatus("folder-1");
 
     expect(status).toEqual({ envelopeId: "folder-1", status: "EXECUTED" });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      new URL("https://example.foxitesign.com/api/oauth2/access_token"),
-      expect.objectContaining({
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
-      })
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      new URL("https://example.foxitesign.com/api/folders/myfolder?folderId=folder-1"),
+      new URL("https://example.fusion.foxit.com/esign/api/v1/folders/viewActivityHistory?folderId=folder-1"),
       expect.objectContaining({
         method: "GET",
-        headers: { Authorization: "Bearer access-token" }
+        headers: { client_id: "foxit-client", client_secret: "foxit-secret" }
       })
     );
-    expect(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body)).toContain("client_id=esign-client");
+  });
+
+  it("reports non-JSON Fusion eSign failures without leaking response HTML", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      text: async () => "<!DOCTYPE html><html><body>Bad gateway</body></html>"
+    } as Response);
+
+    const client = new HttpFoxitESignClient({
+      clientId: "foxit-client",
+      clientSecret: "foxit-secret",
+      baseUrl: "https://example.fusion.foxit.com"
+    });
+
+    await expect(client.getEnvelopeStatus("folder-1")).rejects.toThrow(FoxitESignRequestError);
   });
 });

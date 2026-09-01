@@ -1,19 +1,6 @@
 import { z } from "zod";
 
-const tokenResponseSchema = z.object({
-  access_token: z.string().min(1)
-});
-
-const envelopeResponseSchema = z
-  .object({
-    folder: z
-      .object({
-        folderId: z.union([z.string(), z.number()]).optional(),
-        folderStatus: z.string().optional()
-      })
-      .passthrough()
-  })
-  .passthrough();
+const envelopeResponseSchema = z.record(z.string(), z.unknown());
 
 export interface FoxitESignConfig {
   clientId?: string;
@@ -32,7 +19,13 @@ export interface FoxitESignClient {
 
 export class FoxitESignConfigurationError extends Error {
   constructor() {
-    super("FOXIT_ESIGN_CLIENT_ID plus FOXIT_ESIGN_CLIENT_SECRET is required for Foxit eSign status checks.");
+    super("FOXIT_CLIENT_ID plus FOXIT_CLIENT_SECRET is required for current Foxit Fusion eSign API calls.");
+  }
+}
+
+export class FoxitESignRequestError extends Error {
+  constructor(status: number, message: string) {
+    super(`Foxit Fusion eSign request failed with status ${status}: ${message}.`);
   }
 }
 
@@ -44,58 +37,82 @@ export class HttpFoxitESignClient implements FoxitESignClient {
   constructor(config: FoxitESignConfig) {
     this.clientId = config.clientId;
     this.clientSecret = config.clientSecret;
-    this.baseUrl = (config.baseUrl ?? "https://na1.foxitesign.foxit.com").replace(/\/+$/g, "");
+    this.baseUrl = (config.baseUrl ?? "https://na1.fusion.foxit.com").replace(/\/+$/g, "");
   }
 
   async getEnvelopeStatus(envelopeId: string): Promise<FoxitEnvelopeStatus> {
-    const accessToken = await this.getAccessToken();
-    const url = new URL("/api/folders/myfolder", this.baseUrl);
+    if (!this.clientId || !this.clientSecret) {
+      throw new FoxitESignConfigurationError();
+    }
+
+    const url = new URL("/esign/api/v1/folders/viewActivityHistory", this.baseUrl);
     url.searchParams.set("folderId", envelopeId);
 
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${accessToken}`
+        client_id: this.clientId,
+        client_secret: this.clientSecret
       }
     });
     const text = await response.text();
-    const parsedBody = text ? JSON.parse(text) : {};
+    const parsedBody = parseResponseBody(text);
 
     if (!response.ok) {
-      throw new Error(`Foxit eSign status request failed with status ${response.status}.`);
+      throw new FoxitESignRequestError(response.status, extractErrorMessage(parsedBody));
     }
 
     const parsed = envelopeResponseSchema.parse(parsedBody);
+    const folder = getRecord(parsed.folder);
     return {
-      envelopeId: String(parsed.folder.folderId ?? envelopeId),
-      status: parsed.folder.folderStatus ?? "unknown"
+      envelopeId: String(
+        folder?.folderId ?? parsed.folderId ?? parsed.envelopeId ?? parsed.id ?? envelopeId
+      ),
+      status: String(
+        folder?.folderStatus ??
+          folder?.status ??
+          parsed.folderStatus ??
+          parsed.envelopeStatus ??
+          parsed.status ??
+          "unknown"
+      )
     };
   }
+}
 
-  private async getAccessToken(): Promise<string> {
-    if (!this.clientId || !this.clientSecret) {
-      throw new FoxitESignConfigurationError();
-    }
-
-    const response = await fetch(new URL("/api/oauth2/access_token", this.baseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: new URLSearchParams({
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        grant_type: "client_credentials",
-        scope: "read-write"
-      })
-    });
-    const text = await response.text();
-    const parsedBody = text ? JSON.parse(text) : {};
-
-    if (!response.ok || !("access_token" in Object(parsedBody))) {
-      throw new Error("Foxit eSign OAuth token request failed.");
-    }
-
-    return tokenResponseSchema.parse(parsedBody).access_token;
+function parseResponseBody(text: string): unknown {
+  if (!text) {
+    return {};
   }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function extractErrorMessage(body: unknown): string {
+  if (typeof body === "string") {
+    return body.trim().startsWith("<") ? "non-JSON response from Foxit Fusion eSign" : body.slice(0, 160);
+  }
+
+  if (typeof body === "object" && body !== null) {
+    const record = body as Record<string, unknown>;
+    for (const key of ["message", "reason", "error", "error_description", "title", "detail"]) {
+      if (typeof record[key] === "string") {
+        return record[key];
+      }
+    }
+  }
+
+  return "unknown error";
+}
+
+function getRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
 }
