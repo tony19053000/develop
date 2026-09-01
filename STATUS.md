@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 65%
+## Overall Completion: 68%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -17,7 +17,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 8 | Protected name.com Registration | 5 | 100% complete |
 | 9 | Website / Product Agent | 6 | 100% complete |
 | 10 | Xano + Backend Agent | 6 | 100% complete |
-| 11 | Deployment System | 3 | 0% pending |
+| 11 | Deployment System | 3 | 100% complete |
 | 12 | Foxit + Document Agent | 4 | 0% pending |
 | 13 | Foxit eSign + Human-Only Boundary | 4 | 0% pending |
 | 14 | Full Multi-Agent Orchestration | 6 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 11 - Deployment System.
+Phase 12 - Foxit + Document Agent.
 
 ## Current Task
 
-Begin Deployment System implementation.
+Begin Foxit + Document Agent implementation.
 
 ## Baseline
 
@@ -51,11 +51,12 @@ Begin Deployment System implementation.
 - Phase 8 implementation adds a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, dashboard execution control for approved registrations, and sandbox verification through the full protected flow.
 - Phase 9 implementation adds a Website/Product Agent, generated static product-site artifact files, build-style validation checks, project artifact persistence, an API generation route, and an embedded dashboard preview.
 - Phase 10 implementation adds a Xano Metadata API adapter, Backend Agent backend plan generation, protected Xano provisioning execution route, backend artifact persistence, dashboard backend planning/provisioning controls, and real Xano workspace verification.
+- Phase 11 implementation adds local static deployment records, generated website file publishing, API static serving, deployment health checks, dashboard deployment controls, and deployment documentation.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 65 tests.
+- Tests: passed, 70 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -71,6 +72,8 @@ Begin Deployment System implementation.
 - Phase 10 local planning verification: passed through `POST /api/projects/:projectId/backend/plan`; generated a planned Xano waitlist backend.
 - Phase 10 live Xano verification: passed through `AgentLatch -> approval -> SecureExecutor -> Xano Metadata API` against workspace `168062`.
 - Phase 10 independent read-back verification: passed for API group `430757`, table `884783`, and endpoint `4032650`.
+- Phase 11 automated tests: deployment service, path safety, API deployment, static serving, missing-artifact rejection, and web deployment controls pass.
+- Phase 11 live local verification: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`, health `healthy`, and served HTTP 200.
 
 ## Review Status
 
@@ -92,6 +95,8 @@ Reviewer/Tester result for Phase 9: APPROVED after local product artifact genera
 
 Reviewer/Tester result for Phase 10: APPROVED after real Xano Metadata API provisioning and independent read-back verification.
 
+Reviewer/Tester result for Phase 11: APPROVED after local deployment publishing, health checks, static serving, and dashboard controls were verified.
+
 ## GitHub Status
 
 - Remote: `https://github.com/tony19053000/develop.git`
@@ -112,7 +117,8 @@ Reviewer/Tester result for Phase 10: APPROVED after real Xano Metadata API provi
 - Phase 8 sandbox verification completion commit: `2dd50a6`, pushed to `origin/main`.
 - Phase 9 website/product agent commit: `de8bf6b`, pushed to `origin/main`.
 - Phase 10 Xano/backend checkpoint commit: `8676d99`, pushed to `origin/main`.
-- Phase 10 real Xano verification completion commit: this commit, pushed to `origin/main`.
+- Phase 10 real Xano verification completion commit: `803cef9`, pushed to `origin/main`.
+- Phase 11 deployment system commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
@@ -131,7 +137,7 @@ SecureExecutor implemented with Google Confidential Space as the real TEE target
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, execute a name.com development/test registration after approval, generate/preview a functional static product website artifact, and provision a Xano-backed waitlist backend through approval and SecureExecutor.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, execute a name.com development/test registration after approval, generate/preview a functional static product website artifact, provision a Xano-backed waitlist backend through approval and SecureExecutor, and deploy the generated website to a local served URL with health checks.
 
 ## Blockers
 

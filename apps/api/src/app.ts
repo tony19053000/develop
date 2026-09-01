@@ -14,6 +14,7 @@ import {
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import { backendArtifactSchema, createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
+import { DeploymentError, type DeploymentService } from "./deployments.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
 import { EventBus } from "./events.js";
 import { ApprovalRepositoryError, type ApprovalRepository } from "./approvals.js";
@@ -38,6 +39,7 @@ export interface AppDependencies {
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
   secureExecutor: SecureExecutor;
+  deployments: DeploymentService;
 }
 
 export function createApp({
@@ -52,12 +54,14 @@ export function createApp({
   createXanoClient,
   agentLatch,
   approvals,
-  secureExecutor
+  secureExecutor,
+  deployments
 }: AppDependencies) {
   const app = express();
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
   app.use(express.json({ limit: "1mb" }));
+  app.use("/deployments", express.static(deployments.publicRoot, { extensions: ["html"], index: "index.html" }));
 
   app.get("/health", (_request, response) => {
     response.json({
@@ -303,6 +307,53 @@ export function createApp({
 
       response.json({ project, artifact });
     } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/deployments", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.websiteArtifact) {
+        throw new ApiError(409, "Website artifact is required before deployment.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "deployment",
+        level: "info",
+        message: "Deployment System started local static deployment."
+      });
+
+      const deployment = await deployments.deployWebsite({
+        projectId: existingProject.id,
+        artifact: existingProject.websiteArtifact,
+        baseUrl: `http://localhost:${config.API_PORT}`
+      });
+      const project = await projects.saveDeploymentRecord(existingProject.id, deployment);
+
+      events.publish({
+        projectId: project.id,
+        agent: "deployment",
+        level: deployment.status === "healthy" ? "success" : "error",
+        message:
+          deployment.status === "healthy"
+            ? `Deployment healthy at ${deployment.url}.`
+            : "Deployment completed with failing health checks."
+      });
+
+      response.json({ project, deployment });
+    } catch (error) {
+      if (error instanceof DeploymentError) {
+        next(new ApiError(409, error.message));
+        return;
+      }
+
       next(error);
     }
   });

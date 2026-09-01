@@ -317,6 +317,109 @@ describe("LaunchForge web foundation", () => {
     });
   });
 
+  it("deploys a generated website and renders health checks", async () => {
+    const websiteArtifact = {
+      id: "website-artifact-1",
+      projectId: "project-1",
+      productName: "InterviewForge",
+      tagline: "Practice interviews faster with AI.",
+      domainName: "interviewforge.com",
+      previewPath: "index.html",
+      files: [
+        {
+          path: "index.html",
+          contentType: "text/html",
+          contents: "<!doctype html><html><body><h1>InterviewForge</h1></body></html>"
+        }
+      ],
+      validation: {
+        passed: true,
+        checks: [{ name: "HTML document", passed: true, message: "Generated site includes HTML." }]
+      },
+      deployment: {
+        buildCommand: "No build step required for the generated static site.",
+        outputDirectory: ".",
+        requiredEnvironment: []
+      },
+      generatedAt: "2026-08-31T00:00:00.000Z"
+    };
+    const deploymentRecord = {
+      id: "deployment-1",
+      projectId: "project-1",
+      websiteArtifactId: "website-artifact-1",
+      environment: "local_static",
+      status: "healthy",
+      url: "http://localhost:4000/deployments/deployment-1/",
+      files: [{ path: "index.html", contentType: "text/html", size: 64 }],
+      healthChecks: [
+        {
+          name: "Preview document",
+          passed: true,
+          message: "Preview HTML is present and complete.",
+          checkedAt: "2026-08-31T00:01:00.000Z"
+        }
+      ],
+      createdAt: "2026-08-31T00:01:00.000Z",
+      updatedAt: "2026-08-31T00:01:00.000Z"
+    };
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 75,
+              tasks: [],
+              websiteArtifact,
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 88,
+            tasks: [],
+            websiteArtifact,
+            deploymentRecord,
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          },
+          deployment: deploymentRecord
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /^Deploy$/i }));
+
+    expect(await screen.findByRole("heading", { name: "local static" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open deployment/i })).toHaveAttribute(
+      "href",
+      "http://localhost:4000/deployments/deployment-1/"
+    );
+    expect(screen.getByText("Preview HTML is present and complete.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/deployments", {
+      method: "POST"
+    });
+  });
+
   it("plans and provisions a Xano backend through approval controls", async () => {
     const backendArtifact = {
       id: "backend-artifact-1",

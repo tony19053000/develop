@@ -24,6 +24,7 @@ export const agentRoleSchema = z.enum([
   "agentlatch",
   "website",
   "backend",
+  "deployment",
   "document"
 ]);
 
@@ -200,6 +201,32 @@ export const backendArtifactSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
+export const deploymentHealthCheckSchema = z.object({
+  name: z.string(),
+  passed: z.boolean(),
+  message: z.string(),
+  checkedAt: z.string().datetime()
+});
+
+export const deploymentRecordSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  websiteArtifactId: z.string(),
+  environment: z.enum(["local_static"]),
+  status: z.enum(["deploying", "healthy", "failed"]),
+  url: z.string().url(),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      contentType: z.string(),
+      size: z.number().int().nonnegative()
+    })
+  ),
+  healthChecks: z.array(deploymentHealthCheckSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -228,6 +255,7 @@ export const launchProjectSchema = z.object({
   domainResearch: domainResearchSchema.optional(),
   websiteArtifact: websiteArtifactSchema.optional(),
   backendArtifact: backendArtifactSchema.optional(),
+  deploymentRecord: deploymentRecordSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -246,6 +274,8 @@ export type BackendArtifact = z.infer<typeof backendArtifactSchema>;
 export type BackendEndpoint = z.infer<typeof backendEndpointSchema>;
 export type BackendField = z.infer<typeof backendFieldSchema>;
 export type BackendTable = z.infer<typeof backendTableSchema>;
+export type DeploymentHealthCheck = z.infer<typeof deploymentHealthCheckSchema>;
+export type DeploymentRecord = z.infer<typeof deploymentRecordSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;
@@ -307,6 +337,13 @@ export function createInitialAgentTasks(now: string): AgentTask[] {
       id: "backend-foundation",
       agent: "backend",
       title: "Provision backend",
+      status: "waiting",
+      updatedAt: now
+    },
+    {
+      id: "deployment-system",
+      agent: "deployment",
+      title: "Deploy generated product",
       status: "waiting",
       updatedAt: now
     },

@@ -21,7 +21,7 @@ describe("shared launch contracts", () => {
   it("creates initial agent tasks for the command center", () => {
     const tasks = createInitialAgentTasks("2026-08-31T00:00:00.000Z");
 
-    expect(tasks).toHaveLength(7);
+    expect(tasks).toHaveLength(8);
     expect(tasks[0]?.status).toBe("running");
     expect(tasks.map((task) => task.agent)).toContain("agentlatch");
   });
@@ -32,7 +32,7 @@ describe("shared launch contracts", () => {
       status: index < 2 ? "complete" as const : task.status
     }));
 
-    expect(calculateProjectProgress(tasks)).toBe(29);
+    expect(calculateProjectProgress(tasks)).toBe(25);
   });
 
   it("maps workflow plans into agent tasks", () => {

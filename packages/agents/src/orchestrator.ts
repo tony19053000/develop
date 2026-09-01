@@ -72,6 +72,7 @@ export function createDeterministicWorkflowPlan(
     step("approval-boundary", "agentlatch", "Evaluate protected actions", ["domain-research"], "waiting"),
     step("website-foundation", "website", "Generate product frontend", ["brand-positioning"], "waiting"),
     step("backend-foundation", "backend", "Provision backend", ["website-foundation"], "waiting"),
+    step("deployment-system", "deployment", "Deploy generated product", ["website-foundation", "backend-foundation"], "waiting"),
     step("document-foundation", "document", "Prepare founder documents", ["brand-positioning"], "waiting")
   ];
 

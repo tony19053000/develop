@@ -296,3 +296,23 @@ Reason: This keeps infrastructure mutation behind the same approval and exact-ac
 Consequences: The implementation can be tested with mocked Xano responses and local planning can run without credentials. Phase 10 was marked complete only after real Xano credentials were configured, workspace `168062` was provisioned through the protected path, and Metadata API read-back verified the created resources.
 
 Reversibility: Medium.
+
+## 2026-09-01 - Local Static Deployment First
+
+Decision: Implement Phase 11 as local static deployment of generated website artifacts through the API service.
+
+Context: Phase 11 requires deployment workflow, state, environment, health checks, errors, and progress. No `.openai/hosting.json` exists in the repository, and public production hosting/DNS wiring belongs later in the full launch hardening path.
+
+Alternatives:
+
+- Add a new external deployment provider immediately.
+- Treat the iframe preview as a deployment.
+- Wait for the final orchestration phase before adding deployment state.
+
+Chosen Approach: Add a local deployment service that writes validated website artifact files to `DATA_DIR/deployments/{deployment_id}`, serves them under `/deployments/{deployment_id}/`, stores a typed deployment record, and runs deterministic health checks.
+
+Reason: This produces a real accessible URL for generated products without adding another credential surface or exposing sponsor secrets.
+
+Consequences: Phase 11 deployments are local to the API process. Public production hosting and DNS routing remain later-phase work.
+
+Reversibility: High.

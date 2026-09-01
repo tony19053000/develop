@@ -6,8 +6,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 10 - Xano + Backend Agent is complete and approved.
-Current next phase: Phase 11 - Deployment System.
+Phase 11 - Deployment System is complete and approved.
+Current next phase: Phase 12 - Foxit + Document Agent.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -20,6 +20,7 @@ Phase 7 - TEE / Secure Execution is complete and approved.
 Phase 8 - Protected name.com Registration is complete and approved.
 Phase 9 - Website / Product Agent is complete and approved.
 Phase 10 - Xano + Backend Agent is complete and approved.
+Phase 11 - Deployment System is complete and approved.
 
 ## Completed Work
 
@@ -156,6 +157,16 @@ Phase 10 - Xano + Backend Agent is complete and approved.
   - Verified real Xano provisioning through `AgentLatch -> approval -> SecureExecutor -> Xano Metadata API`.
   - Provisioned API group `430757`, table `884783`, and endpoint `4032650`.
   - Independently verified the provisioned Xano resources through Metadata API read-back.
+- Completed Phase 11 Deployment System:
+  - Added `DeploymentRecord` and deployment health-check shared contracts.
+  - Added `LocalStaticDeploymentService` that writes generated website files into `DATA_DIR/deployments/{deployment_id}`.
+  - Added artifact path safety checks to prevent writes outside the deployment directory.
+  - Added API static serving under `/deployments`.
+  - Added `POST /api/projects/:projectId/deployments`.
+  - Added project persistence for deployment records and deployment task status.
+  - Added dashboard deployment action, deployment status, health checks, and access link.
+  - Added `docs/DEPLOYMENT_SYSTEM.md`.
+  - Live local verification deployed project `68d5b4b2-7855-4256-9af5-b2a81a463359` to `http://localhost:4000/deployments/73feef18-a64c-4d15-bd22-9319b23d3f8e/` with HTTP 200 and healthy checks.
 
 ## Architecture Summary
 
@@ -172,6 +183,7 @@ Current architecture:
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
+- Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -214,6 +226,8 @@ Current architecture:
 - `POST /api/projects/:projectId/website`
 - `POST /api/projects/:projectId/backend/plan`
 - `POST /api/secure-executions/xano/provision-backend`
+- `POST /api/projects/:projectId/deployments`
+- `GET /deployments/:deploymentId/`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -233,6 +247,7 @@ Current architecture:
 - Build/typecheck/test/lint: passing with Phase 7 implementation.
 - Build/typecheck/test/lint: passing with Phase 9 implementation.
 - Build/typecheck/test/lint: passing with Phase 10 implementation.
+- Build/typecheck/test/lint: passing with Phase 11 implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
 - Live name.com endpoint verification: passed.
@@ -252,6 +267,7 @@ Current architecture:
 - Phase 9 generated product artifact smoke test: passed with `validationPassed: true`.
 - Phase 10 backend plan smoke test: passed locally with `mode: planned`.
 - Phase 10 real Xano provisioning: passed in workspace `168062`.
+- Phase 11 local deployment smoke test: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`.
 
 ## Environment Assumptions
 
@@ -267,4 +283,4 @@ Production domain registration still requires explicit user confirmation for the
 
 ## Next Exact Task
 
-Start Phase 11 by building the Deployment System. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.
+Start Phase 12 by building the Foxit + Document Agent. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.

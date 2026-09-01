@@ -20,7 +20,7 @@
 - Xano + Backend Agent: IMPLEMENTED.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
-- Deployment system: PLANNED.
+- Deployment system: IMPLEMENTED.
 
 ## Proposed System Shape
 
@@ -35,6 +35,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - SecureExecutor abstraction that maps privileged execution to development mode locally and Google Confidential Space mode in production with Google-signed attestation verification.
 - Website/Product Agent that creates static product website artifacts, validates them, persists them with the project, and previews them in the command center.
 - Backend Agent that creates Xano backend plans and routes real provisioning through AgentLatch approval and SecureExecutor.
+- Deployment System that publishes generated website artifacts to local static hosting, records health checks, and exposes served deployment URLs.
 
 ## Trust Boundaries
 
@@ -204,6 +205,18 @@ Website/Product Agent
   -> Project artifact persistence
   -> Command center preview
   -> Phase 11 deployment handoff
+```
+
+### Local Static Deployment
+
+```text
+WebsiteArtifact
+  -> LocalStaticDeploymentService
+  -> Path safety validation
+  -> DATA_DIR/deployments/{deployment_id}
+  -> Health checks
+  -> /deployments/{deployment_id}/
+  -> Dashboard access link
 ```
 
 ### Protected Xano Provisioning

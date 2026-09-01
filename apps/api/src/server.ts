@@ -12,6 +12,7 @@ import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEv
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
+import { LocalStaticDeploymentService } from "./deployments.js";
 import { EventBus } from "./events.js";
 import { FileProjectRepository } from "./storage.js";
 
@@ -82,7 +83,8 @@ const app = createApp({
     }),
   agentLatch,
   approvals: new FileApprovalRepository(config.DATA_DIR),
-  secureExecutor
+  secureExecutor,
+  deployments: new LocalStaticDeploymentService(config.DATA_DIR)
 });
 
 app.listen(config.API_PORT, () => {

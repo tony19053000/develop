@@ -5,10 +5,12 @@ import {
   calculateProjectProgress,
   createInitialAgentTasks,
   backendArtifactSchema,
+  deploymentRecordSchema,
   launchProjectListSchema,
   tasksFromWorkflowPlan,
   type BackendArtifact,
   type CreateLaunchProjectInput,
+  type DeploymentRecord,
   type DomainResearch,
   type LaunchProject,
   type LaunchWorkflowPlan,
@@ -25,6 +27,7 @@ export interface ProjectRepository {
   saveDomainResearch(projectId: string, research: DomainResearch): Promise<LaunchProject>;
   saveWebsiteArtifact(projectId: string, artifact: WebsiteArtifact): Promise<LaunchProject>;
   saveBackendArtifact(projectId: string, artifact: BackendArtifact): Promise<LaunchProject>;
+  saveDeploymentRecord(projectId: string, deployment: DeploymentRecord): Promise<LaunchProject>;
   markApprovalPending(projectId: string): Promise<LaunchProject>;
   markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject>;
 }
@@ -221,6 +224,44 @@ export class FileProjectRepository implements ProjectRepository {
         ...artifact,
         updatedAt: now
       }),
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveDeploymentRecord(projectId: string, deployment: DeploymentRecord): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const parsedDeployment = deploymentRecordSchema.parse({
+      ...deployment,
+      updatedAt: now
+    });
+    const tasks = project.tasks.map((task) =>
+      task.id === "deployment-system"
+        ? { ...task, status: parsedDeployment.status === "healthy" ? ("complete" as const) : ("failed" as const), updatedAt: now }
+        : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: parsedDeployment.status === "healthy" ? "active" : "failed",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      deploymentRecord: parsedDeployment,
       updatedAt: now
     };
 

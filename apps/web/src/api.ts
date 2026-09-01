@@ -3,6 +3,7 @@ import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   CreateLaunchProjectInput,
   BackendArtifact,
+  DeploymentRecord,
   DomainResearch,
   LaunchProject,
   MarketResearch,
@@ -37,6 +38,11 @@ interface WebsiteArtifactResponse {
 interface BackendArtifactResponse {
   project: LaunchProject;
   artifact: BackendArtifact;
+}
+
+interface DeploymentResponse {
+  project: LaunchProject;
+  deployment: DeploymentRecord;
 }
 
 interface ApprovalListResponse {
@@ -103,6 +109,13 @@ export async function planBackend(projectId: string): Promise<BackendArtifactRes
     method: "POST"
   });
   return readJson<BackendArtifactResponse>(response);
+}
+
+export async function deployProject(projectId: string): Promise<DeploymentResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/deployments`, {
+    method: "POST"
+  });
+  return readJson<DeploymentResponse>(response);
 }
 
 export async function requestDomainRegistrationApproval(project: LaunchProject): Promise<ApprovalResponse> {

@@ -502,6 +502,12 @@ textarea:focus {
   border-top: 1px solid #dce4dc;
 }
 
+.deployment-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #dce4dc;
+}
+
 .artifact-heading {
   display: flex;
   align-items: flex-start;
@@ -549,6 +555,16 @@ textarea:focus {
 .artifact-summary small {
   color: #1f5e3d;
   font-weight: 900;
+}
+
+.artifact-summary a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: #1f5e3d;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .website-preview-frame {

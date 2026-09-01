@@ -16,6 +16,7 @@ import {
 import type { XanoClient } from "@launchforge/integrations";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
+import { LocalStaticDeploymentService } from "./deployments.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
 import { FileProjectRepository } from "./storage.js";
@@ -47,7 +48,8 @@ beforeEach(async () => {
     createXanoClient: createFakeXanoClient,
     agentLatch: createAgentLatchPolicyEngine(),
     approvals: new FileApprovalRepository(dataDir),
-    secureExecutor: createFakeSecureExecutor()
+    secureExecutor: createFakeSecureExecutor(),
+    deployments: new LocalStaticDeploymentService(dataDir)
   });
 });
 
@@ -74,7 +76,7 @@ describe("LaunchForge API foundation", () => {
       .expect(201);
 
     expect(createResponse.body.project.status).toBe("active");
-    expect(createResponse.body.project.tasks).toHaveLength(8);
+    expect(createResponse.body.project.tasks).toHaveLength(9);
     expect(createResponse.body.project.tasks[0].status).toBe("complete");
 
     const listResponse = await request(app).get("/api/projects").expect(200);
@@ -105,7 +107,7 @@ describe("LaunchForge API foundation", () => {
       .post(`/api/projects/${createResponse.body.project.id}/orchestrate`)
       .expect(200);
 
-    expect(response.body.plan.steps).toHaveLength(8);
+    expect(response.body.plan.steps).toHaveLength(9);
     expect(response.body.project.status).toBe("active");
   });
 
@@ -200,6 +202,42 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.project.tasks).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "backend-foundation", status: "running" })])
     );
+  });
+
+  it("deploys and serves a generated website artifact", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/website`).expect(200);
+
+    const response = await request(app).post(`/api/projects/${createResponse.body.project.id}/deployments`).expect(200);
+
+    expect(response.body.deployment).toMatchObject({
+      projectId: createResponse.body.project.id,
+      environment: "local_static",
+      status: "healthy",
+      files: expect.arrayContaining([expect.objectContaining({ path: "index.html", contentType: "text/html" })])
+    });
+    expect(response.body.project.deploymentRecord.url).toContain("/deployments/");
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "deployment-system", status: "complete" })])
+    );
+
+    const served = await request(app).get(new URL(response.body.deployment.url).pathname).expect(200);
+    expect(served.text).toContain("<h1>EvidenceForge</h1>");
+  });
+
+  it("rejects deployment without a website artifact", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const response = await request(app).post(`/api/projects/${createResponse.body.project.id}/deployments`).expect(409);
+
+    expect(response.body.error).toBe("Website artifact is required before deployment.");
   });
 
   it("executes approved Xano backend provisioning through SecureExecutor", async () => {

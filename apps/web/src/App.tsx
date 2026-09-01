@@ -5,6 +5,7 @@ import type {
   AgentRole,
   AgentTask,
   BackendArtifact,
+  DeploymentRecord,
   DomainCandidate,
   LaunchProject,
   ResearchResult,
@@ -36,6 +37,7 @@ import {
 import {
   approveRequest,
   createProject,
+  deployProject,
   dryRunSecureExecution,
   executeBackendProvisioning,
   executeDomainRegistration,
@@ -66,6 +68,7 @@ const agentMeta: Record<AgentRole, { label: string; icon: typeof Bot }> = {
   agentlatch: { label: "AgentLatch", icon: LockKeyhole },
   website: { label: "Website", icon: Blocks },
   backend: { label: "Backend", icon: Server },
+  deployment: { label: "Deployment", icon: Rocket },
   document: { label: "Documents", icon: FileText }
 };
 
@@ -81,6 +84,7 @@ export function App() {
   const [isFindingDomains, setIsFindingDomains] = useState(false);
   const [isGeneratingWebsite, setIsGeneratingWebsite] = useState(false);
   const [isPlanningBackend, setIsPlanningBackend] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -190,6 +194,21 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to plan backend.");
     } finally {
       setIsPlanningBackend(false);
+    }
+  }
+
+  async function handleDeployProject(projectId: string) {
+    setIsDeploying(true);
+    setError(null);
+
+    try {
+      const { project } = await deployProject(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to deploy project.");
+    } finally {
+      setIsDeploying(false);
     }
   }
 
@@ -411,6 +430,15 @@ export function App() {
                     <Database size={18} aria-hidden="true" />
                     {isPlanningBackend ? "Planning..." : "Plan Backend"}
                   </button>
+                  <button
+                    className="secondary-button"
+                    disabled={isDeploying || !selectedProject.websiteArtifact}
+                    onClick={() => void handleDeployProject(selectedProject.id)}
+                    type="button"
+                  >
+                    <Rocket size={18} aria-hidden="true" />
+                    {isDeploying ? "Deploying..." : "Deploy"}
+                  </button>
                 </div>
 
                 <div className="progress-block">
@@ -436,6 +464,8 @@ export function App() {
                 {selectedProject.websiteArtifact ? <WebsiteArtifactPanel artifact={selectedProject.websiteArtifact} /> : null}
 
                 {selectedProject.backendArtifact ? <BackendArtifactPanel artifact={selectedProject.backendArtifact} /> : null}
+
+                {selectedProject.deploymentRecord ? <DeploymentPanel deployment={selectedProject.deploymentRecord} /> : null}
 
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
@@ -480,6 +510,42 @@ export function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+function DeploymentPanel({ deployment }: { deployment: DeploymentRecord }) {
+  return (
+    <section className="deployment-panel" aria-labelledby="deployment-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Deployment</p>
+          <h2 id="deployment-title">{deployment.environment.replaceAll("_", " ")}</h2>
+        </div>
+        <span className={deployment.status === "healthy" ? "validation-pill passed" : "validation-pill failed"}>
+          <Rocket size={16} aria-hidden="true" />
+          {deployment.status}
+        </span>
+      </div>
+
+      <div className="artifact-summary">
+        <p>{deployment.files.length} files published and checked.</p>
+        <a href={deployment.url} rel="noreferrer" target="_blank">
+          Open deployment <ExternalLink size={14} aria-hidden="true" />
+        </a>
+      </div>
+
+      <div className="artifact-check-list">
+        {deployment.healthChecks.map((check) => (
+          <div className={check.passed ? "artifact-check passed" : "artifact-check failed"} key={check.name}>
+            <CheckCircle2 size={16} aria-hidden="true" />
+            <div>
+              <strong>{check.name}</strong>
+              <span>{check.message}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
