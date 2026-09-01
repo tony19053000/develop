@@ -317,6 +317,208 @@ describe("LaunchForge web foundation", () => {
     });
   });
 
+  it("plans and provisions a Xano backend through approval controls", async () => {
+    const backendArtifact = {
+      id: "backend-artifact-1",
+      projectId: "project-1",
+      productName: "InterviewForge",
+      mode: "planned",
+      tables: [
+        {
+          name: "interviewforge_waitlist_leads",
+          description: "Stores waitlist leads.",
+          fields: [{ name: "email", type: "email", required: true, description: "Lead email." }]
+        }
+      ],
+      endpoints: [
+        {
+          name: "create_interviewforge_waitlist_lead",
+          verb: "POST",
+          path: "/waitlist",
+          tableName: "interviewforge_waitlist_leads",
+          description: "Create waitlist lead.",
+          xanoScript: "query create_interviewforge_waitlist_lead verb=POST {\n  response = true\n}"
+        }
+      ],
+      frontendConnection: {
+        environmentVariable: "VITE_PRODUCT_API_URL",
+        clientFilePath: "src/productApi.ts",
+        usage: "POST /waitlist with { email }."
+      },
+      generatedAt: "2026-08-31T00:00:00.000Z",
+      updatedAt: "2026-08-31T00:00:00.000Z"
+    };
+    const pendingApproval = {
+      id: "approval-2",
+      projectId: "project-1",
+      actionRequest: {
+        id: "request-2",
+        projectId: "project-1",
+        requestedBy: "backend",
+        actionType: "xano.provisionBackend",
+        resource: "InterviewForge API",
+        payload: backendArtifact,
+        reason: "Provision the Xano backend.",
+        createdAt: "2026-08-31T00:00:00.000Z"
+      },
+      decision: {
+        id: "decision-2",
+        requestId: "request-2",
+        decision: "APPROVAL_REQUIRED",
+        category: "external-infrastructure-change",
+        explanation: "Backend provisioning requires approval.",
+        payloadHash: "hash",
+        requiresHumanApproval: true,
+        executable: false,
+        evaluatedAt: "2026-08-31T00:00:00.000Z"
+      },
+      status: "pending",
+      approvalUrl: "http://localhost:5173/approvals/approval-2?token=test-token",
+      tokenExpiresAt: "2026-08-31T01:00:00.000Z",
+      createdAt: "2026-08-31T00:00:00.000Z",
+      updatedAt: "2026-08-31T00:00:00.000Z"
+    };
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 75,
+              tasks: [],
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 75,
+            tasks: [],
+            backendArtifact,
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          },
+          artifact: backendArtifact
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          approval: pendingApproval,
+          token: "test-token",
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "waiting_for_approval",
+            progress: 75,
+            tasks: [],
+            backendArtifact,
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:02:00.000Z"
+          }
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          approval: { ...pendingApproval, status: "approved" },
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 75,
+            tasks: [],
+            backendArtifact,
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:03:00.000Z"
+          }
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          receipt: {
+            id: "receipt-3",
+            requestId: "request-2",
+            actionType: "xano.provisionBackend",
+            payloadHash: "hash",
+            mode: "development",
+            evidenceVerified: false,
+            result: {
+              provisioned: true,
+              productName: "InterviewForge"
+            },
+            executedAt: "2026-08-31T00:04:00.000Z"
+          }
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 88,
+              tasks: [],
+              backendArtifact: {
+                ...backendArtifact,
+                mode: "provisioned",
+                provisioning: {
+                  id: "workspace-1:100",
+                  workspaceId: "workspace-1",
+                  apiGroup: { id: 100, name: "InterviewForge API" },
+                  tables: [{ id: 200, name: "interviewforge_waitlist_leads" }],
+                  endpoints: [{ id: 300, name: "create_interviewforge_waitlist_lead", verb: "POST", path: "/waitlist" }],
+                  provisionedAt: "2026-08-31T00:04:00.000Z"
+                }
+              },
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:04:00.000Z"
+            }
+          ]
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Plan Backend/i }));
+    expect(await screen.findByRole("heading", { name: "InterviewForge API" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Request Backend Approval/i }));
+    expect(await screen.findByText("APPROVAL REQUIRED")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Approve InterviewForge API/i }));
+    expect(await screen.findByRole("button", { name: /Provision backend InterviewForge API/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Provision backend InterviewForge API/i }));
+    expect(await screen.findByText("provisioned InterviewForge")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/backend/plan", {
+      method: "POST"
+    });
+  });
+
   it("requests and approves protected domain registration", async () => {
     const pendingApproval = {
       id: "approval-1",

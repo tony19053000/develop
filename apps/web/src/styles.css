@@ -496,6 +496,12 @@ textarea:focus {
   border-top: 1px solid #dce4dc;
 }
 
+.backend-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #dce4dc;
+}
+
 .artifact-heading {
   display: flex;
   align-items: flex-start;
@@ -567,7 +573,19 @@ textarea:focus {
   margin-top: 16px;
 }
 
+.backend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .artifact-grid h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.backend-grid h3 {
   margin: 0 0 8px;
   font-size: 0.9rem;
 }
@@ -598,8 +616,23 @@ textarea:focus {
   grid-template-columns: 22px minmax(0, 1fr);
 }
 
+.backend-table-row,
+.backend-endpoint-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px;
+  border: 1px solid #d9e2da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .artifact-file-row svg,
-.artifact-check.passed svg {
+.artifact-check.passed svg,
+.backend-table-row svg,
+.backend-endpoint-row svg {
   color: #1f6f46;
 }
 
@@ -610,12 +643,18 @@ textarea:focus {
 .artifact-file-row span,
 .artifact-file-row small,
 .artifact-check strong,
-.artifact-check span {
+.artifact-check span,
+.backend-table-row strong,
+.backend-table-row span,
+.backend-endpoint-row strong,
+.backend-endpoint-row span {
   min-width: 0;
 }
 
 .artifact-file-row span,
-.artifact-check strong {
+.artifact-check strong,
+.backend-table-row strong,
+.backend-endpoint-row strong {
   overflow: hidden;
   font-weight: 900;
   text-overflow: ellipsis;
@@ -623,9 +662,32 @@ textarea:focus {
 }
 
 .artifact-file-row small,
-.artifact-check span {
+.artifact-check span,
+.backend-table-row span,
+.backend-endpoint-row span {
   color: #65746a;
   font-size: 0.82rem;
+}
+
+.provisioning-band {
+  display: grid;
+  gap: 2px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #82b58e;
+  border-radius: 8px;
+  background: #f5fbf6;
+}
+
+.provisioning-band strong,
+.provisioning-band span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.provisioning-band span {
+  color: #4f5f55;
+  font-size: 0.84rem;
 }
 
 .brand-direction {
@@ -870,7 +932,8 @@ textarea:focus {
   .domain-row,
   .domain-recommendation,
   .approval-request-band,
-  .artifact-grid {
+  .artifact-grid,
+  .backend-grid {
     grid-template-columns: 1fr;
   }
 

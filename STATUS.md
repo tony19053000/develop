@@ -16,7 +16,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 7 | TEE / Secure Execution | 7 | 100% complete |
 | 8 | Protected name.com Registration | 5 | 100% complete |
 | 9 | Website / Product Agent | 6 | 100% complete |
-| 10 | Xano + Backend Agent | 6 | 0% pending |
+| 10 | Xano + Backend Agent | 6 | implementation checkpoint; live Xano verification pending |
 | 11 | Deployment System | 3 | 0% pending |
 | 12 | Foxit + Document Agent | 4 | 0% pending |
 | 13 | Foxit eSign + Human-Only Boundary | 4 | 0% pending |
@@ -33,7 +33,7 @@ Phase 10 - Xano + Backend Agent.
 
 ## Current Task
 
-Begin Xano + Backend Agent implementation.
+Complete live Xano provisioning verification after credentials are configured.
 
 ## Baseline
 
@@ -50,11 +50,12 @@ Begin Xano + Backend Agent implementation.
 - Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, secure execution UI/API handoff, Google-signed attestation verification, a packaged Confidential Space workload container, and real production Confidential Space verification.
 - Phase 8 implementation adds a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, dashboard execution control for approved registrations, and sandbox verification through the full protected flow.
 - Phase 9 implementation adds a Website/Product Agent, generated static product-site artifact files, build-style validation checks, project artifact persistence, an API generation route, and an embedded dashboard preview.
+- Phase 10 checkpoint adds a Xano Metadata API adapter, Backend Agent backend plan generation, protected Xano provisioning execution route, backend artifact persistence, and dashboard backend planning/provisioning controls.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 57 tests.
+- Tests: passed, 65 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -66,6 +67,8 @@ Begin Xano + Backend Agent implementation.
 - Phase 8 sandbox verification: passed against `https://api.dev.name.com`; registered `launchforge-phase8-1788261813202.com` through `AgentLatch -> approval -> SecureExecutor -> availability re-check -> name.com Create Domain`, returned sandbox order `2132723`, and post-registration availability reported `purchasable: false`.
 - Phase 9 automated tests: Website/Product Agent, API artifact persistence, and web preview controls pass.
 - Phase 9 live local verification: passed through `POST /api/projects/:projectId/website`; generated `index.html`, `styles.css`, and `app.js` with validation `passed: true`.
+- Phase 10 automated tests: Xano adapter, Backend Agent, API backend planning, protected Xano provisioning, and web controls pass with mocked Xano responses.
+- Phase 10 local planning verification: passed through `POST /api/projects/:projectId/backend/plan`; generated a planned Xano waitlist backend.
 
 ## Review Status
 
@@ -103,13 +106,14 @@ Reviewer/Tester result for Phase 9: APPROVED after local product artifact genera
 - Phase 8 protected registration start commit: `0f41be3`, pushed to `origin/main`.
 - Phase 8 blank environment parsing commit: `1cb5769`, pushed to `origin/main`.
 - Phase 8 sandbox verification completion commit: `2dd50a6`, pushed to `origin/main`.
-- Phase 9 website/product agent commit: this commit, pushed to `origin/main`.
+- Phase 9 website/product agent commit: `de8bf6b`, pushed to `origin/main`.
+- Phase 10 Xano/backend checkpoint commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
 - SerpApi: implemented and live verified.
 - name.com: availability search implemented and live verified; protected development/test registration implemented and sandbox verified.
-- Xano: planned.
+- Xano: adapter and protected provisioning path implemented; real workspace provisioning pending credentials.
 - Foxit: planned.
 
 ## AgentLatch
@@ -127,3 +131,5 @@ Partially demo-ready. A user can run the local app, create a launch project, vie
 ## Blockers
 
 Production domain registration still requires an explicit user confirmation for the exact real domain before any production purchase.
+
+Real Xano verification requires `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` in local `.env`.

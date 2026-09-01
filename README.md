@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 9 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, and generated product website artifacts with dashboard preview.
+Phase 10 has an implementation checkpoint. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, and a protected Xano backend provisioning path awaiting live Xano credentials.
 
 ## Sponsor Integrations
 
@@ -70,6 +70,14 @@ For local approval tokens, set a private secret:
 
 ```bash
 APPROVAL_TOKEN_SECRET=replace_with_a_long_random_secret
+```
+
+For Phase 10 live Xano backend provisioning, set:
+
+```bash
+XANO_API_KEY=your_xano_metadata_api_token
+XANO_WORKSPACE_ID=your_xano_workspace_id
+XANO_INSTANCE_BASE_URL=https://your-instance.xano.io
 ```
 
 Install dependencies:

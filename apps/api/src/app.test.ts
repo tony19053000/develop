@@ -7,11 +7,13 @@ import { createAgentLatchPolicyEngine, toolActionRequestSchema } from "@launchfo
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
   createDeterministicWorkflowPlan,
+  type BackendAgent,
   type DomainAgent,
   type MarketBrandAgent,
   type OrchestratorRuntime,
   type WebsiteProductAgent
 } from "@launchforge/agents";
+import type { XanoClient } from "@launchforge/integrations";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
 import type { ApiConfig } from "./config.js";
@@ -26,7 +28,9 @@ const config: ApiConfig = {
   API_PORT: 4000,
   WEB_ORIGIN: "http://localhost:5173",
   DATA_DIR: "",
-  APPROVAL_TOKEN_SECRET: "test-approval-secret"
+  APPROVAL_TOKEN_SECRET: "test-approval-secret",
+  XANO_WORKSPACE_ID: "workspace-1",
+  XANO_INSTANCE_BASE_URL: "https://example.xano.io"
 };
 
 beforeEach(async () => {
@@ -39,6 +43,8 @@ beforeEach(async () => {
     marketBrand: createFakeMarketBrand(),
     domain: createFakeDomainAgent(),
     websiteProduct: createFakeWebsiteProductAgent(),
+    backend: createFakeBackendAgent(),
+    createXanoClient: createFakeXanoClient,
     agentLatch: createAgentLatchPolicyEngine(),
     approvals: new FileApprovalRepository(dataDir),
     secureExecutor: createFakeSecureExecutor()
@@ -173,6 +179,70 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.project.tasks).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "website-foundation", status: "complete" })])
     );
+  });
+
+  it("plans a Xano backend for an existing project", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const response = await request(app).post(`/api/projects/${createResponse.body.project.id}/backend/plan`).expect(200);
+
+    expect(response.body.artifact).toMatchObject({
+      productName: "EvidenceForge",
+      mode: "planned",
+      frontendConnection: {
+        environmentVariable: "VITE_PRODUCT_API_URL"
+      }
+    });
+    expect(response.body.project.backendArtifact.tables[0].name).toBe("evidenceforge_waitlist_leads");
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "backend-foundation", status: "running" })])
+    );
+  });
+
+  it("executes approved Xano backend provisioning through SecureExecutor", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+    const planResponse = await request(app).post(`/api/projects/${createResponse.body.project.id}/backend/plan`).expect(200);
+    const approvalResponse = await request(app)
+      .post("/api/approvals")
+      .send({
+        projectId: createResponse.body.project.id,
+        requestedBy: "backend",
+        actionType: "xano.provisionBackend",
+        resource: "EvidenceForge API",
+        payload: planResponse.body.artifact,
+        reason: "Provision the Xano backend for the generated product."
+      })
+      .expect(201);
+
+    await request(app)
+      .post(`/api/approvals/${approvalResponse.body.approval.id}/approve`)
+      .send({ token: approvalResponse.body.token, decidedBy: "founder@example.com" })
+      .expect(200);
+
+    const response = await request(app)
+      .post("/api/secure-executions/xano/provision-backend")
+      .send({ approvalId: approvalResponse.body.approval.id })
+      .expect(200);
+
+    expect(response.body.receipt).toMatchObject({
+      actionType: "xano.provisionBackend",
+      evidenceVerified: false,
+      result: {
+        provisioned: true,
+        workspaceId: "workspace-1",
+        apiGroup: {
+          id: 100,
+          name: "EvidenceForge API"
+        }
+      }
+    });
+    expect(JSON.stringify(response.body)).not.toContain("test-secret");
   });
 
   it("evaluates protected action requests through AgentLatch", async () => {
@@ -538,6 +608,71 @@ function createFakeWebsiteProductAgent(): WebsiteProductAgent {
           requiredEnvironment: []
         },
         generatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeBackendAgent(): BackendAgent {
+  return {
+    async plan(input) {
+      return {
+        id: "backend-artifact-1",
+        projectId: input.projectId,
+        productName: "EvidenceForge",
+        mode: "planned",
+        tables: [
+          {
+            name: "evidenceforge_waitlist_leads",
+            description: "Stores waitlist leads.",
+            fields: [
+              { name: "id", type: "int", required: true, description: "Primary key." },
+              { name: "email", type: "email", required: true, description: "Lead email." }
+            ]
+          }
+        ],
+        endpoints: [
+          {
+            name: "create_evidenceforge_waitlist_lead",
+            verb: "POST",
+            path: "/waitlist",
+            tableName: "evidenceforge_waitlist_leads",
+            description: "Create waitlist lead.",
+            xanoScript: "query create_evidenceforge_waitlist_lead verb=POST {\n  response = true\n}"
+          }
+        ],
+        frontendConnection: {
+          environmentVariable: "VITE_PRODUCT_API_URL",
+          clientFilePath: "src/productApi.ts",
+          usage: "POST /waitlist with { email }."
+        },
+        generatedAt: "2026-08-31T00:00:00.000Z",
+        updatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeXanoClient(): XanoClient {
+  return {
+    async provisionBackend(input) {
+      return {
+        id: "workspace-1:100",
+        workspaceId: "workspace-1",
+        apiGroup: {
+          id: 100,
+          name: input.apiGroupName,
+          canonical: "evidenceforge_api"
+        },
+        tables: input.tables.map((table, index) => ({ id: 200 + index, name: table.name, guid: `table-${index}` })),
+        endpoints: input.endpoints.map((endpoint, index) => ({
+          id: 300 + index,
+          name: endpoint.name,
+          verb: endpoint.verb,
+          path: endpoint.path,
+          guid: `endpoint-${index}`
+        })),
+        provisionedAt: "2026-08-31T00:00:00.000Z"
       };
     }
   };

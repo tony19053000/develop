@@ -6,8 +6,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 9 - Website / Product Agent is complete and approved.
-Current next phase: Phase 10 - Xano + Backend Agent.
+Phase 10 - Xano + Backend Agent has an implementation checkpoint.
+Current next task: configure Xano credentials and run real workspace provisioning verification.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -138,6 +138,18 @@ Phase 9 - Website / Product Agent is complete and approved.
   - Added `POST /api/projects/:projectId/website`.
   - Added dashboard `Generate Website` control, validation summary, file list, and embedded preview.
   - Live local verification generated a validated artifact for project `68681644-448b-4997-b56a-83df0df3a300`.
+- Added Phase 10 Xano + Backend Agent checkpoint:
+  - Added `HttpXanoClient` for Xano Metadata API provisioning.
+  - Added XanoScript helpers for API group and table creation.
+  - Added Backend Agent planning for a waitlist backend.
+  - Added backend artifact contracts for tables, endpoints, frontend connection metadata, and Xano provisioning results.
+  - Added project persistence for backend artifacts.
+  - Added `POST /api/projects/:projectId/backend/plan`.
+  - Added protected `POST /api/secure-executions/xano/provision-backend`.
+  - Added dashboard backend planning, approval request, and provision controls.
+  - Added `docs/XANO_BACKEND.md`.
+  - Automated tests pass with mocked Xano API responses.
+  - Local planning smoke test generated `onboarding_waitlist_leads` and `POST /waitlist` for project `b9d169bc-e98f-4e57-9e21-1b146baf4f5e`.
 
 ## Architecture Summary
 
@@ -149,10 +161,11 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, and protected name.com development/test registration implementations; Xano and Foxit are planned.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, and a Xano Metadata API provisioning adapter awaiting live credentials; Foxit is planned.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
+- Backend Agent is implemented with local Xano backend planning and protected provisioning flow. Real Xano verification is pending credentials.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -193,6 +206,8 @@ Current architecture:
 - `gcloud storage cp gs://launchforge-tee-phase7-evidence/confidential-space-evidence.json /tmp/launchforge-phase7-evidence.json --project=launchforge-tee`
 - `POST /api/secure-executions/namecom/register-domain`
 - `POST /api/projects/:projectId/website`
+- `POST /api/projects/:projectId/backend/plan`
+- `POST /api/secure-executions/xano/provision-backend`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -211,6 +226,7 @@ Current architecture:
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/typecheck/test/lint: passing with Phase 7 implementation.
 - Build/typecheck/test/lint: passing with Phase 9 implementation.
+- Build/typecheck/test/lint: passing with Phase 10 checkpoint implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
 - Live name.com endpoint verification: passed.
@@ -228,6 +244,7 @@ Current architecture:
 - Phase 7 real attestation verification: passed with `evidenceVerified: true`.
 - Phase 8 sandbox domain registration: `launchforge-phase8-1788261813202.com`, order `2132723`, post-registration availability `purchasable: false`.
 - Phase 9 generated product artifact smoke test: passed with `validationPassed: true`.
+- Phase 10 backend plan smoke test: passed locally with `mode: planned`.
 
 ## Environment Assumptions
 
@@ -235,11 +252,14 @@ Current architecture:
 - Real credentials must be provided through local environment variables and never committed.
 - `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
+- `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are not configured locally yet.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
+Real Xano verification requires `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` in local `.env`.
+
 ## Next Exact Task
 
-Start Phase 10 by building the Xano + Backend Agent. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.
+Configure Xano credentials, then run real Xano provisioning through `Backend Agent plan -> AgentLatch approval -> SecureExecutor -> Xano Metadata API`. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.

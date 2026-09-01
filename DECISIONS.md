@@ -276,3 +276,23 @@ Reason: This creates a real, previewable product surface without introducing ano
 Consequences: Phase 9 produces static frontend artifacts ready for later backend wiring and deployment. Dynamic backend behavior remains intentionally deferred to Phase 10 and Phase 11.
 
 Reversibility: High.
+
+## 2026-09-01 - Protected Xano Metadata API Provisioning
+
+Decision: Implement Xano provisioning through a Backend Agent plan plus a protected SecureExecutor route.
+
+Context: Phase 10 requires real backend functionality powered by Xano, but Xano workspace changes are external infrastructure actions and the Xano API key must never be exposed to agents, generated artifacts, or the frontend.
+
+Alternatives:
+
+- Let the Backend Agent call Xano directly.
+- Store the Xano token in generated website code.
+- Only generate a mock backend plan.
+
+Chosen Approach: Add a Xano Metadata API adapter using bearer authentication and `text/x-xanoscript`, generate backend artifacts locally, require an approved `xano.provisionBackend` AgentLatch request, and resolve `XANO_API_KEY` only inside SecureExecutor.
+
+Reason: This keeps infrastructure mutation behind the same approval and exact-action authorization boundary as other sensitive sponsor operations.
+
+Consequences: The implementation can be tested with mocked Xano responses and local planning can run without credentials. Phase 10 cannot be marked complete until real Xano credentials are configured and a real workspace provisioning run succeeds.
+
+Reversibility: Medium.

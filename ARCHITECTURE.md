@@ -17,6 +17,7 @@
 - Approval system: IMPLEMENTED.
 - TEE secure executor: IMPLEMENTED.
 - Website/Product Agent: IMPLEMENTED.
+- Xano + Backend Agent: PARTIAL.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: PLANNED.
@@ -33,6 +34,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - AgentLatch policy and authorization boundary before sensitive tool execution.
 - SecureExecutor abstraction that maps privileged execution to development mode locally and Google Confidential Space mode in production with Google-signed attestation verification.
 - Website/Product Agent that creates static product website artifacts, validates them, persists them with the project, and previews them in the command center.
+- Backend Agent that creates Xano backend plans and routes real provisioning through AgentLatch approval and SecureExecutor.
 
 ## Trust Boundaries
 
@@ -99,7 +101,7 @@ Each sponsor integration should live behind a narrow adapter:
 
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
-- XanoAdapter for backend provisioning and metadata.
+- XanoAdapter for backend provisioning and metadata. PARTIAL: Metadata API adapter, backend planning, approval, and protected provisioning route are implemented; live Xano workspace provisioning is pending credentials.
 - FoxitAdapter for document and eSign workflows.
 
 Adapters must handle authentication failure, timeout, rate limit, malformed response, unavailable dependency, partial execution, retries where safe, and redaction.
@@ -127,6 +129,7 @@ Planned entities:
 - AuditEvent.
 - DeploymentRecord.
 - WebsiteArtifact.
+- BackendArtifact.
 
 ## Folder Structure
 
@@ -201,4 +204,18 @@ Website/Product Agent
   -> Project artifact persistence
   -> Command center preview
   -> Phase 11 deployment handoff
+```
+
+### Protected Xano Provisioning
+
+```text
+Backend Agent
+  -> BackendArtifact plan
+  -> xano.provisionBackend request
+  -> AgentLatch approval
+  -> Signed exact-action authorization
+  -> SecureExecutor
+  -> XANO_API_KEY secret resolution
+  -> Xano Metadata API
+  -> Provisioned backend metadata
 ```

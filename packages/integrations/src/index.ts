@@ -14,3 +14,12 @@ export {
   type RegisteredDomain,
   type RegisterDomainInput
 } from "./namecom.js";
+export {
+  buildApiGroupScript,
+  buildTableScript,
+  HttpXanoClient,
+  XanoConfigurationError,
+  type ProvisionXanoBackendInput,
+  type XanoClient,
+  type XanoConfig
+} from "./xano.js";

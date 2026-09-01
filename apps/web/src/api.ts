@@ -2,6 +2,7 @@ import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   CreateLaunchProjectInput,
+  BackendArtifact,
   DomainResearch,
   LaunchProject,
   MarketResearch,
@@ -31,6 +32,11 @@ interface DomainResearchResponse {
 interface WebsiteArtifactResponse {
   project: LaunchProject;
   artifact: WebsiteArtifact;
+}
+
+interface BackendArtifactResponse {
+  project: LaunchProject;
+  artifact: BackendArtifact;
 }
 
 interface ApprovalListResponse {
@@ -92,6 +98,13 @@ export async function generateWebsite(projectId: string): Promise<WebsiteArtifac
   return readJson<WebsiteArtifactResponse>(response);
 }
 
+export async function planBackend(projectId: string): Promise<BackendArtifactResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/backend/plan`, {
+    method: "POST"
+  });
+  return readJson<BackendArtifactResponse>(response);
+}
+
 export async function requestDomainRegistrationApproval(project: LaunchProject): Promise<ApprovalResponse> {
   const domain = project.domainResearch?.recommendedDomain;
 
@@ -115,6 +128,30 @@ export async function requestDomainRegistrationApproval(project: LaunchProject):
         price: domain.purchasePrice
       },
       reason: `Approve protected registration for ${domain.domainName}.`
+    })
+  });
+  return readJson<ApprovalResponse>(response);
+}
+
+export async function requestBackendProvisioningApproval(project: LaunchProject): Promise<ApprovalResponse> {
+  const backend = project.backendArtifact;
+
+  if (!backend) {
+    throw new Error("No backend plan is ready for approval.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/approvals`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      projectId: project.id,
+      requestedBy: "backend",
+      actionType: "xano.provisionBackend",
+      resource: `${backend.productName} API`,
+      payload: backend,
+      reason: `Approve Xano backend provisioning for ${backend.productName}.`
     })
   });
   return readJson<ApprovalResponse>(response);
@@ -163,6 +200,18 @@ export async function dryRunSecureExecution(approval: ApprovalRequest): Promise<
 
 export async function executeDomainRegistration(approval: ApprovalRequest): Promise<SecureExecutionReceipt> {
   const response = await fetch(`${API_BASE_URL}/api/secure-executions/namecom/register-domain`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ approvalId: approval.id })
+  });
+  const body = await readJson<SecureExecutionResponse>(response);
+  return body.receipt;
+}
+
+export async function executeBackendProvisioning(approval: ApprovalRequest): Promise<SecureExecutionReceipt> {
+  const response = await fetch(`${API_BASE_URL}/api/secure-executions/xano/provision-backend`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

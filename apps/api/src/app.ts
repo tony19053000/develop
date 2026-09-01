@@ -3,10 +3,16 @@ import express from "express";
 import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
-import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime, WebsiteProductAgent } from "@launchforge/agents";
-import { HttpNameComClient, NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
+import type { BackendAgent, DomainAgent, MarketBrandAgent, OrchestratorRuntime, WebsiteProductAgent } from "@launchforge/agents";
+import {
+  HttpNameComClient,
+  NameComConfigurationError,
+  SerpApiConfigurationError,
+  XanoConfigurationError,
+  type XanoClient
+} from "@launchforge/integrations";
 import type { SecureExecutor } from "@launchforge/secure-executor";
-import { createLaunchProjectSchema } from "@launchforge/shared";
+import { backendArtifactSchema, createLaunchProjectSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
 import { EventBus } from "./events.js";
@@ -27,6 +33,8 @@ export interface AppDependencies {
   marketBrand: MarketBrandAgent;
   domain: DomainAgent;
   websiteProduct: WebsiteProductAgent;
+  backend: BackendAgent;
+  createXanoClient: (apiKey: string) => XanoClient;
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
   secureExecutor: SecureExecutor;
@@ -40,6 +48,8 @@ export function createApp({
   marketBrand,
   domain,
   websiteProduct,
+  backend,
+  createXanoClient,
   agentLatch,
   approvals,
   secureExecutor
@@ -261,6 +271,42 @@ export function createApp({
     }
   });
 
+  app.post("/api/projects/:projectId/backend/plan", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "backend",
+        level: "info",
+        message: "Backend Agent started Xano backend planning."
+      });
+
+      const artifact = await backend.plan({
+        projectId: existingProject.id,
+        idea: existingProject.idea,
+        ...(existingProject.marketResearch ? { marketResearch: existingProject.marketResearch } : {}),
+        ...(existingProject.websiteArtifact ? { websiteArtifact: existingProject.websiteArtifact } : {})
+      });
+      const project = await projects.saveBackendArtifact(existingProject.id, artifact);
+
+      events.publish({
+        projectId: project.id,
+        agent: "backend",
+        level: "success",
+        message: `Backend plan created for ${artifact.productName}. Xano provisioning requires approval.`
+      });
+
+      response.json({ project, artifact });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/agentlatch/evaluate", async (request, response, next) => {
     try {
       const actionRequest = toolActionRequestSchema.parse(request.body);
@@ -463,6 +509,73 @@ export function createApp({
 
       response.json({ receipt });
     } catch (error) {
+      next(mapApprovalError(error));
+    }
+  });
+
+  app.post("/api/secure-executions/xano/provision-backend", async (request, response, next) => {
+    try {
+      const approvalId = parseApprovalId(request.body);
+      const approval = await approvals.findById(approvalId);
+
+      if (!approval) {
+        throw new ApiError(404, "Approval not found.");
+      }
+
+      if (approval.status !== "approved") {
+        throw new ApiError(409, "Xano provisioning requires an approved action.");
+      }
+
+      if (approval.actionRequest.actionType !== "xano.provisionBackend") {
+        throw new ApiError(409, "Approval is not for Xano backend provisioning.");
+      }
+
+      const plannedArtifact = backendArtifactSchema.parse(approval.actionRequest.payload);
+      const receipt = await secureExecutor.execute({
+        request: approval.actionRequest,
+        approval: approval.decision,
+        operation: async (context) => {
+          const xano = createXanoClient(await context.getSecret("XANO_API_KEY"));
+          const provisioning = await xano.provisionBackend({
+            productName: plannedArtifact.productName,
+            apiGroupName: `${plannedArtifact.productName} API`,
+            tables: plannedArtifact.tables,
+            endpoints: plannedArtifact.endpoints
+          });
+          const provisionedArtifact = backendArtifactSchema.parse({
+            ...plannedArtifact,
+            mode: "provisioned",
+            provisioning,
+            updatedAt: new Date().toISOString()
+          });
+
+          await projects.saveBackendArtifact(approval.projectId, provisionedArtifact);
+
+          return {
+            provisioned: true,
+            productName: provisionedArtifact.productName,
+            workspaceId: provisioning.workspaceId,
+            apiGroup: provisioning.apiGroup,
+            tables: provisioning.tables,
+            endpoints: provisioning.endpoints
+          };
+        }
+      });
+
+      events.publish({
+        projectId: approval.projectId,
+        agent: "backend",
+        level: "success",
+        message: `SecureExecutor provisioned Xano backend for ${plannedArtifact.productName}.`
+      });
+
+      response.json({ receipt });
+    } catch (error) {
+      if (error instanceof XanoConfigurationError) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
       next(mapApprovalError(error));
     }
   });

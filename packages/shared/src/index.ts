@@ -133,6 +133,73 @@ export const websiteArtifactSchema = z.object({
   generatedAt: z.string().datetime()
 });
 
+export const backendFieldSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["int", "text", "email", "bool", "timestamp", "json"]),
+  required: z.boolean(),
+  description: z.string()
+});
+
+export const backendTableSchema = z.object({
+  name: z.string().min(1),
+  description: z.string(),
+  fields: z.array(backendFieldSchema).min(1)
+});
+
+export const backendEndpointSchema = z.object({
+  name: z.string().min(1),
+  verb: z.enum(["GET", "POST", "PUT", "DELETE"]),
+  path: z.string().min(1),
+  tableName: z.string().min(1),
+  description: z.string(),
+  xanoScript: z.string().min(1)
+});
+
+export const xanoProvisioningSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  apiGroup: z.object({
+    id: z.number().optional(),
+    name: z.string(),
+    canonical: z.string().optional(),
+    documentationUrl: z.string().url().optional()
+  }),
+  tables: z.array(
+    z.object({
+      id: z.number().optional(),
+      name: z.string(),
+      guid: z.string().optional()
+    })
+  ),
+  endpoints: z.array(
+    z.object({
+      id: z.number().optional(),
+      name: z.string(),
+      verb: z.string(),
+      path: z.string(),
+      guid: z.string().optional()
+    })
+  ),
+  provisionedAt: z.string().datetime()
+});
+
+export const backendArtifactSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  productName: z.string(),
+  mode: z.enum(["planned", "provisioned"]),
+  tables: z.array(backendTableSchema).min(1),
+  endpoints: z.array(backendEndpointSchema).min(1),
+  frontendConnection: z.object({
+    environmentVariable: z.string(),
+    clientFilePath: z.string(),
+    usage: z.string()
+  }),
+  provisioning: xanoProvisioningSchema.optional(),
+  generatedAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -160,6 +227,7 @@ export const launchProjectSchema = z.object({
   marketResearch: marketResearchSchema.optional(),
   domainResearch: domainResearchSchema.optional(),
   websiteArtifact: websiteArtifactSchema.optional(),
+  backendArtifact: backendArtifactSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -174,6 +242,10 @@ export type AgentTaskStatus = z.infer<typeof agentTaskStatusSchema>;
 export type CreateLaunchProjectInput = z.infer<typeof createLaunchProjectSchema>;
 export type DomainCandidate = z.infer<typeof domainCandidateSchema>;
 export type DomainResearch = z.infer<typeof domainResearchSchema>;
+export type BackendArtifact = z.infer<typeof backendArtifactSchema>;
+export type BackendEndpoint = z.infer<typeof backendEndpointSchema>;
+export type BackendField = z.infer<typeof backendFieldSchema>;
+export type BackendTable = z.infer<typeof backendTableSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;
@@ -183,6 +255,7 @@ export type WebsiteArtifact = z.infer<typeof websiteArtifactSchema>;
 export type WebsiteFile = z.infer<typeof websiteFileSchema>;
 export type WebsiteValidation = z.infer<typeof websiteValidationSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
+export type XanoProvisioning = z.infer<typeof xanoProvisioningSchema>;
 
 export function calculateProjectProgress(tasks: AgentTask[]): number {
   if (tasks.length === 0) {

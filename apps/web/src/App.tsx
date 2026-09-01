@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
-import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult, WebsiteArtifact } from "@launchforge/shared";
+import type {
+  AgentRole,
+  AgentTask,
+  BackendArtifact,
+  DomainCandidate,
+  LaunchProject,
+  ResearchResult,
+  WebsiteArtifact
+} from "@launchforge/shared";
 import {
   Activity,
   BadgeCheck,
@@ -10,6 +18,7 @@ import {
   CheckCircle2,
   Code2,
   ClipboardCheck,
+  Database,
   ExternalLink,
   FileText,
   Gauge,
@@ -28,11 +37,14 @@ import {
   approveRequest,
   createProject,
   dryRunSecureExecution,
+  executeBackendProvisioning,
   executeDomainRegistration,
   generateWebsite,
   listApprovals,
   listProjects,
+  planBackend,
   rejectRequest,
+  requestBackendProvisioningApproval,
   requestDomainRegistrationApproval,
   runDomainResearch,
   runMarketResearch
@@ -68,6 +80,7 @@ export function App() {
   const [isResearching, setIsResearching] = useState(false);
   const [isFindingDomains, setIsFindingDomains] = useState(false);
   const [isGeneratingWebsite, setIsGeneratingWebsite] = useState(false);
+  const [isPlanningBackend, setIsPlanningBackend] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,6 +178,21 @@ export function App() {
     }
   }
 
+  async function handlePlanBackend(projectId: string) {
+    setIsPlanningBackend(true);
+    setError(null);
+
+    try {
+      const { project } = await planBackend(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to plan backend.");
+    } finally {
+      setIsPlanningBackend(false);
+    }
+  }
+
   async function handleRequestApproval(project: LaunchProject) {
     setIsRequestingApproval(true);
     setError(null);
@@ -176,6 +204,22 @@ export function App() {
       setSelectedProjectId(response.project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to request approval.");
+    } finally {
+      setIsRequestingApproval(false);
+    }
+  }
+
+  async function handleRequestBackendApproval(project: LaunchProject) {
+    setIsRequestingApproval(true);
+    setError(null);
+
+    try {
+      const response = await requestBackendProvisioningApproval(project);
+      setApprovals((current) => [response.approval, ...current.filter((approval) => approval.id !== response.approval.id)]);
+      setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
+      setSelectedProjectId(response.project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to request backend approval.");
     } finally {
       setIsRequestingApproval(false);
     }
@@ -212,6 +256,18 @@ export function App() {
       setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to register domain.");
+    }
+  }
+
+  async function handleExecuteBackendProvisioning(approval: ApprovalRequest) {
+    setError(null);
+
+    try {
+      const receipt = await executeBackendProvisioning(approval);
+      setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+      await refreshProjects();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to provision backend.");
     }
   }
 
@@ -306,6 +362,7 @@ export function App() {
               onDecision={handleApprovalDecision}
               onDryRun={handleDryRunSecureExecution}
               onRegister={handleExecuteDomainRegistration}
+              onProvisionBackend={handleExecuteBackendProvisioning}
             />
           </div>
 
@@ -345,6 +402,15 @@ export function App() {
                     <Blocks size={18} aria-hidden="true" />
                     {isGeneratingWebsite ? "Generating..." : "Generate Website"}
                   </button>
+                  <button
+                    className="secondary-button"
+                    disabled={isPlanningBackend}
+                    onClick={() => void handlePlanBackend(selectedProject.id)}
+                    type="button"
+                  >
+                    <Database size={18} aria-hidden="true" />
+                    {isPlanningBackend ? "Planning..." : "Plan Backend"}
+                  </button>
                 </div>
 
                 <div className="progress-block">
@@ -369,6 +435,8 @@ export function App() {
 
                 {selectedProject.websiteArtifact ? <WebsiteArtifactPanel artifact={selectedProject.websiteArtifact} /> : null}
 
+                {selectedProject.backendArtifact ? <BackendArtifactPanel artifact={selectedProject.backendArtifact} /> : null}
+
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
                     <div>
@@ -383,6 +451,24 @@ export function App() {
                     >
                       <LockKeyhole size={18} aria-hidden="true" />
                       {isRequestingApproval ? "Requesting..." : "Request Approval"}
+                    </button>
+                  </div>
+                ) : null}
+
+                {selectedProject.backendArtifact?.mode === "planned" ? (
+                  <div className="approval-request-band">
+                    <div>
+                      <strong>{selectedProject.backendArtifact.productName} API</strong>
+                      <span>Xano backend provisioning requires approval.</span>
+                    </div>
+                    <button
+                      className="secondary-button"
+                      disabled={isRequestingApproval}
+                      onClick={() => void handleRequestBackendApproval(selectedProject)}
+                      type="button"
+                    >
+                      <LockKeyhole size={18} aria-hidden="true" />
+                      {isRequestingApproval ? "Requesting..." : "Request Backend Approval"}
                     </button>
                   </div>
                 ) : null}
@@ -454,6 +540,68 @@ function WebsiteArtifactPanel({ artifact }: { artifact: WebsiteArtifact }) {
   );
 }
 
+function BackendArtifactPanel({ artifact }: { artifact: BackendArtifact }) {
+  return (
+    <section className="backend-panel" aria-labelledby="backend-artifact-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Xano Backend</p>
+          <h2 id="backend-artifact-title">{artifact.productName} API</h2>
+        </div>
+        <span className={artifact.mode === "provisioned" ? "validation-pill passed" : "validation-pill"}>
+          <Database size={16} aria-hidden="true" />
+          {artifact.mode}
+        </span>
+      </div>
+
+      <div className="artifact-summary">
+        <p>{artifact.frontendConnection.usage}</p>
+        <small>{artifact.frontendConnection.environmentVariable}</small>
+      </div>
+
+      <div className="backend-grid">
+        <div>
+          <h3>Tables</h3>
+          <div className="artifact-file-list">
+            {artifact.tables.map((table) => (
+              <div className="backend-table-row" key={table.name}>
+                <Database size={16} aria-hidden="true" />
+                <div>
+                  <strong>{table.name}</strong>
+                  <span>{table.fields.length} fields</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3>Endpoints</h3>
+          <div className="artifact-file-list">
+            {artifact.endpoints.map((endpoint) => (
+              <div className="backend-endpoint-row" key={endpoint.name}>
+                <Code2 size={16} aria-hidden="true" />
+                <div>
+                  <strong>
+                    {endpoint.verb} {endpoint.path}
+                  </strong>
+                  <span>{endpoint.description}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {artifact.provisioning ? (
+        <div className="provisioning-band">
+          <strong>{artifact.provisioning.apiGroup.name}</strong>
+          <span>{artifact.provisioning.endpoints.length} Xano endpoints provisioned</span>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function buildPreviewDocument(artifact: WebsiteArtifact): string {
   const html = artifact.files.find((file) => file.path === artifact.previewPath)?.contents ?? "";
   const css = artifact.files.find((file) => file.path === "styles.css")?.contents ?? "";
@@ -469,13 +617,15 @@ function ApprovalPanel({
   receipts,
   onDecision,
   onDryRun,
-  onRegister
+  onRegister,
+  onProvisionBackend
 }: {
   approvals: ApprovalRequest[];
   receipts: SecureExecutionReceipt[];
   onDecision: (approval: ApprovalRequest, decision: "approve" | "reject") => Promise<void>;
   onDryRun: (approval: ApprovalRequest) => Promise<void>;
   onRegister: (approval: ApprovalRequest) => Promise<void>;
+  onProvisionBackend: (approval: ApprovalRequest) => Promise<void>;
 }) {
   const visibleApprovals = approvals.slice(0, 4);
 
@@ -534,6 +684,16 @@ function ApprovalPanel({
                       <Globe2 size={16} aria-hidden="true" />
                     </button>
                   ) : null}
+                  {approval.actionRequest.actionType === "xano.provisionBackend" ? (
+                    <button
+                      aria-label={`Provision backend ${approval.actionRequest.resource}`}
+                      onClick={() => void onProvisionBackend(approval)}
+                      title="Provision backend"
+                      type="button"
+                    >
+                      <Database size={16} aria-hidden="true" />
+                    </button>
+                  ) : null}
                 </div>
               ) : (
                 <small>{approval.status}</small>
@@ -546,6 +706,8 @@ function ApprovalPanel({
               <span>
                 {receipts[0].result.registered === true
                   ? `registered ${String(receipts[0].result.domainName)}`
+                  : receipts[0].result.provisioned === true
+                    ? `provisioned ${String(receipts[0].result.productName)}`
                   : receipts[0].evidenceVerified
                     ? "TEE evidence verified"
                     : "development boundary"}
