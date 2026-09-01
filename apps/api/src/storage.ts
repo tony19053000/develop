@@ -10,7 +10,8 @@ import {
   type DomainResearch,
   type LaunchProject,
   type LaunchWorkflowPlan,
-  type MarketResearch
+  type MarketResearch,
+  type WebsiteArtifact
 } from "@launchforge/shared";
 
 export interface ProjectRepository {
@@ -20,6 +21,7 @@ export interface ProjectRepository {
   applyWorkflowPlan(projectId: string, plan: LaunchWorkflowPlan): Promise<LaunchProject>;
   saveMarketResearch(projectId: string, research: MarketResearch): Promise<LaunchProject>;
   saveDomainResearch(projectId: string, research: DomainResearch): Promise<LaunchProject>;
+  saveWebsiteArtifact(projectId: string, artifact: WebsiteArtifact): Promise<LaunchProject>;
   markApprovalPending(projectId: string): Promise<LaunchProject>;
   markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject>;
 }
@@ -147,6 +149,38 @@ export class FileProjectRepository implements ProjectRepository {
       progress: calculateProjectProgress(tasks),
       tasks,
       domainResearch: research,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveWebsiteArtifact(projectId: string, artifact: WebsiteArtifact): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const tasks = project.tasks.map((task) =>
+      task.id === "website-foundation" ? { ...task, status: "complete" as const, updatedAt: now } : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: "active",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      websiteArtifact: artifact,
       updatedAt: now
     };
 

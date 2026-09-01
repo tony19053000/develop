@@ -9,7 +9,8 @@ import {
   createDeterministicWorkflowPlan,
   type DomainAgent,
   type MarketBrandAgent,
-  type OrchestratorRuntime
+  type OrchestratorRuntime,
+  type WebsiteProductAgent
 } from "@launchforge/agents";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
@@ -37,6 +38,7 @@ beforeEach(async () => {
     orchestrator: createFakeOrchestrator(),
     marketBrand: createFakeMarketBrand(),
     domain: createFakeDomainAgent(),
+    websiteProduct: createFakeWebsiteProductAgent(),
     agentLatch: createAgentLatchPolicyEngine(),
     approvals: new FileApprovalRepository(dataDir),
     secureExecutor: createFakeSecureExecutor()
@@ -137,6 +139,39 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.project.domainResearch.candidates).toHaveLength(2);
     expect(response.body.project.tasks).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "domain-research", status: "complete" })])
+    );
+  });
+
+  it("generates and persists a website product artifact", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/research/market`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/research/domains`).expect(200);
+
+    const response = await request(app).post(`/api/projects/${createResponse.body.project.id}/website`).expect(200);
+
+    expect(response.body.artifact).toMatchObject({
+      productName: "EvidenceForge",
+      tagline: "Review contracts faster with AI.",
+      domainName: "evidenceforge.com",
+      previewPath: "index.html",
+      validation: {
+        passed: true
+      }
+    });
+    expect(response.body.artifact.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "index.html", contentType: "text/html" }),
+        expect.objectContaining({ path: "styles.css", contentType: "text/css" }),
+        expect.objectContaining({ path: "app.js", contentType: "text/javascript" })
+      ])
+    );
+    expect(response.body.project.websiteArtifact.productName).toBe("EvidenceForge");
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "website-foundation", status: "complete" })])
     );
   });
 
@@ -459,6 +494,48 @@ function createFakeDomainAgent(): DomainAgent {
           reason: "",
           score: 100,
           recommendation: "Available for standard registration."
+        },
+        generatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeWebsiteProductAgent(): WebsiteProductAgent {
+  return {
+    async generate(input) {
+      return {
+        id: "website-artifact-1",
+        projectId: input.projectId,
+        productName: input.marketResearch?.brand.name ?? "EvidenceForge",
+        tagline: input.marketResearch?.brand.tagline ?? "Review contracts faster with AI.",
+        domainName: input.domainResearch?.recommendedDomain?.domainName,
+        previewPath: "index.html",
+        files: [
+          {
+            path: "index.html",
+            contentType: "text/html",
+            contents: "<!doctype html><html><body><h1>EvidenceForge</h1></body></html>"
+          },
+          {
+            path: "styles.css",
+            contentType: "text/css",
+            contents: "body { color: #17201c; }"
+          },
+          {
+            path: "app.js",
+            contentType: "text/javascript",
+            contents: "document.querySelector('form')?.addEventListener('submit', () => {});"
+          }
+        ],
+        validation: {
+          passed: true,
+          checks: [{ name: "HTML document", passed: true, message: "Complete HTML document." }]
+        },
+        deployment: {
+          buildCommand: "No build step required for the generated static site.",
+          outputDirectory: ".",
+          requiredEnvironment: []
         },
         generatedAt: "2026-08-31T00:00:00.000Z"
       };

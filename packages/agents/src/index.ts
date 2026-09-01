@@ -2,3 +2,4 @@ export { agentModelConfigSchema, loadAgentModelConfig, type AgentModelConfig } f
 export { buildDomainCandidates, createDomainAgent, type DomainAgent, type DomainAgentInput } from "./domain.js";
 export { buildResearchQueries, createMarketBrandAgent, type MarketBrandAgent } from "./marketBrand.js";
 export { createDeterministicWorkflowPlan, createOrchestratorRuntime, type OrchestratorRuntime } from "./orchestrator.js";
+export { createWebsiteProductAgent, validateWebsite, type WebsiteProductAgent } from "./websiteProduct.js";

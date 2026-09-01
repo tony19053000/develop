@@ -235,6 +235,88 @@ describe("LaunchForge web foundation", () => {
     });
   });
 
+  it("generates and previews a website artifact", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          projects: [
+            {
+              id: "project-1",
+              idea: "Launch an AI interview-preparation platform for university students.",
+              name: "Launch Interview Preparation",
+              status: "active",
+              progress: 63,
+              tasks: [],
+              createdAt: "2026-08-31T00:00:00.000Z",
+              updatedAt: "2026-08-31T00:00:00.000Z"
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ approvals: [] })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          project: {
+            id: "project-1",
+            idea: "Launch an AI interview-preparation platform for university students.",
+            name: "Launch Interview Preparation",
+            status: "active",
+            progress: 75,
+            tasks: [],
+            websiteArtifact: {
+              id: "website-artifact-1",
+              projectId: "project-1",
+              productName: "InterviewForge",
+              tagline: "Practice interviews faster with AI.",
+              domainName: "interviewforge.com",
+              previewPath: "index.html",
+              files: [
+                {
+                  path: "index.html",
+                  contentType: "text/html",
+                  contents:
+                    '<!doctype html><html><head><link rel="stylesheet" href="./styles.css"></head><body><h1>InterviewForge</h1><script src="./app.js"></script></body></html>'
+                },
+                { path: "styles.css", contentType: "text/css", contents: "body { color: #17201c; }" },
+                { path: "app.js", contentType: "text/javascript", contents: "document.querySelector('h1');" }
+              ],
+              validation: {
+                passed: true,
+                checks: [{ name: "HTML document", passed: true, message: "Generated site includes HTML." }]
+              },
+              deployment: {
+                buildCommand: "No build step required for the generated static site.",
+                outputDirectory: ".",
+                requiredEnvironment: []
+              },
+              generatedAt: "2026-08-31T00:00:00.000Z"
+            },
+            createdAt: "2026-08-31T00:00:00.000Z",
+            updatedAt: "2026-08-31T00:01:00.000Z"
+          },
+          artifact: {
+            productName: "InterviewForge"
+          }
+        })
+      } as Response);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Generate Website/i }));
+
+    expect(await screen.findByRole("heading", { name: "InterviewForge" })).toBeInTheDocument();
+    expect(screen.getByText("Validated")).toBeInTheDocument();
+    expect(screen.getByTitle("InterviewForge preview")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/projects/project-1/website", {
+      method: "POST"
+    });
+  });
+
   it("requests and approves protected domain registration", async () => {
     const pendingApproval = {
       id: "approval-1",

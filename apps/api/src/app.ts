@@ -3,7 +3,7 @@ import express from "express";
 import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
-import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime } from "@launchforge/agents";
+import type { DomainAgent, MarketBrandAgent, OrchestratorRuntime, WebsiteProductAgent } from "@launchforge/agents";
 import { HttpNameComClient, NameComConfigurationError, SerpApiConfigurationError } from "@launchforge/integrations";
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import { createLaunchProjectSchema } from "@launchforge/shared";
@@ -26,6 +26,7 @@ export interface AppDependencies {
   orchestrator: OrchestratorRuntime;
   marketBrand: MarketBrandAgent;
   domain: DomainAgent;
+  websiteProduct: WebsiteProductAgent;
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
   secureExecutor: SecureExecutor;
@@ -38,6 +39,7 @@ export function createApp({
   orchestrator,
   marketBrand,
   domain,
+  websiteProduct,
   agentLatch,
   approvals,
   secureExecutor
@@ -217,6 +219,44 @@ export function createApp({
         return;
       }
 
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/website", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "website",
+        level: "info",
+        message: "Website/Product Agent started product site generation."
+      });
+
+      const artifact = await websiteProduct.generate({
+        projectId: existingProject.id,
+        idea: existingProject.idea,
+        ...(existingProject.marketResearch ? { marketResearch: existingProject.marketResearch } : {}),
+        ...(existingProject.domainResearch ? { domainResearch: existingProject.domainResearch } : {})
+      });
+      const project = await projects.saveWebsiteArtifact(existingProject.id, artifact);
+
+      events.publish({
+        projectId: project.id,
+        agent: "website",
+        level: artifact.validation.passed ? "success" : "warning",
+        message: artifact.validation.passed
+          ? `Website artifact generated and validated for ${artifact.productName}.`
+          : `Website artifact generated for ${artifact.productName}, but validation needs review.`
+      });
+
+      response.json({ project, artifact });
+    } catch (error) {
       next(error);
     }
   });

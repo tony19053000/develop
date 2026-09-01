@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 53%
+## Overall Completion: 59%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -15,7 +15,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 6 | Human Approval System | 7 | 100% complete |
 | 7 | TEE / Secure Execution | 7 | 100% complete |
 | 8 | Protected name.com Registration | 5 | 100% complete |
-| 9 | Website / Product Agent | 6 | 0% pending |
+| 9 | Website / Product Agent | 6 | 100% complete |
 | 10 | Xano + Backend Agent | 6 | 0% pending |
 | 11 | Deployment System | 3 | 0% pending |
 | 12 | Foxit + Document Agent | 4 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 9 - Website / Product Agent.
+Phase 10 - Xano + Backend Agent.
 
 ## Current Task
 
-Begin Website / Product Agent implementation.
+Begin Xano + Backend Agent implementation.
 
 ## Baseline
 
@@ -49,11 +49,12 @@ Begin Website / Product Agent implementation.
 - Phase 6 implementation adds file-backed approval storage, signed approval URLs, single-use approve/reject flows, project pause/resume state, and dashboard approval controls.
 - Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, secure execution UI/API handoff, Google-signed attestation verification, a packaged Confidential Space workload container, and real production Confidential Space verification.
 - Phase 8 implementation adds a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, dashboard execution control for approved registrations, and sandbox verification through the full protected flow.
+- Phase 9 implementation adds a Website/Product Agent, generated static product-site artifact files, build-style validation checks, project artifact persistence, an API generation route, and an embedded dashboard preview.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 53 tests.
+- Tests: passed, 57 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -63,6 +64,8 @@ Begin Website / Product Agent implementation.
 - SecureExecutor attestation policy verified `evidenceVerified: true` only for the Google-signed Confidential Space token matching image digest `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`, project `launchforge-tee`, zone `us-central1-c`, and the workload service account.
 - Phase 8 automated tests: protected registration flow passes with mocked name.com create-domain responses.
 - Phase 8 sandbox verification: passed against `https://api.dev.name.com`; registered `launchforge-phase8-1788261813202.com` through `AgentLatch -> approval -> SecureExecutor -> availability re-check -> name.com Create Domain`, returned sandbox order `2132723`, and post-registration availability reported `purchasable: false`.
+- Phase 9 automated tests: Website/Product Agent, API artifact persistence, and web preview controls pass.
+- Phase 9 live local verification: passed through `POST /api/projects/:projectId/website`; generated `index.html`, `styles.css`, and `app.js` with validation `passed: true`.
 
 ## Review Status
 
@@ -79,6 +82,8 @@ Reviewer/Tester result for Phase 6: APPROVED.
 Reviewer/Tester result for Phase 7: APPROVED after real Google Confidential Space execution and attestation verification.
 
 Reviewer/Tester result for Phase 8: APPROVED after real name.com development/test registration through the protected execution path.
+
+Reviewer/Tester result for Phase 9: APPROVED after local product artifact generation, validation, API persistence, and dashboard preview verification.
 
 ## GitHub Status
 
@@ -97,7 +102,8 @@ Reviewer/Tester result for Phase 8: APPROVED after real name.com development/tes
 - Phase 7 real Confidential Space completion commit: `9a16b58`, pushed to `origin/main`.
 - Phase 8 protected registration start commit: `0f41be3`, pushed to `origin/main`.
 - Phase 8 blank environment parsing commit: `1cb5769`, pushed to `origin/main`.
-- Phase 8 sandbox verification completion commit: this commit, pushed to `origin/main`.
+- Phase 8 sandbox verification completion commit: `2dd50a6`, pushed to `origin/main`.
+- Phase 9 website/product agent commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
@@ -116,7 +122,7 @@ SecureExecutor implemented with Google Confidential Space as the real TEE target
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, and execute a name.com development/test registration after approval.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, execute a name.com development/test registration after approval, and generate/preview a functional static product website artifact.
 
 ## Blockers
 

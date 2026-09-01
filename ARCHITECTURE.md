@@ -16,6 +16,7 @@
 - AgentLatch policy engine: IMPLEMENTED.
 - Approval system: IMPLEMENTED.
 - TEE secure executor: IMPLEMENTED.
+- Website/Product Agent: IMPLEMENTED.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: PLANNED.
@@ -31,6 +32,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Tool adapter layer for sponsor integrations. SerpApi and name.com availability are implemented and live verified; remaining sponsor adapters are planned.
 - AgentLatch policy and authorization boundary before sensitive tool execution.
 - SecureExecutor abstraction that maps privileged execution to development mode locally and Google Confidential Space mode in production with Google-signed attestation verification.
+- Website/Product Agent that creates static product website artifacts, validates them, persists them with the project, and previews them in the command center.
 
 ## Trust Boundaries
 
@@ -124,6 +126,7 @@ Planned entities:
 - Artifact.
 - AuditEvent.
 - DeploymentRecord.
+- WebsiteArtifact.
 
 ## Folder Structure
 
@@ -183,4 +186,19 @@ Domain Agent
   -> Idempotent Create Domain
   -> name.com API
   -> Audit Event
+```
+
+### Website / Product Artifact
+
+```text
+Market & Brand Agent
+  -> Brand direction and audience
+Domain Agent
+  -> Recommended domain when available
+Website/Product Agent
+  -> Static site files
+  -> Deterministic validation checks
+  -> Project artifact persistence
+  -> Command center preview
+  -> Phase 11 deployment handoff
 ```

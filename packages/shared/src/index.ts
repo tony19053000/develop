@@ -99,6 +99,40 @@ export const domainResearchSchema = z.object({
   generatedAt: z.string().datetime()
 });
 
+export const websiteFileSchema = z.object({
+  path: z.string().min(1),
+  contentType: z.string().min(1),
+  contents: z.string().min(1)
+});
+
+export const websiteValidationSchema = z.object({
+  passed: z.boolean(),
+  checks: z.array(
+    z.object({
+      name: z.string(),
+      passed: z.boolean(),
+      message: z.string()
+    })
+  )
+});
+
+export const websiteArtifactSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  productName: z.string(),
+  tagline: z.string(),
+  domainName: z.string().optional(),
+  previewPath: z.string(),
+  files: z.array(websiteFileSchema).min(1),
+  validation: websiteValidationSchema,
+  deployment: z.object({
+    buildCommand: z.string(),
+    outputDirectory: z.string(),
+    requiredEnvironment: z.array(z.string())
+  }),
+  generatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -125,6 +159,7 @@ export const launchProjectSchema = z.object({
   tasks: z.array(agentTaskSchema),
   marketResearch: marketResearchSchema.optional(),
   domainResearch: domainResearchSchema.optional(),
+  websiteArtifact: websiteArtifactSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -144,6 +179,9 @@ export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;
 export type MarketResearch = z.infer<typeof marketResearchSchema>;
 export type ResearchResult = z.infer<typeof researchResultSchema>;
+export type WebsiteArtifact = z.infer<typeof websiteArtifactSchema>;
+export type WebsiteFile = z.infer<typeof websiteFileSchema>;
+export type WebsiteValidation = z.infer<typeof websiteValidationSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
 
 export function calculateProjectProgress(tasks: AgentTask[]): number {

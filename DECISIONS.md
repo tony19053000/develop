@@ -256,3 +256,23 @@ Reason: This preserves AgentLatch exact-action authorization, prevents double pu
 Consequences: Registration is implemented, locally tested with mocks, and verified against the name.com development/test environment. Production Create Domain must still require explicit user confirmation for the exact domain.
 
 Reversibility: Medium.
+
+## 2026-09-01 - Static Website/Product Artifact Generation
+
+Decision: Implement Phase 9 as deterministic static website artifact generation inside the existing agent layer.
+
+Context: Phase 9 needs website generation, artifact storage, build validation, preview, and deployment preparation before the Xano backend and deployment phases exist.
+
+Alternatives:
+
+- Add a new LLM provider requirement for website generation.
+- Generate only mock UI text without artifact files.
+- Wait for the deployment phase before producing website artifacts.
+
+Chosen Approach: Add a Website/Product Agent that consumes the startup idea, optional market brand research, and optional domain research, then produces `index.html`, `styles.css`, and `app.js` as typed project artifacts with deterministic validation checks and deployment metadata.
+
+Reason: This creates a real, previewable product surface without introducing another API key or exposing sponsor credentials to generated artifacts.
+
+Consequences: Phase 9 produces static frontend artifacts ready for later backend wiring and deployment. Dynamic backend behavior remains intentionally deferred to Phase 10 and Phase 11.
+
+Reversibility: High.

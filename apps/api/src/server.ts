@@ -1,5 +1,11 @@
 import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
-import { createDomainAgent, createMarketBrandAgent, createOrchestratorRuntime, loadAgentModelConfig } from "@launchforge/agents";
+import {
+  createDomainAgent,
+  createMarketBrandAgent,
+  createOrchestratorRuntime,
+  createWebsiteProductAgent,
+  loadAgentModelConfig
+} from "@launchforge/agents";
 import { HttpNameComClient, HttpSerpApiClient } from "@launchforge/integrations";
 import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEvidence } from "@launchforge/secure-executor";
 import { loadConfig } from "./config.js";
@@ -56,6 +62,7 @@ const domain = createDomainAgent(
       : { baseUrl: config.NAMECOM_API_BASE_URL }
   )
 );
+const websiteProduct = createWebsiteProductAgent();
 const app = createApp({
   config,
   projects: new FileProjectRepository(config.DATA_DIR),
@@ -63,6 +70,7 @@ const app = createApp({
   orchestrator,
   marketBrand,
   domain,
+  websiteProduct,
   agentLatch,
   approvals: new FileApprovalRepository(config.DATA_DIR),
   secureExecutor

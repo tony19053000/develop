@@ -6,8 +6,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 8 - Protected name.com Registration is complete and approved.
-Current next phase: Phase 9 - Website / Product Agent.
+Phase 9 - Website / Product Agent is complete and approved.
+Current next phase: Phase 10 - Xano + Backend Agent.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -18,6 +18,7 @@ Phase 5 - AgentLatch Policy Engine is complete and approved.
 Phase 6 - Human Approval System is complete and approved.
 Phase 7 - TEE / Secure Execution is complete and approved.
 Phase 8 - Protected name.com Registration is complete and approved.
+Phase 9 - Website / Product Agent is complete and approved.
 
 ## Completed Work
 
@@ -127,6 +128,16 @@ Phase 8 - Protected name.com Registration is complete and approved.
   - Blocked premium and non-standard registration purchase types for Phase 8.
   - Added dashboard controls to execute registration after approval.
   - Verified the full protected flow against `https://api.dev.name.com` by registering sandbox domain `launchforge-phase8-1788261813202.com`, order `2132723`.
+- Completed Phase 9 Website/Product Agent:
+  - Added typed website artifact contracts for generated files, validation checks, and deployment preparation metadata.
+  - Added `createWebsiteProductAgent` in `@launchforge/agents`.
+  - Generated a static product website from the startup idea, Phase 3 brand direction, and Phase 4 domain recommendation when available.
+  - Produced `index.html`, `styles.css`, and `app.js` artifact files with responsive layout and a small interactive waitlist form.
+  - Added deterministic validation for document completeness, brand signal, responsive CSS, and interactive script.
+  - Persisted website artifacts on launch projects.
+  - Added `POST /api/projects/:projectId/website`.
+  - Added dashboard `Generate Website` control, validation summary, file list, and embedded preview.
+  - Live local verification generated a validated artifact for project `68681644-448b-4997-b56a-83df0df3a300`.
 
 ## Architecture Summary
 
@@ -141,6 +152,7 @@ Current architecture:
 - Sponsor adapter layer has live-verified SerpApi, name.com availability, and protected name.com development/test registration implementations; Xano and Foxit are planned.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
+- Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -180,6 +192,7 @@ Current architecture:
 - `gcloud compute instances create launchforge-phase7-attest-gcs-20260831 ... --image-family=confidential-space --metadata=tee-image-reference=... --service-account=launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`
 - `gcloud storage cp gs://launchforge-tee-phase7-evidence/confidential-space-evidence.json /tmp/launchforge-phase7-evidence.json --project=launchforge-tee`
 - `POST /api/secure-executions/namecom/register-domain`
+- `POST /api/projects/:projectId/website`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -197,6 +210,7 @@ Current architecture:
 - Branch: `main`.
 - Remote: `origin` points to `https://github.com/tony19053000/develop.git`.
 - Build/typecheck/test/lint: passing with Phase 7 implementation.
+- Build/typecheck/test/lint: passing with Phase 9 implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
 - Live name.com endpoint verification: passed.
@@ -213,6 +227,7 @@ Current architecture:
 - Phase 7 real Confidential Space image digest: `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`.
 - Phase 7 real attestation verification: passed with `evidenceVerified: true`.
 - Phase 8 sandbox domain registration: `launchforge-phase8-1788261813202.com`, order `2132723`, post-registration availability `purchasable: false`.
+- Phase 9 generated product artifact smoke test: passed with `validationPassed: true`.
 
 ## Environment Assumptions
 
@@ -227,4 +242,4 @@ Production domain registration still requires explicit user confirmation for the
 
 ## Next Exact Task
 
-Start Phase 9 by building the Website / Product Agent. Do not expose sponsor credentials to agents or the frontend.
+Start Phase 10 by building the Xano + Backend Agent. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.

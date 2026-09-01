@@ -1,6 +1,12 @@
 import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
-import type { CreateLaunchProjectInput, DomainResearch, LaunchProject, MarketResearch } from "@launchforge/shared";
+import type {
+  CreateLaunchProjectInput,
+  DomainResearch,
+  LaunchProject,
+  MarketResearch,
+  WebsiteArtifact
+} from "@launchforge/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
@@ -20,6 +26,11 @@ interface MarketResearchResponse {
 interface DomainResearchResponse {
   project: LaunchProject;
   research: DomainResearch;
+}
+
+interface WebsiteArtifactResponse {
+  project: LaunchProject;
+  artifact: WebsiteArtifact;
 }
 
 interface ApprovalListResponse {
@@ -72,6 +83,13 @@ export async function runDomainResearch(projectId: string): Promise<DomainResear
     method: "POST"
   });
   return readJson<DomainResearchResponse>(response);
+}
+
+export async function generateWebsite(projectId: string): Promise<WebsiteArtifactResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/website`, {
+    method: "POST"
+  });
+  return readJson<WebsiteArtifactResponse>(response);
 }
 
 export async function requestDomainRegistrationApproval(project: LaunchProject): Promise<ApprovalResponse> {

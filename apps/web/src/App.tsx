@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
-import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult } from "@launchforge/shared";
+import type { AgentRole, AgentTask, DomainCandidate, LaunchProject, ResearchResult, WebsiteArtifact } from "@launchforge/shared";
 import {
   Activity,
   BadgeCheck,
   Blocks,
   Bot,
+  CheckCircle2,
+  Code2,
   ClipboardCheck,
   ExternalLink,
   FileText,
@@ -27,6 +29,7 @@ import {
   createProject,
   dryRunSecureExecution,
   executeDomainRegistration,
+  generateWebsite,
   listApprovals,
   listProjects,
   rejectRequest,
@@ -64,6 +67,7 @@ export function App() {
   const [isCreating, setIsCreating] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
   const [isFindingDomains, setIsFindingDomains] = useState(false);
+  const [isGeneratingWebsite, setIsGeneratingWebsite] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,6 +147,21 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to run domain research.");
     } finally {
       setIsFindingDomains(false);
+    }
+  }
+
+  async function handleGenerateWebsite(projectId: string) {
+    setIsGeneratingWebsite(true);
+    setError(null);
+
+    try {
+      const { project } = await generateWebsite(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to generate website.");
+    } finally {
+      setIsGeneratingWebsite(false);
     }
   }
 
@@ -317,6 +336,15 @@ export function App() {
                     <Globe2 size={18} aria-hidden="true" />
                     {isFindingDomains ? "Checking..." : "Find Domains"}
                   </button>
+                  <button
+                    className="secondary-button"
+                    disabled={isGeneratingWebsite}
+                    onClick={() => void handleGenerateWebsite(selectedProject.id)}
+                    type="button"
+                  >
+                    <Blocks size={18} aria-hidden="true" />
+                    {isGeneratingWebsite ? "Generating..." : "Generate Website"}
+                  </button>
                 </div>
 
                 <div className="progress-block">
@@ -338,6 +366,8 @@ export function App() {
                 ) : null}
 
                 {selectedProject.domainResearch ? <DomainResearchPanel project={selectedProject} /> : null}
+
+                {selectedProject.websiteArtifact ? <WebsiteArtifactPanel artifact={selectedProject.websiteArtifact} /> : null}
 
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
@@ -365,6 +395,73 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function WebsiteArtifactPanel({ artifact }: { artifact: WebsiteArtifact }) {
+  const previewHtml = buildPreviewDocument(artifact);
+
+  return (
+    <section className="website-panel" aria-labelledby="website-artifact-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Website Artifact</p>
+          <h2 id="website-artifact-title">{artifact.productName}</h2>
+        </div>
+        <span className={artifact.validation.passed ? "validation-pill passed" : "validation-pill failed"}>
+          <CheckCircle2 size={16} aria-hidden="true" />
+          {artifact.validation.passed ? "Validated" : "Needs review"}
+        </span>
+      </div>
+
+      <div className="artifact-summary">
+        <p>{artifact.tagline}</p>
+        <small>{artifact.domainName ?? "Domain not selected"}</small>
+      </div>
+
+      <div className="website-preview-frame">
+        <iframe srcDoc={previewHtml} title={`${artifact.productName} preview`} />
+      </div>
+
+      <div className="artifact-grid">
+        <div>
+          <h3>Files</h3>
+          <div className="artifact-file-list">
+            {artifact.files.map((file) => (
+              <div className="artifact-file-row" key={file.path}>
+                <Code2 size={16} aria-hidden="true" />
+                <span>{file.path}</span>
+                <small>{file.contentType}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3>Validation</h3>
+          <div className="artifact-check-list">
+            {artifact.validation.checks.map((check) => (
+              <div className={check.passed ? "artifact-check passed" : "artifact-check failed"} key={check.name}>
+                <CheckCircle2 size={16} aria-hidden="true" />
+                <div>
+                  <strong>{check.name}</strong>
+                  <span>{check.message}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function buildPreviewDocument(artifact: WebsiteArtifact): string {
+  const html = artifact.files.find((file) => file.path === artifact.previewPath)?.contents ?? "";
+  const css = artifact.files.find((file) => file.path === "styles.css")?.contents ?? "";
+  const js = artifact.files.find((file) => file.path === "app.js")?.contents ?? "";
+
+  return html
+    .replace('<link rel="stylesheet" href="./styles.css">', `<style>${css}</style>`)
+    .replace('<script src="./app.js"></script>', `<script>${js}</script>`);
 }
 
 function ApprovalPanel({
