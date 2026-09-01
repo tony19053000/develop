@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 48%
+## Overall Completion: 53%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -14,7 +14,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 5 | AgentLatch Policy Engine | 7 | 100% complete |
 | 6 | Human Approval System | 7 | 100% complete |
 | 7 | TEE / Secure Execution | 7 | 100% complete |
-| 8 | Protected name.com Registration | 5 | implementation started, pending sandbox/live protected execution |
+| 8 | Protected name.com Registration | 5 | 100% complete |
 | 9 | Website / Product Agent | 6 | 0% pending |
 | 10 | Xano + Backend Agent | 6 | 0% pending |
 | 11 | Deployment System | 3 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 8 - Protected name.com Registration.
+Phase 9 - Website / Product Agent.
 
 ## Current Task
 
-Implement protected name.com registration through AgentLatch, human approval, and SecureExecutor.
+Begin Website / Product Agent implementation.
 
 ## Baseline
 
@@ -48,12 +48,12 @@ Implement protected name.com registration through AgentLatch, human approval, an
 - Phase 5 implementation adds `@launchforge/agentlatch`, structured action requests, deterministic policy categories, payload hashing, protected tool execution interception, API decision evaluation, and bypass/replay tests.
 - Phase 6 implementation adds file-backed approval storage, signed approval URLs, single-use approve/reject flows, project pause/resume state, and dashboard approval controls.
 - Phase 7 implementation adds `@launchforge/secure-executor`, exact-action execution validation, allowlisted secret access, dry-run secure execution receipts, Google Confidential Space evidence requirements, secure execution UI/API handoff, Google-signed attestation verification, a packaged Confidential Space workload container, and real production Confidential Space verification.
-- Phase 8 implementation started with a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, and dashboard execution control for approved registrations.
+- Phase 8 implementation adds a name.com create-domain adapter, protected registration endpoint, idempotency key binding, pre-registration availability re-check, dashboard execution control for approved registrations, and sandbox verification through the full protected flow.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 51 tests.
+- Tests: passed, 53 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -61,7 +61,8 @@ Implement protected name.com registration through AgentLatch, human approval, an
 - Live name.com verification: passed with real credentials; checked 20 domains and recommended a purchasable standard-registration domain.
 - Live Google Confidential Space verification: passed in project `launchforge-tee` using service account `launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`.
 - SecureExecutor attestation policy verified `evidenceVerified: true` only for the Google-signed Confidential Space token matching image digest `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`, project `launchforge-tee`, zone `us-central1-c`, and the workload service account.
-- Phase 8 automated tests: protected registration flow passes with mocked name.com create-domain responses. Live registration was not run because local `.env` points at production `https://api.name.com`.
+- Phase 8 automated tests: protected registration flow passes with mocked name.com create-domain responses.
+- Phase 8 sandbox verification: passed against `https://api.dev.name.com`; registered `launchforge-phase8-1788261813202.com` through `AgentLatch -> approval -> SecureExecutor -> availability re-check -> name.com Create Domain`, returned sandbox order `2132723`, and post-registration availability reported `purchasable: false`.
 
 ## Review Status
 
@@ -77,6 +78,8 @@ Reviewer/Tester result for Phase 6: APPROVED.
 
 Reviewer/Tester result for Phase 7: APPROVED after real Google Confidential Space execution and attestation verification.
 
+Reviewer/Tester result for Phase 8: APPROVED after real name.com development/test registration through the protected execution path.
+
 ## GitHub Status
 
 - Remote: `https://github.com/tony19053000/develop.git`
@@ -91,12 +94,15 @@ Reviewer/Tester result for Phase 7: APPROVED after real Google Confidential Spac
 - Phase 5 implementation commit: `91cc45d`, pushed to `origin/main`.
 - Phase 6 implementation commit: `8e4094f`, pushed to `origin/main`.
 - Phase 7 implementation checkpoint commit: `787d5b4`, pushed to `origin/main`.
-- Phase 7 real Confidential Space completion commit: this commit, pushed to `origin/main`.
+- Phase 7 real Confidential Space completion commit: `9a16b58`, pushed to `origin/main`.
+- Phase 8 protected registration start commit: `0f41be3`, pushed to `origin/main`.
+- Phase 8 blank environment parsing commit: `1cb5769`, pushed to `origin/main`.
+- Phase 8 sandbox verification completion commit: this commit, pushed to `origin/main`.
 
 ## Sponsor Integrations
 
 - SerpApi: implemented and live verified.
-- name.com: availability search implemented and live verified.
+- name.com: availability search implemented and live verified; protected development/test registration implemented and sandbox verified.
 - Xano: planned.
 - Foxit: planned.
 
@@ -110,8 +116,8 @@ SecureExecutor implemented with Google Confidential Space as the real TEE target
 
 ## Demo Readiness
 
-Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, and run live name.com domain availability recommendations.
+Partially demo-ready. A user can run the local app, create a launch project, view the LangGraph-created workflow, trigger live SerpApi-backed Market & Brand research, run live name.com domain availability recommendations, and execute a name.com development/test registration after approval.
 
 ## Blockers
 
-Phase 8 live verification needs sandbox name.com credentials/base URL or an explicit production purchase confirmation for a specific domain.
+Production domain registration still requires an explicit user confirmation for the exact real domain before any production purchase.

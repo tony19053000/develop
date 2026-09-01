@@ -241,7 +241,7 @@ Reversibility: Medium.
 
 Decision: Implement name.com Create Domain only behind approved SecureExecutor execution.
 
-Context: Phase 8 introduces a paid domain purchase path. The local `.env` currently points at production `https://api.name.com`, so automated verification must not perform a live purchase without explicit domain confirmation.
+Context: Phase 8 introduces a paid domain purchase path. The local `.env` was switched to the name.com development/test environment so verification could run without a production purchase.
 
 Alternatives:
 
@@ -253,6 +253,6 @@ Chosen Approach: Add a `registerDomain` method to the name.com adapter, require 
 
 Reason: This preserves AgentLatch exact-action authorization, prevents double purchase retries, and keeps name.com credentials available only inside the secure operation context.
 
-Consequences: Registration is implemented and locally tested with mocks. Phase 8 should not be marked complete until sandbox or explicitly approved live protected execution succeeds.
+Consequences: Registration is implemented, locally tested with mocks, and verified against the name.com development/test environment. Production Create Domain must still require explicit user confirmation for the exact domain.
 
 Reversibility: Medium.

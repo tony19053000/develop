@@ -6,8 +6,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 ## Current Phase
 
-Phase 7 - TEE / Secure Execution is complete and approved.
-Current next phase: Phase 8 - Protected name.com Registration.
+Phase 8 - Protected name.com Registration is complete and approved.
+Current next phase: Phase 9 - Website / Product Agent.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -17,6 +17,7 @@ Phase 4 - name.com + Domain Agent is complete and approved.
 Phase 5 - AgentLatch Policy Engine is complete and approved.
 Phase 6 - Human Approval System is complete and approved.
 Phase 7 - TEE / Secure Execution is complete and approved.
+Phase 8 - Protected name.com Registration is complete and approved.
 
 ## Completed Work
 
@@ -117,6 +118,15 @@ Phase 7 - TEE / Secure Execution is complete and approved.
   - Obtained a real attestation token from `/v1/token` inside Confidential Space.
   - Verified the Google-signed token against workload identity, image digest, image reference, project, zone, secure boot, stable support attributes, and production debug status.
   - Created `gs://launchforge-tee-phase7-evidence` and granted the workload service account only `roles/storage.objectCreator` for evidence export.
+- Completed Phase 8 protected name.com registration:
+  - Added name.com Create Domain support using `POST /core/v1/domains`.
+  - Bound registration retries to the approval ID using `X-Idempotency-Key`.
+  - Added protected API execution route `POST /api/secure-executions/namecom/register-domain`.
+  - Required an approved `namecom.registerDomain` action before registration.
+  - Re-checked name.com availability inside SecureExecutor immediately before Create Domain.
+  - Blocked premium and non-standard registration purchase types for Phase 8.
+  - Added dashboard controls to execute registration after approval.
+  - Verified the full protected flow against `https://api.dev.name.com` by registering sandbox domain `launchforge-phase8-1788261813202.com`, order `2132723`.
 
 ## Architecture Summary
 
@@ -128,7 +138,7 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi and name.com availability implementations; Xano and Foxit are planned.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, and protected name.com development/test registration implementations; Xano and Foxit are planned.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Audit trail with redaction and exact action tracking is planned.
@@ -169,6 +179,7 @@ Current architecture:
 - `docker push us-central1-docker.pkg.dev/launchforge-tee/launchforge-secure-executor/secure-executor:phase7-gcs`
 - `gcloud compute instances create launchforge-phase7-attest-gcs-20260831 ... --image-family=confidential-space --metadata=tee-image-reference=... --service-account=launchforge-tee-workload@launchforge-tee.iam.gserviceaccount.com`
 - `gcloud storage cp gs://launchforge-tee-phase7-evidence/confidential-space-evidence.json /tmp/launchforge-phase7-evidence.json --project=launchforge-tee`
+- `POST /api/secure-executions/namecom/register-domain`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -201,6 +212,7 @@ Current architecture:
 - Phase 7 checkpoint commit: `787d5b4`.
 - Phase 7 real Confidential Space image digest: `sha256:11a74bc84df6c1ec2d5b644d03c74a195598b0edacbfacd148c2a2c5ed7592c5`.
 - Phase 7 real attestation verification: passed with `evidenceVerified: true`.
+- Phase 8 sandbox domain registration: `launchforge-phase8-1788261813202.com`, order `2132723`, post-registration availability `purchasable: false`.
 
 ## Environment Assumptions
 
@@ -211,8 +223,8 @@ Current architecture:
 
 ## Blockers
 
-None for Phase 7.
+Production domain registration still requires explicit user confirmation for the exact real domain.
 
 ## Next Exact Task
 
-Continue Phase 8 by sandbox-verifying protected name.com registration through AgentLatch, human approval, and SecureExecutor. Do not expose name.com credentials to agents or the frontend.
+Start Phase 9 by building the Website / Product Agent. Do not expose sponsor credentials to agents or the frontend.
