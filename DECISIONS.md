@@ -293,6 +293,6 @@ Chosen Approach: Add a Xano Metadata API adapter using bearer authentication and
 
 Reason: This keeps infrastructure mutation behind the same approval and exact-action authorization boundary as other sensitive sponsor operations.
 
-Consequences: The implementation can be tested with mocked Xano responses and local planning can run without credentials. Phase 10 cannot be marked complete until real Xano credentials are configured and a real workspace provisioning run succeeds.
+Consequences: The implementation can be tested with mocked Xano responses and local planning can run without credentials. Phase 10 was marked complete only after real Xano credentials were configured, workspace `168062` was provisioned through the protected path, and Metadata API read-back verified the created resources.
 
 Reversibility: Medium.

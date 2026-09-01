@@ -52,10 +52,30 @@ The Xano Metadata API uses bearer authentication and the Xano instance base URL.
 
 All creation requests send `Content-Type: text/x-xanoscript`.
 
-## Completion Boundary
+## Verified Run
 
-Phase 10 must not be marked complete until a real Xano workspace is provisioned through:
+Real Xano provisioning was verified through:
 
 ```text
 Backend Agent plan -> AgentLatch approval -> SecureExecutor -> Xano Metadata API
 ```
+
+Verified resources:
+
+- Workspace: `168062`
+- Instance URL: `https://x8ki-letl-twmt.n7.xano.io`
+- API group: `430757`
+- Table: `884783`
+- Endpoint: `4032650`
+
+The run used local SecureExecutor development mode, so the receipt correctly reported `evidenceVerified: false`. Google Confidential Space evidence remains required before a receipt may report `evidenceVerified: true`.
+
+## Completion Boundary
+
+Phase 10 is complete only after a real Xano workspace is provisioned through:
+
+```text
+Backend Agent plan -> AgentLatch approval -> SecureExecutor -> Xano Metadata API
+```
+
+The completion run has passed and was independently verified with Metadata API read-back.

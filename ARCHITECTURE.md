@@ -17,7 +17,7 @@
 - Approval system: IMPLEMENTED.
 - TEE secure executor: IMPLEMENTED.
 - Website/Product Agent: IMPLEMENTED.
-- Xano + Backend Agent: PARTIAL.
+- Xano + Backend Agent: IMPLEMENTED.
 - Sponsor integrations: PARTIAL.
 - Audit system: PLANNED.
 - Deployment system: PLANNED.
@@ -101,7 +101,7 @@ Each sponsor integration should live behind a narrow adapter:
 
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
-- XanoAdapter for backend provisioning and metadata. PARTIAL: Metadata API adapter, backend planning, approval, and protected provisioning route are implemented; live Xano workspace provisioning is pending credentials.
+- XanoAdapter for backend provisioning and metadata. IMPLEMENTED: Metadata API adapter, backend planning, approval, protected provisioning route, real workspace provisioning, and read-back verification are complete.
 - FoxitAdapter for document and eSign workflows.
 
 Adapters must handle authentication failure, timeout, rate limit, malformed response, unavailable dependency, partial execution, retries where safe, and redaction.
