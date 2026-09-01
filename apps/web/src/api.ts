@@ -5,6 +5,7 @@ import type {
   BackendArtifact,
   DeploymentRecord,
   DocumentArtifact,
+  FoxitESignPackage,
   DomainResearch,
   LaunchProject,
   MarketResearch,
@@ -50,6 +51,16 @@ interface DocumentArtifactResponse {
   project: LaunchProject;
   artifact: DocumentArtifact;
   receipt: SecureExecutionReceipt;
+}
+
+interface ESignPackageResponse {
+  project: LaunchProject;
+  esignPackage: FoxitESignPackage;
+}
+
+interface HumanOnlyDecisionResponse {
+  error: string;
+  decision: ApprovalRequest["decision"];
 }
 
 interface ApprovalListResponse {
@@ -130,6 +141,29 @@ export async function generateDocuments(projectId: string): Promise<DocumentArti
     method: "POST"
   });
   return readJson<DocumentArtifactResponse>(response);
+}
+
+export async function prepareESign(projectId: string): Promise<ESignPackageResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/esign/prepare`, {
+    method: "POST"
+  });
+  return readJson<ESignPackageResponse>(response);
+}
+
+export async function attemptAISignatureSend(projectId: string): Promise<HumanOnlyDecisionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/esign/send-attempt`, {
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 409) {
+    if (!response.ok) {
+      const message = typeof body?.error === "string" ? body.error : "Request failed.";
+      throw new Error(message);
+    }
+  }
+
+  return body as HumanOnlyDecisionResponse;
 }
 
 export async function requestDomainRegistrationApproval(project: LaunchProject): Promise<ApprovalResponse> {

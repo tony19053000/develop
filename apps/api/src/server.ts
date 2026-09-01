@@ -8,7 +8,13 @@ import {
   createWebsiteProductAgent,
   loadAgentModelConfig
 } from "@launchforge/agents";
-import { HttpFoxitClient, HttpNameComClient, HttpSerpApiClient, HttpXanoClient } from "@launchforge/integrations";
+import {
+  HttpFoxitClient,
+  HttpFoxitESignClient,
+  HttpNameComClient,
+  HttpSerpApiClient,
+  HttpXanoClient
+} from "@launchforge/integrations";
 import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEvidence } from "@launchforge/secure-executor";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
@@ -37,7 +43,14 @@ const secureExecutionEvidence =
 const secureExecutor = createSecureExecutor(
   {
     mode: config.SECURE_EXECUTOR_MODE,
-    allowedSecretNames: ["NAMECOM_USERNAME", "NAMECOM_API_TOKEN", "FOXIT_API_KEY", "FOXIT_CLIENT_SECRET", "XANO_API_KEY"],
+    allowedSecretNames: [
+      "NAMECOM_USERNAME",
+      "NAMECOM_API_TOKEN",
+      "FOXIT_API_KEY",
+      "FOXIT_CLIENT_SECRET",
+      "FOXIT_ESIGN_CLIENT_SECRET",
+      "XANO_API_KEY"
+    ],
     ...(secureExecutionEvidence ? { evidence: secureExecutionEvidence } : {}),
     attestationPolicy: {
       audience: config.TEE_ATTESTATION_AUDIENCE,
@@ -91,6 +104,12 @@ const app = createApp({
       ...(clientSecret ? { clientSecret } : {}),
       baseUrl: config.FOXIT_API_BASE_URL,
       documentGenerationPath: config.FOXIT_DOCUMENT_GENERATION_PATH
+    }),
+  createFoxitESignClient: (clientSecret) =>
+    new HttpFoxitESignClient({
+      ...(config.FOXIT_ESIGN_CLIENT_ID ? { clientId: config.FOXIT_ESIGN_CLIENT_ID } : {}),
+      clientSecret,
+      baseUrl: config.FOXIT_ESIGN_BASE_URL
     }),
   agentLatch,
   approvals: new FileApprovalRepository(config.DATA_DIR),

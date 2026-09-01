@@ -109,3 +109,31 @@ Local development execution must still report `evidenceVerified: false`. Phase 1
 `foxit.sendForSignature` remains `HUMAN_ONLY` and is reserved for Phase 13.
 
 Phase 12 was live verified with `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64`. The local development receipt correctly reported `evidenceVerified: false`; the generated PDF files were stored under `/documents`, served as `application/pdf`, and validated with `%PDF-` signatures.
+
+## Phase 13 eSign Boundary
+
+Phase 13 prepares Foxit eSign packages but keeps send/sign execution human-only.
+
+Blocked AI send path:
+
+```text
+foxit.sendForSignature
+  -> AgentLatch HUMAN_ONLY
+  -> executable false
+  -> no approval conversion
+  -> no SecureExecutor operation
+  -> no Foxit send call
+```
+
+Read-only status refresh path:
+
+```text
+foxit.getEnvelopeStatus
+  -> AgentLatch AUTO_ALLOW
+  -> SecureExecutor
+  -> FOXIT_ESIGN_CLIENT_SECRET resolution
+  -> Foxit eSign status endpoint
+  -> status receipt
+```
+
+The current DocGen credentials did not authenticate against the Foxit eSign OAuth endpoint, so live eSign status verification is pending eSign-specific credentials. This does not weaken the send/sign boundary: the AI path still returns `HUMAN_ONLY` before any sponsor send action can occur.

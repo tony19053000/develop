@@ -19,7 +19,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 10 | Xano + Backend Agent | 6 | 100% complete |
 | 11 | Deployment System | 3 | 100% complete |
 | 12 | Foxit + Document Agent | 4 | 100% complete |
-| 13 | Foxit eSign + Human-Only Boundary | 4 | 0% pending |
+| 13 | Foxit eSign + Human-Only Boundary | 4 | implementation checkpoint; live eSign credential verification pending |
 | 14 | Full Multi-Agent Orchestration | 6 | 0% pending |
 | 15 | Audit + Security Center | 5 | 0% pending |
 | 16 | Final UI / UX | 3 | 0% pending |
@@ -33,7 +33,7 @@ Phase 12 - Foxit + Document Agent.
 
 ## Current Task
 
-Begin Phase 13 - Foxit eSign + Human-Only Boundary.
+Obtain Foxit eSign API credentials and verify read-only envelope status access without allowing AI send/sign execution.
 
 ## Baseline
 
@@ -53,11 +53,12 @@ Begin Phase 13 - Foxit eSign + Human-Only Boundary.
 - Phase 10 implementation adds a Xano Metadata API adapter, Backend Agent backend plan generation, protected Xano provisioning execution route, backend artifact persistence, dashboard backend planning/provisioning controls, and real Xano workspace verification.
 - Phase 11 implementation adds local static deployment records, generated website file publishing, API static serving, deployment health checks, dashboard deployment controls, and deployment documentation.
 - Phase 12 implementation adds typed document artifacts, a credential-free Document Agent, a real Foxit DocGen HTTP adapter, SecureExecutor-gated Foxit generation, dashboard document controls, local PDF storage/serving, mocked protected-path tests, and real Foxit verification.
+- Phase 13 checkpoint adds typed Foxit eSign package state, human-only signature routing, AI send prevention, optional read-only eSign status refresh, and dashboard eSign preparation controls.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 77 tests.
+- Tests: passed, 80 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -81,6 +82,9 @@ Begin Phase 13 - Foxit eSign + Human-Only Boundary.
 - Phase 12 generated three real PDF files for project `68d5b4b2-7855-4256-9af5-b2a81a463359`: founder launch brief `6523` bytes, investor one-pager `6399` bytes, and technical delivery summary `6527` bytes.
 - Phase 12 PDF serving verification: passed with HTTP 200, `Content-Type: application/pdf`, and `%PDF-` file signatures.
 - Phase 12 local SecureExecutor receipt correctly reported `evidenceVerified: false`.
+- Phase 13 automated checkpoint tests: eSign package preparation, `foxit.sendForSignature` human-only blocking, manual completion-state recording, read-only status refresh adapter, and mocked SecureExecutor status refresh pass.
+- Phase 13 local smoke verification: eSign preparation returned HTTP 200, AI send attempt returned HTTP 409 with `HUMAN_ONLY`, and manual status recording accepted `executed`.
+- Phase 13 live eSign OAuth verification: blocked because the available Foxit DocGen credentials returned `invalid_client` against the Foxit eSign OAuth host.
 
 ## Review Status
 
@@ -106,6 +110,8 @@ Reviewer/Tester result for Phase 11: APPROVED after local deployment publishing,
 
 Reviewer/Tester result for Phase 12: APPROVED after real Foxit DocGen execution, PDF signature checks, static PDF serving, and no-secret scan.
 
+Reviewer/Tester result for Phase 13: PENDING live Foxit eSign credential verification.
+
 ## GitHub Status
 
 - Remote: `https://github.com/tony19053000/develop.git`
@@ -130,6 +136,7 @@ Reviewer/Tester result for Phase 12: APPROVED after real Foxit DocGen execution,
 - Phase 11 deployment system commit: `3bff34b`, pushed to `origin/main`.
 - Phase 12 Foxit/document checkpoint commit: `fd1210d`, pushed to `origin/main`.
 - Phase 12 real Foxit completion commit: pending.
+- Phase 13 Foxit eSign human-only checkpoint commit: pending.
 
 ## Sponsor Integrations
 
@@ -154,4 +161,7 @@ Partially demo-ready. A user can run the local app, create a launch project, vie
 
 Production domain registration still requires an explicit user confirmation for the exact real domain before any production purchase.
 
-Phase 13 must preserve the human-only boundary for any eSign send/sign action.
+Phase 13 completion requires Foxit eSign credentials separate from DocGen if Foxit does not share them:
+
+- `FOXIT_ESIGN_CLIENT_ID`
+- `FOXIT_ESIGN_CLIENT_SECRET`

@@ -14,7 +14,7 @@ import {
   type OrchestratorRuntime,
   type WebsiteProductAgent
 } from "@launchforge/agents";
-import type { FoxitClient, XanoClient } from "@launchforge/integrations";
+import type { FoxitClient, FoxitESignClient, XanoClient } from "@launchforge/integrations";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
 import { LocalStaticDeploymentService } from "./deployments.js";
@@ -35,7 +35,9 @@ const config: ApiConfig = {
   XANO_INSTANCE_BASE_URL: "https://example.xano.io",
   FOXIT_API_KEY: "configured",
   FOXIT_API_BASE_URL: "https://example.foxit.com",
-  FOXIT_DOCUMENT_GENERATION_PATH: "/generate"
+  FOXIT_DOCUMENT_GENERATION_PATH: "/generate",
+  FOXIT_ESIGN_CLIENT_ID: "configured",
+  FOXIT_ESIGN_BASE_URL: "https://example.foxitesign.com"
 };
 
 beforeEach(async () => {
@@ -52,6 +54,7 @@ beforeEach(async () => {
     document: createFakeDocumentAgent(),
     createXanoClient: createFakeXanoClient,
     createFoxitClient: createFakeFoxitClient,
+    createFoxitESignClient: createFakeFoxitESignClient,
     agentLatch: createAgentLatchPolicyEngine(),
     approvals: new FileApprovalRepository(dataDir),
     secureExecutor: createFakeSecureExecutor(),
@@ -272,6 +275,91 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.project.tasks).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "document-foundation", status: "complete" })])
     );
+  });
+
+  it("prepares Foxit eSign materials but blocks AI sending as human-only", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/documents`).expect(200);
+
+    const prepareResponse = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/esign/prepare`)
+      .expect(200);
+
+    expect(prepareResponse.body.esignPackage).toMatchObject({
+      productName: "EvidenceForge",
+      status: "human_action_required",
+      humanOnly: true,
+      signer: {
+        role: "Founder",
+        permission: "FILL_FIELDS_AND_SIGN"
+      }
+    });
+    expect(prepareResponse.body.esignPackage.documents).toHaveLength(3);
+
+    const sendAttemptResponse = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/esign/send-attempt`)
+      .expect(409);
+
+    expect(sendAttemptResponse.body).toMatchObject({
+      error: "Foxit eSign send is human-only and cannot be executed by the AI agent.",
+      decision: {
+        decision: "HUMAN_ONLY",
+        executable: false,
+        requiresHumanApproval: true
+      }
+    });
+  });
+
+  it("records human-updated Foxit eSign completion state", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/documents`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/esign/prepare`).expect(200);
+
+    const response = await request(app)
+      .patch(`/api/projects/${createResponse.body.project.id}/esign/status`)
+      .send({ foxitEnvelopeId: "folder-123", status: "executed" })
+      .expect(200);
+
+    expect(response.body.esignPackage).toMatchObject({
+      foxitEnvelopeId: "folder-123",
+      status: "executed",
+      humanOnly: true
+    });
+    expect(response.body.project.foxitESignPackage.status).toBe("executed");
+  });
+
+  it("refreshes read-only Foxit eSign status through SecureExecutor", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/documents`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/esign/prepare`).expect(200);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/esign/status/refresh`)
+      .send({ foxitEnvelopeId: "folder-123" })
+      .expect(200);
+
+    expect(response.body.receipt).toMatchObject({
+      actionType: "foxit.getEnvelopeStatus",
+      evidenceVerified: false,
+      result: {
+        refreshed: true,
+        foxitEnvelopeId: "folder-123",
+        status: "completed"
+      }
+    });
+    expect(response.body.esignPackage.status).toBe("completed");
   });
 
   it("rejects deployment without a website artifact", async () => {
@@ -817,6 +905,17 @@ function createFakeFoxitClient(): FoxitClient {
         id: `foxit-${input.fileName}`,
         downloadUrl: `https://example.foxit.com/${input.fileName}`,
         size: input.markdown.length
+      };
+    }
+  };
+}
+
+function createFakeFoxitESignClient(): FoxitESignClient {
+  return {
+    async getEnvelopeStatus(envelopeId) {
+      return {
+        envelopeId,
+        status: "completed"
       };
     }
   };

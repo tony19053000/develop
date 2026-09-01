@@ -336,3 +336,23 @@ Reason: This preserves the sponsor credential boundary while avoiding unnecessar
 Consequences: The implementation can be tested locally with mocked Foxit responses and refuses to fake live sponsor output when credentials are missing. Phase 12 was completed only after real Foxit credentials were configured, `GenerateDocumentBase64` returned valid PDF payloads, and generated files were verified with `%PDF-` signatures.
 
 Reversibility: Medium.
+
+## 2026-09-02 - Human-Only Foxit eSign Boundary
+
+Decision: Implement eSign preparation and status modeling while keeping `foxit.sendForSignature` non-executable for AI agents.
+
+Context: Phase 13 requires Foxit eSign workflows, but the product requirement explicitly says AI prepares documents and cannot sign as the user.
+
+Alternatives:
+
+- Let an approval convert eSign send into an executable action.
+- Reuse the Phase 12 DocGen path and ignore eSign-specific API boundaries.
+- Defer all eSign UX until live credentials are available.
+
+Chosen Approach: Add typed `FoxitESignPackage` state, dashboard preparation controls, manual envelope status recording, and a read-only Foxit eSign status adapter. `foxit.sendForSignature` remains `HUMAN_ONLY`, cannot create a normal approval, and returns a 409 safety response if the AI path attempts it.
+
+Reason: This gives the founder a prepared package and completion-state tracking while preserving signer identity and consent as human-only acts.
+
+Consequences: Phase 13 is implemented as a checkpoint. The available Foxit DocGen credentials returned `invalid_client` against Foxit eSign OAuth, so live eSign verification requires separate eSign credentials before the phase can be marked complete.
+
+Reversibility: Medium.

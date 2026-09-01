@@ -6,6 +6,7 @@ import {
   createInitialAgentTasks,
   backendArtifactSchema,
   documentArtifactSchema,
+  foxitESignPackageSchema,
   deploymentRecordSchema,
   launchProjectListSchema,
   tasksFromWorkflowPlan,
@@ -13,6 +14,7 @@ import {
   type CreateLaunchProjectInput,
   type DeploymentRecord,
   type DocumentArtifact,
+  type FoxitESignPackage,
   type DomainResearch,
   type LaunchProject,
   type LaunchWorkflowPlan,
@@ -31,6 +33,7 @@ export interface ProjectRepository {
   saveBackendArtifact(projectId: string, artifact: BackendArtifact): Promise<LaunchProject>;
   saveDeploymentRecord(projectId: string, deployment: DeploymentRecord): Promise<LaunchProject>;
   saveDocumentArtifact(projectId: string, artifact: DocumentArtifact): Promise<LaunchProject>;
+  saveFoxitESignPackage(projectId: string, esignPackage: FoxitESignPackage): Promise<LaunchProject>;
   markApprovalPending(projectId: string): Promise<LaunchProject>;
   markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject>;
 }
@@ -303,6 +306,36 @@ export class FileProjectRepository implements ProjectRepository {
       progress: calculateProjectProgress(tasks),
       tasks,
       documentArtifact: parsedArtifact,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveFoxitESignPackage(projectId: string, esignPackage: FoxitESignPackage): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const parsedPackage = foxitESignPackageSchema.parse({
+      ...esignPackage,
+      updatedAt: now
+    });
+    const updatedProject: LaunchProject = {
+      ...project,
+      foxitESignPackage: parsedPackage,
       updatedAt: now
     };
 

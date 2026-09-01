@@ -22,6 +22,7 @@
 - Audit system: PLANNED.
 - Deployment system: IMPLEMENTED.
 - Foxit + Document Agent: IMPLEMENTED.
+- Foxit eSign Boundary: CHECKPOINT.
 
 ## Proposed System Shape
 
@@ -38,6 +39,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Backend Agent that creates Xano backend plans and routes real provisioning through AgentLatch approval and SecureExecutor.
 - Deployment System that publishes generated website artifacts to local static hosting, records health checks, and exposes served deployment URLs.
 - Document Agent that prepares founder documents and routes sponsor PDF generation through AgentLatch and SecureExecutor.
+- Foxit eSign package preparation that records human-only signing state and blocks AI send/sign attempts.
 
 ## Trust Boundaries
 
@@ -105,7 +107,7 @@ Each sponsor integration should live behind a narrow adapter:
 - SerpApiAdapter for web intelligence. IMPLEMENTED: Google Search integration and organic result mapping live verified with `SERPAPI_API_KEY`.
 - NameComAdapter for domain search, availability, registration, and DNS. PARTIAL: availability search and ranking are live verified; protected registration code is implemented behind AgentLatch, human approval, SecureExecutor, idempotency, and pre-create availability re-check; DNS remains planned.
 - XanoAdapter for backend provisioning and metadata. IMPLEMENTED: Metadata API adapter, backend planning, approval, protected provisioning route, real workspace provisioning, and read-back verification are complete.
-- FoxitAdapter for document and eSign workflows. IMPLEMENTED for DocGen PDF generation using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` with `client_id` and `client_secret` headers. eSign remains human-only and deferred to Phase 13.
+- FoxitAdapter for document and eSign workflows. IMPLEMENTED for DocGen PDF generation using `https://na1.fusion.foxit.com/document-generation/api/GenerateDocumentBase64` with `client_id` and `client_secret` headers. CHECKPOINT for eSign status reads using `https://na1.foxitesign.foxit.com`; send/sign execution remains human-only.
 
 Adapters must handle authentication failure, timeout, rate limit, malformed response, unavailable dependency, partial execution, retries where safe, and redaction.
 
@@ -134,6 +136,7 @@ Planned entities:
 - WebsiteArtifact.
 - BackendArtifact.
 - DocumentArtifact.
+- FoxitESignPackage.
 
 ## Folder Structure
 
@@ -247,4 +250,15 @@ Document Agent
   -> FOXIT credential resolution
   -> Foxit Document Generation / PDF Services API
   -> Foxit document metadata
+```
+
+### Foxit eSign Human-Only Boundary
+
+```text
+DocumentArtifact PDFs
+  -> FoxitESignPackage preparation
+  -> Human-only signer routing
+  -> foxit.sendForSignature request
+  -> AgentLatch HUMAN_ONLY decision
+  -> blocked before SecureExecutor / Foxit send
 ```

@@ -8,7 +8,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 Phase 11 - Deployment System is complete and approved.
 Phase 12 - Foxit + Document Agent is complete and approved.
-Current next phase: Phase 13 - Foxit eSign + Human-Only Boundary.
+Current phase: Phase 13 - Foxit eSign + Human-Only Boundary is implemented as a checkpoint; live eSign credential verification is pending.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -185,6 +185,17 @@ Phase 12 - Foxit + Document Agent is complete and approved.
   - Verified real Foxit PDF generation for project `68d5b4b2-7855-4256-9af5-b2a81a463359`.
   - Generated three PDF files: founder launch brief `6523` bytes, investor one-pager `6399` bytes, and technical delivery summary `6527` bytes.
   - Verified generated files have `%PDF-` signatures and are served as `application/pdf`.
+- Added Phase 13 Foxit eSign + Human-Only Boundary checkpoint:
+  - Added typed `FoxitESignPackage` shared state.
+  - Added eSign package persistence on launch projects.
+  - Added `POST /api/projects/:projectId/esign/prepare`.
+  - Added `POST /api/projects/:projectId/esign/send-attempt`, which returns HTTP 409 and AgentLatch `HUMAN_ONLY`.
+  - Added manual `PATCH /api/projects/:projectId/esign/status` for human-recorded envelope state.
+  - Added read-only `POST /api/projects/:projectId/esign/status/refresh` through AgentLatch, SecureExecutor, and the Foxit eSign status adapter.
+  - Added dashboard eSign preparation and AI send-check controls.
+  - Added `docs/FOXIT_ESIGN.md`.
+  - Verified local eSign preparation, human-only send blocking, and manual executed-state recording.
+  - Attempted live eSign OAuth with the available DocGen credentials; Foxit eSign returned `invalid_client`, so live eSign verification is pending eSign-specific credentials.
 
 ## Architecture Summary
 
@@ -196,13 +207,14 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, and live-verified Foxit DocGen PDF generation.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, live-verified Foxit DocGen PDF generation, and a Foxit eSign status checkpoint awaiting eSign credentials.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
 - Document Agent is implemented and live verified with Foxit DocGen PDF generation through SecureExecutor-gated sponsor execution.
+- Foxit eSign preparation and human-only send blocking are implemented; read-only eSign status refresh awaits valid eSign credentials.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -290,6 +302,7 @@ Current architecture:
 - Phase 11 local deployment smoke test: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`.
 - Phase 12 no-credential Foxit smoke test: passed with HTTP 424, confirming LaunchForge refuses to fake sponsor PDF generation.
 - Phase 12 real Foxit DocGen run: passed with receipt `6c62ef48-43b0-40fd-b215-7235dd35ea54` and three valid PDF outputs.
+- Phase 13 checkpoint tests: passing with eSign preparation, human-only send blocking, manual state recording, and mocked status refresh.
 
 ## Environment Assumptions
 
@@ -299,13 +312,14 @@ Current architecture:
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 - `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are configured locally and must not be committed.
 - Foxit credentials are configured locally and must not be committed.
+- Foxit eSign credentials are not yet configured. The DocGen credentials returned `invalid_client` against the eSign OAuth host.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
-Phase 13 must preserve `foxit.sendForSignature` as a human-only action.
+Phase 13 completion requires valid Foxit eSign credentials or user-side Foxit dashboard/API access that can issue eSign OAuth credentials.
 
 ## Next Exact Task
 
-Start Phase 13 by adding Foxit eSign preparation/routing while preserving the human-only boundary. Do not allow the AI agent to send or sign documents as the user.
+Obtain Foxit eSign API credentials, verify read-only OAuth/status access, then complete Phase 13 without enabling AI send/sign execution.

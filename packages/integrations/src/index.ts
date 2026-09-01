@@ -31,3 +31,10 @@ export {
   type FoxitDocument,
   type GenerateFoxitDocumentInput
 } from "./foxit.js";
+export {
+  HttpFoxitESignClient,
+  FoxitESignConfigurationError,
+  type FoxitEnvelopeStatus,
+  type FoxitESignClient,
+  type FoxitESignConfig
+} from "./foxitEsign.js";

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import cors from "cors";
@@ -20,10 +21,18 @@ import {
   SerpApiConfigurationError,
   XanoConfigurationError,
   type FoxitClient,
+  FoxitESignConfigurationError,
+  type FoxitESignClient,
   type XanoClient
 } from "@launchforge/integrations";
 import type { SecureExecutor } from "@launchforge/secure-executor";
-import { backendArtifactSchema, createLaunchProjectSchema, documentArtifactSchema } from "@launchforge/shared";
+import {
+  backendArtifactSchema,
+  createLaunchProjectSchema,
+  documentArtifactSchema,
+  foxitESignPackageSchema,
+  foxitESignStatusSchema
+} from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { DeploymentError, type DeploymentService } from "./deployments.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -50,6 +59,15 @@ const foxitGeneratedDocumentsResultSchema = z.object({
   )
 });
 
+const updateESignStatusSchema = z.object({
+  foxitEnvelopeId: z.string().min(1),
+  status: foxitESignStatusSchema
+});
+
+const refreshESignStatusSchema = z.object({
+  foxitEnvelopeId: z.string().min(1).optional()
+});
+
 export interface AppDependencies {
   config: ApiConfig;
   projects: ProjectRepository;
@@ -62,6 +80,7 @@ export interface AppDependencies {
   document: DocumentAgent;
   createXanoClient: (apiKey: string) => XanoClient;
   createFoxitClient: (credentials: { apiKey?: string; clientSecret?: string }) => FoxitClient;
+  createFoxitESignClient: (clientSecret: string) => FoxitESignClient;
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
   secureExecutor: SecureExecutor;
@@ -80,6 +99,7 @@ export function createApp({
   document,
   createXanoClient,
   createFoxitClient,
+  createFoxitESignClient,
   agentLatch,
   approvals,
   secureExecutor,
@@ -500,6 +520,202 @@ export function createApp({
       response.json({ project, artifact: generatedArtifact, receipt });
     } catch (error) {
       if (error instanceof FoxitConfigurationError || (error instanceof Error && error.message.includes("FOXIT_"))) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
+      next(mapApprovalError(error));
+    }
+  });
+
+  app.post("/api/projects/:projectId/esign/prepare", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.documentArtifact || existingProject.documentArtifact.status !== "generated") {
+        throw new ApiError(409, "Generated Foxit documents are required before eSign preparation.");
+      }
+
+      const generatedDocuments = existingProject.documentArtifact.documents.filter((document) => document.downloadUrl);
+
+      if (generatedDocuments.length === 0) {
+        throw new ApiError(409, "At least one generated PDF download URL is required for eSign preparation.");
+      }
+
+      const now = new Date().toISOString();
+      const esignPackage = foxitESignPackageSchema.parse({
+        id: randomUUID(),
+        projectId: existingProject.id,
+        productName: existingProject.documentArtifact.productName,
+        status: "human_action_required",
+        humanOnly: true,
+        documents: generatedDocuments.map((document) => ({
+          documentId: document.id,
+          title: document.title,
+          fileName: document.fileName,
+          downloadUrl: document.downloadUrl
+        })),
+        signer: {
+          role: "Founder",
+          permission: "FILL_FIELDS_AND_SIGN"
+        },
+        auditNote:
+          "AI prepared Foxit eSign materials only. Sending, signing, and signer identity confirmation remain human-only.",
+        preparedAt: now,
+        updatedAt: now
+      });
+      const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
+
+      events.publish({
+        projectId: project.id,
+        agent: "document",
+        level: "warning",
+        message: "Foxit eSign package prepared. Human action is required before any envelope can be sent."
+      });
+
+      response.json({ project, esignPackage });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/esign/send-attempt", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.foxitESignPackage) {
+        throw new ApiError(409, "Foxit eSign package is required before send evaluation.");
+      }
+
+      const actionRequest = toolActionRequestSchema.parse({
+        projectId: existingProject.id,
+        requestedBy: "document",
+        actionType: "foxit.sendForSignature",
+        resource: `${existingProject.foxitESignPackage.productName} eSign envelope`,
+        payload: existingProject.foxitESignPackage,
+        reason: "Attempt to send a Foxit eSign envelope for signature."
+      });
+      const decision = agentLatch.evaluate(actionRequest);
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "agentlatch",
+        level: "warning",
+        message: `AgentLatch blocked ${actionRequest.actionType} as ${decision.decision}.`
+      });
+
+      response.status(409).json({
+        error: "Foxit eSign send is human-only and cannot be executed by the AI agent.",
+        decision
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/projects/:projectId/esign/status", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.foxitESignPackage) {
+        throw new ApiError(409, "Foxit eSign package is required before status updates.");
+      }
+
+      const input = updateESignStatusSchema.parse(request.body);
+      const esignPackage = foxitESignPackageSchema.parse({
+        ...existingProject.foxitESignPackage,
+        foxitEnvelopeId: input.foxitEnvelopeId,
+        status: input.status,
+        updatedAt: new Date().toISOString()
+      });
+      const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
+
+      events.publish({
+        projectId: project.id,
+        agent: "document",
+        level: input.status === "executed" ? "success" : "info",
+        message: `Foxit eSign envelope ${input.foxitEnvelopeId} status recorded as ${input.status}.`
+      });
+
+      response.json({ project, esignPackage });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/esign/status/refresh", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.foxitESignPackage) {
+        throw new ApiError(409, "Foxit eSign package is required before status refresh.");
+      }
+
+      const input = refreshESignStatusSchema.parse(request.body ?? {});
+      const envelopeId = input.foxitEnvelopeId ?? existingProject.foxitESignPackage.foxitEnvelopeId;
+
+      if (!envelopeId) {
+        throw new ApiError(409, "Foxit envelope id is required before status refresh.");
+      }
+
+      const actionRequest = toolActionRequestSchema.parse({
+        projectId: existingProject.id,
+        requestedBy: "document",
+        actionType: "foxit.getEnvelopeStatus",
+        resource: envelopeId,
+        payload: { foxitEnvelopeId: envelopeId },
+        reason: "Refresh read-only Foxit eSign envelope status."
+      });
+      const decision = agentLatch.evaluate(actionRequest);
+      const receipt = await secureExecutor.execute({
+        request: actionRequest,
+        approval: decision,
+        operation: async (context) => {
+          const foxitESign = createFoxitESignClient(await context.getSecret("FOXIT_ESIGN_CLIENT_SECRET"));
+          const status = await foxitESign.getEnvelopeStatus(envelopeId);
+          return {
+            refreshed: true,
+            foxitEnvelopeId: status.envelopeId,
+            status: status.status
+          };
+        }
+      });
+      const rawStatus = typeof receipt.result.status === "string" ? receipt.result.status.toLowerCase() : "shared";
+      const mappedStatus = foxitESignStatusSchema.catch("shared").parse(rawStatus);
+      const esignPackage = foxitESignPackageSchema.parse({
+        ...existingProject.foxitESignPackage,
+        foxitEnvelopeId: String(receipt.result.foxitEnvelopeId ?? envelopeId),
+        status: mappedStatus,
+        updatedAt: new Date().toISOString()
+      });
+      const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
+
+      events.publish({
+        projectId: project.id,
+        agent: "document",
+        level: "info",
+        message: `Foxit eSign status refreshed as ${mappedStatus}.`
+      });
+
+      response.json({ project, esignPackage, receipt });
+    } catch (error) {
+      if (error instanceof FoxitESignConfigurationError || (error instanceof Error && error.message.includes("FOXIT_ESIGN_"))) {
         next(new ApiError(424, error.message));
         return;
       }

@@ -36,6 +36,7 @@ import {
   ShieldX
 } from "lucide-react";
 import {
+  attemptAISignatureSend,
   approveRequest,
   createProject,
   deployProject,
@@ -47,6 +48,7 @@ import {
   listApprovals,
   listProjects,
   planBackend,
+  prepareESign,
   rejectRequest,
   requestBackendProvisioningApproval,
   requestDomainRegistrationApproval,
@@ -88,6 +90,7 @@ export function App() {
   const [isPlanningBackend, setIsPlanningBackend] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isGeneratingDocuments, setIsGeneratingDocuments] = useState(false);
+  const [isPreparingESign, setIsPreparingESign] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,6 +231,32 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to generate documents.");
     } finally {
       setIsGeneratingDocuments(false);
+    }
+  }
+
+  async function handlePrepareESign(projectId: string) {
+    setIsPreparingESign(true);
+    setError(null);
+
+    try {
+      const { project } = await prepareESign(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to prepare eSign.");
+    } finally {
+      setIsPreparingESign(false);
+    }
+  }
+
+  async function handleAttemptAISend(projectId: string) {
+    setError(null);
+
+    try {
+      const response = await attemptAISignatureSend(projectId);
+      setError(`${response.decision.decision}: ${response.error}`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to evaluate eSign send.");
     }
   }
 
@@ -495,7 +524,15 @@ export function App() {
 
                 {selectedProject.deploymentRecord ? <DeploymentPanel deployment={selectedProject.deploymentRecord} /> : null}
 
-                {selectedProject.documentArtifact ? <DocumentArtifactPanel artifact={selectedProject.documentArtifact} /> : null}
+                {selectedProject.documentArtifact ? (
+                  <DocumentArtifactPanel
+                    artifact={selectedProject.documentArtifact}
+                    esignPackage={selectedProject.foxitESignPackage}
+                    isPreparingESign={isPreparingESign}
+                    onAttemptAISend={handleAttemptAISend}
+                    onPrepareESign={handlePrepareESign}
+                  />
+                ) : null}
 
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
@@ -579,7 +616,19 @@ function DeploymentPanel({ deployment }: { deployment: DeploymentRecord }) {
   );
 }
 
-function DocumentArtifactPanel({ artifact }: { artifact: DocumentArtifact }) {
+function DocumentArtifactPanel({
+  artifact,
+  esignPackage,
+  isPreparingESign,
+  onAttemptAISend,
+  onPrepareESign
+}: {
+  artifact: DocumentArtifact;
+  esignPackage: LaunchProject["foxitESignPackage"];
+  isPreparingESign: boolean;
+  onAttemptAISend: (projectId: string) => Promise<void>;
+  onPrepareESign: (projectId: string) => Promise<void>;
+}) {
   return (
     <section className="document-panel" aria-labelledby="document-artifact-title">
       <div className="section-heading artifact-heading">
@@ -613,6 +662,37 @@ function DocumentArtifactPanel({ artifact }: { artifact: DocumentArtifact }) {
             ) : null}
           </div>
         ))}
+      </div>
+
+      <div className="esign-band">
+        <div>
+          <strong>{esignPackage ? `eSign ${esignPackage.status.replaceAll("_", " ")}` : "eSign not prepared"}</strong>
+          <span>
+            {esignPackage?.foxitEnvelopeId
+              ? `Foxit envelope ${esignPackage.foxitEnvelopeId}`
+              : "Sending and signing remain human-only."}
+          </span>
+        </div>
+        <div className="esign-actions">
+          <button
+            className="secondary-button"
+            disabled={isPreparingESign}
+            onClick={() => void onPrepareESign(artifact.projectId)}
+            type="button"
+          >
+            <ClipboardCheck size={18} aria-hidden="true" />
+            {isPreparingESign ? "Preparing..." : "Prepare eSign"}
+          </button>
+          <button
+            className="secondary-button"
+            disabled={!esignPackage}
+            onClick={() => void onAttemptAISend(artifact.projectId)}
+            type="button"
+          >
+            <ShieldX size={18} aria-hidden="true" />
+            AI Send Check
+          </button>
+        </div>
       </div>
     </section>
   );

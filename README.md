@@ -6,14 +6,14 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 12 is complete. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, and live-verified SecureExecutor-gated Foxit PDF document generation.
+Phase 13 is implemented as a checkpoint and awaits live Foxit eSign credential verification. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, live-verified SecureExecutor-gated Foxit PDF document generation, and human-only Foxit eSign preparation.
 
 ## Sponsor Integrations
 
 - SerpApi: market intelligence, competitor research, naming conflict research.
 - name.com: domain search, availability, registration, DNS operations.
 - Xano: generated product backend, APIs, data models, auth where appropriate.
-- Foxit: business document generation and PDF workflows live verified; eSign routing remains human-only for Phase 13.
+- Foxit: business document generation and PDF workflows live verified; eSign preparation is implemented with send/sign blocked as human-only.
 
 ## Architecture Summary
 
@@ -92,6 +92,14 @@ Optional Foxit endpoint overrides:
 ```bash
 FOXIT_API_BASE_URL=https://na1.fusion.foxit.com
 FOXIT_DOCUMENT_GENERATION_PATH=/document-generation/api/GenerateDocumentBase64
+```
+
+For Phase 13 Foxit eSign status verification, set eSign-specific credentials:
+
+```bash
+FOXIT_ESIGN_CLIENT_ID=your_foxit_esign_client_id
+FOXIT_ESIGN_CLIENT_SECRET=your_foxit_esign_client_secret
+FOXIT_ESIGN_BASE_URL=https://na1.foxitesign.foxit.com
 ```
 
 Install dependencies:

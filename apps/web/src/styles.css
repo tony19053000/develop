@@ -607,6 +607,38 @@ textarea:focus {
   gap: 8px;
 }
 
+.esign-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #d6b660;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.esign-band strong,
+.esign-band span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.esign-band span {
+  margin-top: 2px;
+  color: #6d5b27;
+  font-size: 0.84rem;
+}
+
+.esign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .artifact-grid h3 {
   margin: 0 0 8px;
   font-size: 0.9rem;
@@ -981,8 +1013,13 @@ textarea:focus {
   .approval-request-band,
   .artifact-grid,
   .backend-grid,
+  .esign-band,
   .document-row {
     grid-template-columns: 1fr;
+  }
+
+  .esign-actions {
+    justify-content: stretch;
   }
 
   .domain-meta {

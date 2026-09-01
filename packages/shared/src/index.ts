@@ -268,6 +268,33 @@ export const documentArtifactSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
+export const foxitESignStatusSchema = z.enum(["prepared", "human_action_required", "shared", "completed", "executed"]);
+
+export const foxitESignPackageSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  productName: z.string(),
+  status: foxitESignStatusSchema,
+  humanOnly: z.literal(true),
+  documents: z.array(
+    z.object({
+      documentId: z.string(),
+      title: z.string(),
+      fileName: z.string(),
+      downloadUrl: z.string().url()
+    })
+  ),
+  signer: z.object({
+    role: z.string(),
+    email: z.string().email().optional(),
+    permission: z.literal("FILL_FIELDS_AND_SIGN")
+  }),
+  foxitEnvelopeId: z.string().optional(),
+  auditNote: z.string(),
+  preparedAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -298,6 +325,7 @@ export const launchProjectSchema = z.object({
   backendArtifact: backendArtifactSchema.optional(),
   deploymentRecord: deploymentRecordSchema.optional(),
   documentArtifact: documentArtifactSchema.optional(),
+  foxitESignPackage: foxitESignPackageSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -320,6 +348,8 @@ export type DeploymentHealthCheck = z.infer<typeof deploymentHealthCheckSchema>;
 export type DeploymentRecord = z.infer<typeof deploymentRecordSchema>;
 export type DocumentArtifact = z.infer<typeof documentArtifactSchema>;
 export type FounderDocumentType = z.infer<typeof founderDocumentTypeSchema>;
+export type FoxitESignPackage = z.infer<typeof foxitESignPackageSchema>;
+export type FoxitESignStatus = z.infer<typeof foxitESignStatusSchema>;
 export type GeneratedDocument = z.infer<typeof generatedDocumentSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
