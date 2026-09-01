@@ -87,3 +87,23 @@ Protected name.com registration must use the SecureExecutor after AgentLatch and
 Phase 8 registration uses the name.com Create Domain endpoint only after a fresh availability re-check inside SecureExecutor. The approval ID is sent as the name.com `X-Idempotency-Key` so retries do not double-purchase. Phase 8 permits only standard non-premium `registration` purchases; premium, aftermarket, expiring, or backorder acquisitions remain blocked until separate pricing and claims controls are added.
 
 Phase 8 was verified against `https://api.dev.name.com` by registering sandbox domain `launchforge-phase8-1788261813202.com` through `AgentLatch -> approval -> SecureExecutor -> availability re-check -> name.com Create Domain`. The sandbox order was `2132723`, and the post-registration availability check reported `purchasable: false`.
+
+## Phase 12 Foxit Handoff
+
+Foxit document generation uses the same SecureExecutor credential boundary even though `foxit.generateDocument` is an AgentLatch `AUTO_ALLOW` action.
+
+```text
+Document Agent
+  -> foxit.generateDocument request
+  -> AgentLatch AUTO_ALLOW executable decision
+  -> SecureExecutor
+  -> FOXIT_API_KEY or FOXIT_CLIENT_SECRET secret resolution
+  -> Foxit API
+  -> receipt
+```
+
+The Document Agent prepares founder-facing business documents without credentials. The frontend only receives document metadata and generated artifact records. Foxit credential values must not be included in project state, generated markdown, receipt results, frontend state, or logs.
+
+Local development execution must still report `evidenceVerified: false`. Phase 12 cannot be marked complete until a real Foxit call succeeds. In Google Confidential Space mode, `evidenceVerified: true` remains tied to the Phase 7 attestation policy and not to the mere presence of Foxit credentials.
+
+`foxit.sendForSignature` remains `HUMAN_ONLY` and is reserved for Phase 13.

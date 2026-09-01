@@ -316,3 +316,23 @@ Reason: This produces a real accessible URL for generated products without addin
 Consequences: Phase 11 deployments are local to the API process. Public production hosting and DNS routing remain later-phase work.
 
 Reversibility: High.
+
+## 2026-09-01 - SecureExecutor-Gated Foxit Document Generation
+
+Decision: Implement Phase 12 document generation as a credential-free Document Agent plus a SecureExecutor-gated Foxit adapter call.
+
+Context: Phase 12 requires real Foxit document/PDF workflows, while Phase 13 separately handles eSign and must remain human-only.
+
+Alternatives:
+
+- Let the Document Agent call Foxit directly.
+- Generate local PDFs and claim the sponsor phase is complete.
+- Add eSign preparation and sending in the same phase.
+
+Chosen Approach: The Document Agent prepares founder launch brief, investor one-pager, and technical delivery summary payloads without credentials. The API creates a `foxit.generateDocument` action request, AgentLatch auto-allows it as a generated artifact action, and SecureExecutor resolves Foxit credentials only inside the protected operation before calling the Foxit adapter.
+
+Reason: This preserves the sponsor credential boundary while avoiding unnecessary human approval for non-signature document generation.
+
+Consequences: The implementation can be tested locally with mocked Foxit responses and refuses to fake live sponsor output when credentials are missing. Phase 12 remains pending until real Foxit credentials are configured and a live document generation run is verified.
+
+Reversibility: Medium.

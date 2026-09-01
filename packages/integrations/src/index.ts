@@ -23,3 +23,11 @@ export {
   type XanoClient,
   type XanoConfig
 } from "./xano.js";
+export {
+  HttpFoxitClient,
+  FoxitConfigurationError,
+  type FoxitClient,
+  type FoxitConfig,
+  type FoxitDocument,
+  type GenerateFoxitDocumentInput
+} from "./foxit.js";

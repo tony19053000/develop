@@ -4,6 +4,7 @@ import type {
   CreateLaunchProjectInput,
   BackendArtifact,
   DeploymentRecord,
+  DocumentArtifact,
   DomainResearch,
   LaunchProject,
   MarketResearch,
@@ -43,6 +44,12 @@ interface BackendArtifactResponse {
 interface DeploymentResponse {
   project: LaunchProject;
   deployment: DeploymentRecord;
+}
+
+interface DocumentArtifactResponse {
+  project: LaunchProject;
+  artifact: DocumentArtifact;
+  receipt: SecureExecutionReceipt;
 }
 
 interface ApprovalListResponse {
@@ -116,6 +123,13 @@ export async function deployProject(projectId: string): Promise<DeploymentRespon
     method: "POST"
   });
   return readJson<DeploymentResponse>(response);
+}
+
+export async function generateDocuments(projectId: string): Promise<DocumentArtifactResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`, {
+    method: "POST"
+  });
+  return readJson<DocumentArtifactResponse>(response);
 }
 
 export async function requestDomainRegistrationApproval(project: LaunchProject): Promise<ApprovalResponse> {

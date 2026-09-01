@@ -6,6 +6,7 @@ import type {
   AgentTask,
   BackendArtifact,
   DeploymentRecord,
+  DocumentArtifact,
   DomainCandidate,
   LaunchProject,
   ResearchResult,
@@ -41,6 +42,7 @@ import {
   dryRunSecureExecution,
   executeBackendProvisioning,
   executeDomainRegistration,
+  generateDocuments,
   generateWebsite,
   listApprovals,
   listProjects,
@@ -85,6 +87,7 @@ export function App() {
   const [isGeneratingWebsite, setIsGeneratingWebsite] = useState(false);
   const [isPlanningBackend, setIsPlanningBackend] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [isGeneratingDocuments, setIsGeneratingDocuments] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -209,6 +212,22 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to deploy project.");
     } finally {
       setIsDeploying(false);
+    }
+  }
+
+  async function handleGenerateDocuments(projectId: string) {
+    setIsGeneratingDocuments(true);
+    setError(null);
+
+    try {
+      const { project, receipt } = await generateDocuments(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to generate documents.");
+    } finally {
+      setIsGeneratingDocuments(false);
     }
   }
 
@@ -439,6 +458,15 @@ export function App() {
                     <Rocket size={18} aria-hidden="true" />
                     {isDeploying ? "Deploying..." : "Deploy"}
                   </button>
+                  <button
+                    className="secondary-button"
+                    disabled={isGeneratingDocuments}
+                    onClick={() => void handleGenerateDocuments(selectedProject.id)}
+                    type="button"
+                  >
+                    <FileText size={18} aria-hidden="true" />
+                    {isGeneratingDocuments ? "Generating..." : "Generate Documents"}
+                  </button>
                 </div>
 
                 <div className="progress-block">
@@ -466,6 +494,8 @@ export function App() {
                 {selectedProject.backendArtifact ? <BackendArtifactPanel artifact={selectedProject.backendArtifact} /> : null}
 
                 {selectedProject.deploymentRecord ? <DeploymentPanel deployment={selectedProject.deploymentRecord} /> : null}
+
+                {selectedProject.documentArtifact ? <DocumentArtifactPanel artifact={selectedProject.documentArtifact} /> : null}
 
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
@@ -542,6 +572,45 @@ function DeploymentPanel({ deployment }: { deployment: DeploymentRecord }) {
               <strong>{check.name}</strong>
               <span>{check.message}</span>
             </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DocumentArtifactPanel({ artifact }: { artifact: DocumentArtifact }) {
+  return (
+    <section className="document-panel" aria-labelledby="document-artifact-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Foxit Documents</p>
+          <h2 id="document-artifact-title">{artifact.productName}</h2>
+        </div>
+        <span className={artifact.status === "generated" ? "validation-pill passed" : "validation-pill"}>
+          <FileText size={16} aria-hidden="true" />
+          {artifact.status}
+        </span>
+      </div>
+
+      <div className="artifact-summary">
+        <p>{artifact.documents.length} founder business PDFs prepared through the document workflow.</p>
+        <small>{artifact.receiptId ? `Receipt ${artifact.receiptId}` : "Receipt pending"}</small>
+      </div>
+
+      <div className="document-grid">
+        {artifact.documents.map((document) => (
+          <div className="document-row" key={document.id}>
+            <FileText size={18} aria-hidden="true" />
+            <div>
+              <strong>{document.title}</strong>
+              <span>{document.foxitDocumentId ?? document.fileName}</span>
+            </div>
+            {document.downloadUrl ? (
+              <a href={document.downloadUrl} rel="noreferrer" target="_blank" title="Open document">
+                <ExternalLink size={16} aria-hidden="true" />
+              </a>
+            ) : null}
           </div>
         ))}
       </div>
@@ -774,6 +843,8 @@ function ApprovalPanel({
                   ? `registered ${String(receipts[0].result.domainName)}`
                   : receipts[0].result.provisioned === true
                     ? `provisioned ${String(receipts[0].result.productName)}`
+                    : receipts[0].result.generated === true
+                      ? `generated ${String(receipts[0].result.productName)}`
                   : receipts[0].evidenceVerified
                     ? "TEE evidence verified"
                     : "development boundary"}

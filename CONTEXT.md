@@ -7,7 +7,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 ## Current Phase
 
 Phase 11 - Deployment System is complete and approved.
-Current next phase: Phase 12 - Foxit + Document Agent.
+Current phase: Phase 12 - Foxit + Document Agent is implemented as a checkpoint; live Foxit credential verification is pending.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -167,6 +167,17 @@ Phase 11 - Deployment System is complete and approved.
   - Added dashboard deployment action, deployment status, health checks, and access link.
   - Added `docs/DEPLOYMENT_SYSTEM.md`.
   - Live local verification deployed project `68d5b4b2-7855-4256-9af5-b2a81a463359` to `http://localhost:4000/deployments/73feef18-a64c-4d15-bd22-9319b23d3f8e/` with HTTP 200 and healthy checks.
+- Added Phase 12 Foxit + Document Agent checkpoint:
+  - Added typed `DocumentArtifact` and `GeneratedDocument` shared contracts.
+  - Added a credential-free Document Agent that prepares founder launch brief, investor one-pager, and technical delivery summary document payloads.
+  - Added `HttpFoxitClient` for sponsor-backed PDF document generation using either `FOXIT_API_KEY` or `FOXIT_CLIENT_ID` plus `FOXIT_CLIENT_SECRET`.
+  - Added `POST /api/projects/:projectId/documents`.
+  - Routes `foxit.generateDocument` through AgentLatch and SecureExecutor before calling Foxit.
+  - Keeps `foxit.sendForSignature` human-only for Phase 13.
+  - Added dashboard document generation control and Foxit document artifact panel.
+  - Added `docs/FOXIT_DOCUMENTS.md`.
+  - Automated tests pass with mocked Foxit API responses.
+  - Local no-credential smoke test correctly returned HTTP 424 instead of faking sponsor PDF generation.
 
 ## Architecture Summary
 
@@ -178,12 +189,13 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, and protected Xano Metadata API provisioning; Foxit is planned.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, and a Foxit document-generation checkpoint awaiting live credentials.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
+- Document Agent is implemented with Foxit-bound founder document generation payloads and SecureExecutor-gated sponsor execution.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -248,6 +260,7 @@ Current architecture:
 - Build/typecheck/test/lint: passing with Phase 9 implementation.
 - Build/typecheck/test/lint: passing with Phase 10 implementation.
 - Build/typecheck/test/lint: passing with Phase 11 implementation.
+- Typecheck and tests: passing with Phase 12 checkpoint implementation.
 - npm audit: passing, 0 vulnerabilities.
 - Live SerpApi endpoint verification: passed.
 - Live name.com endpoint verification: passed.
@@ -268,6 +281,7 @@ Current architecture:
 - Phase 10 backend plan smoke test: passed locally with `mode: planned`.
 - Phase 10 real Xano provisioning: passed in workspace `168062`.
 - Phase 11 local deployment smoke test: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`.
+- Phase 12 no-credential Foxit smoke test: passed with HTTP 424, confirming LaunchForge refuses to fake sponsor PDF generation.
 
 ## Environment Assumptions
 
@@ -276,11 +290,14 @@ Current architecture:
 - `SERPAPI_API_KEY` is configured locally for Phase 3 verification and must not be committed.
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 - `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are configured locally and must not be committed.
+- Foxit credentials are not configured locally yet. Phase 12 completion needs `FOXIT_API_KEY` or `FOXIT_CLIENT_ID` plus `FOXIT_CLIENT_SECRET`.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
+Phase 12 cannot be marked complete until a real Foxit PDF generation request succeeds and Reviewer/Tester approves it.
+
 ## Next Exact Task
 
-Start Phase 12 by building the Foxit + Document Agent. Do not expose sponsor credentials to agents, generated artifacts, or the frontend.
+Configure Foxit credentials locally, run real sponsor-powered document generation through `POST /api/projects/:projectId/documents`, verify returned Foxit evidence, then update Phase 12 to complete only after Reviewer/Tester approval.

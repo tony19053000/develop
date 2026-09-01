@@ -8,12 +8,13 @@ import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
   createDeterministicWorkflowPlan,
   type BackendAgent,
+  type DocumentAgent,
   type DomainAgent,
   type MarketBrandAgent,
   type OrchestratorRuntime,
   type WebsiteProductAgent
 } from "@launchforge/agents";
-import type { XanoClient } from "@launchforge/integrations";
+import type { FoxitClient, XanoClient } from "@launchforge/integrations";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
 import { LocalStaticDeploymentService } from "./deployments.js";
@@ -31,7 +32,10 @@ const config: ApiConfig = {
   DATA_DIR: "",
   APPROVAL_TOKEN_SECRET: "test-approval-secret",
   XANO_WORKSPACE_ID: "workspace-1",
-  XANO_INSTANCE_BASE_URL: "https://example.xano.io"
+  XANO_INSTANCE_BASE_URL: "https://example.xano.io",
+  FOXIT_API_KEY: "configured",
+  FOXIT_API_BASE_URL: "https://example.foxit.com",
+  FOXIT_DOCUMENT_GENERATION_PATH: "/generate"
 };
 
 beforeEach(async () => {
@@ -45,7 +49,9 @@ beforeEach(async () => {
     domain: createFakeDomainAgent(),
     websiteProduct: createFakeWebsiteProductAgent(),
     backend: createFakeBackendAgent(),
+    document: createFakeDocumentAgent(),
     createXanoClient: createFakeXanoClient,
+    createFoxitClient: createFakeFoxitClient,
     agentLatch: createAgentLatchPolicyEngine(),
     approvals: new FileApprovalRepository(dataDir),
     secureExecutor: createFakeSecureExecutor(),
@@ -227,6 +233,45 @@ describe("LaunchForge API foundation", () => {
 
     const served = await request(app).get(new URL(response.body.deployment.url).pathname).expect(200);
     expect(served.text).toContain("<h1>EvidenceForge</h1>");
+  });
+
+  it("generates and persists founder documents through SecureExecutor and Foxit", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/research/market`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/website`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/deployments`).expect(200);
+
+    const response = await request(app).post(`/api/projects/${createResponse.body.project.id}/documents`).expect(200);
+
+    expect(response.body.artifact).toMatchObject({
+      productName: "EvidenceForge",
+      provider: "foxit",
+      status: "generated",
+      receiptId: "receipt-1"
+    });
+    expect(response.body.artifact.documents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "founder_launch_brief",
+          foxitDocumentId: "foxit-evidenceforge-founder-launch-brief.pdf"
+        })
+      ])
+    );
+    expect(response.body.receipt).toMatchObject({
+      actionType: "foxit.generateDocument",
+      evidenceVerified: false,
+      result: {
+        generated: true,
+        productName: "EvidenceForge"
+      }
+    });
+    expect(response.body.project.tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "document-foundation", status: "complete" })])
+    );
   });
 
   it("rejects deployment without a website artifact", async () => {
@@ -691,6 +736,55 @@ function createFakeBackendAgent(): BackendAgent {
   };
 }
 
+function createFakeDocumentAgent(): DocumentAgent {
+  return {
+    async prepare(input) {
+      return {
+        id: "document-artifact-1",
+        projectId: input.projectId,
+        productName: "EvidenceForge",
+        provider: "foxit",
+        status: "prepared",
+        documents: [
+          {
+            id: "document-1",
+            type: "founder_launch_brief",
+            title: "EvidenceForge Founder Launch Brief",
+            fileName: "evidenceforge-founder-launch-brief.pdf",
+            contentType: "application/pdf",
+            markdown: "# EvidenceForge Founder Launch Brief",
+            generatedAt: "2026-08-31T00:00:00.000Z"
+          },
+          {
+            id: "document-2",
+            type: "investor_one_pager",
+            title: "EvidenceForge Investor One-Pager",
+            fileName: "evidenceforge-investor-one-pager.pdf",
+            contentType: "application/pdf",
+            markdown: "# EvidenceForge Investor One-Pager",
+            generatedAt: "2026-08-31T00:00:00.000Z"
+          },
+          {
+            id: "document-3",
+            type: "technical_delivery_summary",
+            title: "EvidenceForge Technical Delivery Summary",
+            fileName: "evidenceforge-technical-delivery-summary.pdf",
+            contentType: "application/pdf",
+            markdown: "# EvidenceForge Technical Delivery Summary",
+            generatedAt: "2026-08-31T00:00:00.000Z"
+          }
+        ],
+        validation: {
+          passed: true,
+          checks: [{ name: "Founder documents", passed: true, message: "Documents are ready for Foxit generation." }]
+        },
+        generatedAt: "2026-08-31T00:00:00.000Z",
+        updatedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
 function createFakeXanoClient(): XanoClient {
   return {
     async provisionBackend(input) {
@@ -711,6 +805,18 @@ function createFakeXanoClient(): XanoClient {
           guid: `endpoint-${index}`
         })),
         provisionedAt: "2026-08-31T00:00:00.000Z"
+      };
+    }
+  };
+}
+
+function createFakeFoxitClient(): FoxitClient {
+  return {
+    async generateDocument(input) {
+      return {
+        id: `foxit-${input.fileName}`,
+        downloadUrl: `https://example.foxit.com/${input.fileName}`,
+        size: input.markdown.length
       };
     }
   };

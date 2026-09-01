@@ -5,12 +5,14 @@ import {
   calculateProjectProgress,
   createInitialAgentTasks,
   backendArtifactSchema,
+  documentArtifactSchema,
   deploymentRecordSchema,
   launchProjectListSchema,
   tasksFromWorkflowPlan,
   type BackendArtifact,
   type CreateLaunchProjectInput,
   type DeploymentRecord,
+  type DocumentArtifact,
   type DomainResearch,
   type LaunchProject,
   type LaunchWorkflowPlan,
@@ -28,6 +30,7 @@ export interface ProjectRepository {
   saveWebsiteArtifact(projectId: string, artifact: WebsiteArtifact): Promise<LaunchProject>;
   saveBackendArtifact(projectId: string, artifact: BackendArtifact): Promise<LaunchProject>;
   saveDeploymentRecord(projectId: string, deployment: DeploymentRecord): Promise<LaunchProject>;
+  saveDocumentArtifact(projectId: string, artifact: DocumentArtifact): Promise<LaunchProject>;
   markApprovalPending(projectId: string): Promise<LaunchProject>;
   markApprovalResolved(projectId: string, approved: boolean): Promise<LaunchProject>;
 }
@@ -262,6 +265,44 @@ export class FileProjectRepository implements ProjectRepository {
       progress: calculateProjectProgress(tasks),
       tasks,
       deploymentRecord: parsedDeployment,
+      updatedAt: now
+    };
+
+    projects[projectIndex] = updatedProject;
+    await this.writeProjects(projects);
+    return updatedProject;
+  }
+
+  async saveDocumentArtifact(projectId: string, artifact: DocumentArtifact): Promise<LaunchProject> {
+    const projects = await this.readProjects();
+    const projectIndex = projects.findIndex((project) => project.id === projectId);
+
+    if (projectIndex === -1) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    const now = new Date().toISOString();
+    const parsedArtifact = documentArtifactSchema.parse({
+      ...artifact,
+      updatedAt: now
+    });
+    const tasks = project.tasks.map((task) =>
+      task.id === "document-foundation"
+        ? { ...task, status: parsedArtifact.status === "generated" ? ("complete" as const) : ("running" as const), updatedAt: now }
+        : task
+    );
+    const updatedProject: LaunchProject = {
+      ...project,
+      status: "active",
+      progress: calculateProjectProgress(tasks),
+      tasks,
+      documentArtifact: parsedArtifact,
       updatedAt: now
     };
 

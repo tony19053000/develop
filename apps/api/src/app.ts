@@ -3,16 +3,25 @@ import express from "express";
 import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
-import type { BackendAgent, DomainAgent, MarketBrandAgent, OrchestratorRuntime, WebsiteProductAgent } from "@launchforge/agents";
+import type {
+  BackendAgent,
+  DocumentAgent,
+  DomainAgent,
+  MarketBrandAgent,
+  OrchestratorRuntime,
+  WebsiteProductAgent
+} from "@launchforge/agents";
 import {
+  FoxitConfigurationError,
   HttpNameComClient,
   NameComConfigurationError,
   SerpApiConfigurationError,
   XanoConfigurationError,
+  type FoxitClient,
   type XanoClient
 } from "@launchforge/integrations";
 import type { SecureExecutor } from "@launchforge/secure-executor";
-import { backendArtifactSchema, createLaunchProjectSchema } from "@launchforge/shared";
+import { backendArtifactSchema, createLaunchProjectSchema, documentArtifactSchema } from "@launchforge/shared";
 import type { ApiConfig } from "./config.js";
 import { DeploymentError, type DeploymentService } from "./deployments.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
@@ -26,6 +35,19 @@ const registerDomainPayloadSchema = z.object({
   price: z.number().nullable().optional()
 });
 
+const foxitGeneratedDocumentsResultSchema = z.object({
+  generated: z.literal(true),
+  productName: z.string(),
+  documents: z.array(
+    z.object({
+      sourceDocumentId: z.string(),
+      foxitDocumentId: z.string(),
+      downloadUrl: z.string().url().optional(),
+      size: z.number().int().nonnegative().optional()
+    })
+  )
+});
+
 export interface AppDependencies {
   config: ApiConfig;
   projects: ProjectRepository;
@@ -35,7 +57,9 @@ export interface AppDependencies {
   domain: DomainAgent;
   websiteProduct: WebsiteProductAgent;
   backend: BackendAgent;
+  document: DocumentAgent;
   createXanoClient: (apiKey: string) => XanoClient;
+  createFoxitClient: (credentials: { apiKey?: string; clientSecret?: string }) => FoxitClient;
   agentLatch: AgentLatchPolicyEngine;
   approvals: ApprovalRepository;
   secureExecutor: SecureExecutor;
@@ -51,7 +75,9 @@ export function createApp({
   domain,
   websiteProduct,
   backend,
+  document,
   createXanoClient,
+  createFoxitClient,
   agentLatch,
   approvals,
   secureExecutor,
@@ -355,6 +381,117 @@ export function createApp({
       }
 
       next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/documents", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: existingProject.id,
+        agent: "document",
+        level: "info",
+        message: "Document Agent prepared founder documents for Foxit generation."
+      });
+
+      const preparedArtifact = await document.prepare({
+        projectId: existingProject.id,
+        idea: existingProject.idea,
+        ...(existingProject.marketResearch ? { marketResearch: existingProject.marketResearch } : {}),
+        ...(existingProject.domainResearch ? { domainResearch: existingProject.domainResearch } : {}),
+        ...(existingProject.websiteArtifact ? { websiteArtifact: existingProject.websiteArtifact } : {}),
+        ...(existingProject.backendArtifact ? { backendArtifact: existingProject.backendArtifact } : {}),
+        ...(existingProject.deploymentRecord ? { deploymentRecord: existingProject.deploymentRecord } : {})
+      });
+
+      if (!preparedArtifact.validation.passed) {
+        throw new ApiError(409, "Prepared documents failed validation.");
+      }
+
+      const actionRequest = toolActionRequestSchema.parse({
+        projectId: existingProject.id,
+        requestedBy: "document",
+        actionType: "foxit.generateDocument",
+        resource: `${preparedArtifact.productName} founder documents`,
+        payload: preparedArtifact,
+        reason: `Generate founder business PDF documents for ${preparedArtifact.productName}.`
+      });
+      const decision = agentLatch.evaluate(actionRequest);
+      const receipt = await secureExecutor.execute({
+        request: actionRequest,
+        approval: decision,
+        operation: async (context) => {
+          const foxit = createFoxitClient({
+            ...(config.FOXIT_API_KEY ? { apiKey: await context.getSecret("FOXIT_API_KEY") } : {}),
+            ...(config.FOXIT_CLIENT_SECRET ? { clientSecret: await context.getSecret("FOXIT_CLIENT_SECRET") } : {})
+          });
+          const generatedDocuments = [];
+
+          for (const sourceDocument of preparedArtifact.documents) {
+            const generated = await foxit.generateDocument({
+              title: sourceDocument.title,
+              fileName: sourceDocument.fileName,
+              markdown: sourceDocument.markdown,
+              templateKey: sourceDocument.type,
+              data: {
+                projectId: preparedArtifact.projectId,
+                productName: preparedArtifact.productName,
+                documentType: sourceDocument.type
+              }
+            });
+            generatedDocuments.push({
+              sourceDocumentId: sourceDocument.id,
+              foxitDocumentId: generated.id,
+              ...(generated.downloadUrl ? { downloadUrl: generated.downloadUrl } : {}),
+              ...(generated.size !== undefined ? { size: generated.size } : {})
+            });
+          }
+
+          return {
+            generated: true,
+            productName: preparedArtifact.productName,
+            documents: generatedDocuments
+          };
+        }
+      });
+      const generationResult = foxitGeneratedDocumentsResultSchema.parse(receipt.result);
+      const generatedArtifact = documentArtifactSchema.parse({
+        ...preparedArtifact,
+        status: "generated",
+        receiptId: receipt.id,
+        documents: preparedArtifact.documents.map((sourceDocument) => {
+          const generated = generationResult.documents.find((item) => item.sourceDocumentId === sourceDocument.id);
+          return {
+            ...sourceDocument,
+            ...(generated ? { foxitDocumentId: generated.foxitDocumentId } : {}),
+            ...(generated?.downloadUrl ? { downloadUrl: generated.downloadUrl } : {}),
+            ...(generated?.size !== undefined ? { size: generated.size } : {})
+          };
+        }),
+        updatedAt: new Date().toISOString()
+      });
+      const project = await projects.saveDocumentArtifact(existingProject.id, generatedArtifact);
+
+      events.publish({
+        projectId: project.id,
+        agent: "document",
+        level: "success",
+        message: `Foxit generated ${generatedArtifact.documents.length} founder documents for ${generatedArtifact.productName}.`
+      });
+
+      response.json({ project, artifact: generatedArtifact, receipt });
+    } catch (error) {
+      if (error instanceof FoxitConfigurationError || (error instanceof Error && error.message.includes("FOXIT_"))) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
+      next(mapApprovalError(error));
     }
   });
 

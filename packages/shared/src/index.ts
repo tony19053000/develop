@@ -227,6 +227,47 @@ export const deploymentRecordSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
+export const founderDocumentTypeSchema = z.enum([
+  "founder_launch_brief",
+  "investor_one_pager",
+  "technical_delivery_summary"
+]);
+
+export const generatedDocumentSchema = z.object({
+  id: z.string(),
+  type: founderDocumentTypeSchema,
+  title: z.string(),
+  fileName: z.string(),
+  contentType: z.string(),
+  markdown: z.string().min(1),
+  foxitDocumentId: z.string().optional(),
+  downloadUrl: z.string().url().optional(),
+  size: z.number().int().nonnegative().optional(),
+  generatedAt: z.string().datetime()
+});
+
+export const documentArtifactSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  productName: z.string(),
+  provider: z.enum(["foxit"]),
+  status: z.enum(["prepared", "generated"]),
+  documents: z.array(generatedDocumentSchema).min(1),
+  validation: z.object({
+    passed: z.boolean(),
+    checks: z.array(
+      z.object({
+        name: z.string(),
+        passed: z.boolean(),
+        message: z.string()
+      })
+    )
+  }),
+  receiptId: z.string().optional(),
+  generatedAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
 export const agentTaskSchema = z.object({
   id: z.string(),
   agent: agentRoleSchema,
@@ -256,6 +297,7 @@ export const launchProjectSchema = z.object({
   websiteArtifact: websiteArtifactSchema.optional(),
   backendArtifact: backendArtifactSchema.optional(),
   deploymentRecord: deploymentRecordSchema.optional(),
+  documentArtifact: documentArtifactSchema.optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -276,6 +318,9 @@ export type BackendField = z.infer<typeof backendFieldSchema>;
 export type BackendTable = z.infer<typeof backendTableSchema>;
 export type DeploymentHealthCheck = z.infer<typeof deploymentHealthCheckSchema>;
 export type DeploymentRecord = z.infer<typeof deploymentRecordSchema>;
+export type DocumentArtifact = z.infer<typeof documentArtifactSchema>;
+export type FounderDocumentType = z.infer<typeof founderDocumentTypeSchema>;
+export type GeneratedDocument = z.infer<typeof generatedDocumentSchema>;
 export type LaunchProject = z.infer<typeof launchProjectSchema>;
 export type LaunchProjectStatus = z.infer<typeof launchProjectStatusSchema>;
 export type LaunchWorkflowPlan = z.infer<typeof launchWorkflowPlanSchema>;

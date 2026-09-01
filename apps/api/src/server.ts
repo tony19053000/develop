@@ -1,13 +1,14 @@
 import { createAgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import {
   createBackendAgent,
+  createDocumentAgent,
   createDomainAgent,
   createMarketBrandAgent,
   createOrchestratorRuntime,
   createWebsiteProductAgent,
   loadAgentModelConfig
 } from "@launchforge/agents";
-import { HttpNameComClient, HttpSerpApiClient, HttpXanoClient } from "@launchforge/integrations";
+import { HttpFoxitClient, HttpNameComClient, HttpSerpApiClient, HttpXanoClient } from "@launchforge/integrations";
 import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEvidence } from "@launchforge/secure-executor";
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
@@ -36,7 +37,7 @@ const secureExecutionEvidence =
 const secureExecutor = createSecureExecutor(
   {
     mode: config.SECURE_EXECUTOR_MODE,
-    allowedSecretNames: ["NAMECOM_USERNAME", "NAMECOM_API_TOKEN", "FOXIT_CLIENT_SECRET", "XANO_API_KEY"],
+    allowedSecretNames: ["NAMECOM_USERNAME", "NAMECOM_API_TOKEN", "FOXIT_API_KEY", "FOXIT_CLIENT_SECRET", "XANO_API_KEY"],
     ...(secureExecutionEvidence ? { evidence: secureExecutionEvidence } : {}),
     attestationPolicy: {
       audience: config.TEE_ATTESTATION_AUDIENCE,
@@ -66,6 +67,7 @@ const domain = createDomainAgent(
 );
 const websiteProduct = createWebsiteProductAgent();
 const backend = createBackendAgent();
+const document = createDocumentAgent();
 const app = createApp({
   config,
   projects: new FileProjectRepository(config.DATA_DIR),
@@ -75,11 +77,20 @@ const app = createApp({
   domain,
   websiteProduct,
   backend,
+  document,
   createXanoClient: (apiKey) =>
     new HttpXanoClient({
       apiKey,
       ...(config.XANO_WORKSPACE_ID ? { workspaceId: config.XANO_WORKSPACE_ID } : {}),
       ...(config.XANO_INSTANCE_BASE_URL ? { instanceBaseUrl: config.XANO_INSTANCE_BASE_URL } : {})
+    }),
+  createFoxitClient: ({ apiKey, clientSecret }) =>
+    new HttpFoxitClient({
+      ...(apiKey ? { apiKey } : {}),
+      ...(config.FOXIT_CLIENT_ID ? { clientId: config.FOXIT_CLIENT_ID } : {}),
+      ...(clientSecret ? { clientSecret } : {}),
+      baseUrl: config.FOXIT_API_BASE_URL,
+      documentGenerationPath: config.FOXIT_DOCUMENT_GENERATION_PATH
     }),
   agentLatch,
   approvals: new FileApprovalRepository(config.DATA_DIR),
