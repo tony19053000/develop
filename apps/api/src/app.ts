@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import cors from "cors";
 import express from "express";
@@ -622,6 +622,111 @@ export function createApp({
     }
   });
 
+  app.post("/api/projects/:projectId/esign/envelope", async (request, response, next) => {
+    try {
+      const existingProject = await projects.findById(request.params.projectId);
+
+      if (!existingProject) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      if (!existingProject.foxitESignPackage) {
+        throw new ApiError(409, "Foxit eSign package is required before envelope creation.");
+      }
+
+      const currentESignPackage = existingProject.foxitESignPackage;
+      const signerEmail = currentESignPackage.signer.email ?? "aayush19053000@gmail.com";
+      const selectedDocuments = currentESignPackage.documents.slice(0, 1);
+      const documents = await Promise.all(
+        selectedDocuments.map(async (document) => ({
+          fileName: document.fileName,
+          pdfBase64: (await readPreparedPdf({
+            documentsRoot,
+            projectId: existingProject.id,
+            downloadUrl: document.downloadUrl
+          })).toString("base64")
+        }))
+      );
+      const actionRequest = toolActionRequestSchema.parse({
+        projectId: existingProject.id,
+        requestedBy: "document",
+        actionType: "foxit.createESignEnvelope",
+        resource: `${currentESignPackage.productName} eSign draft envelope`,
+        payload: {
+          documents: selectedDocuments.map((document) => ({
+            documentId: document.documentId,
+            fileName: document.fileName
+          })),
+          signerEmail,
+          sendNow: false,
+          createEmbeddedSendingSession: true
+        },
+        reason: "Create a Foxit eSign draft envelope and embedded human preparation session without sending or signing."
+      });
+      const decision = agentLatch.evaluate(actionRequest);
+      const receipt = await secureExecutor.execute({
+        request: actionRequest,
+        approval: decision,
+        operation: async (context) => {
+          const secretName = config.FOXIT_ESIGN_CLIENT_SECRET ? "FOXIT_ESIGN_CLIENT_SECRET" : "FOXIT_CLIENT_SECRET";
+          const foxitESign = createFoxitESignClient(await context.getSecret(secretName));
+          const created = await foxitESign.createEnvelope({
+            folderName: `${currentESignPackage.productName} Founder Signature Package`,
+            signer: {
+              firstName: "Aayush",
+              lastName: "Kumar",
+              emailId: signerEmail,
+              permission: "FILL_FIELDS_AND_SIGN"
+            },
+            documents,
+            sendNow: false,
+            createEmbeddedSendingSession: true
+          });
+          return {
+            created: true,
+            foxitEnvelopeId: created.envelopeId,
+            status: created.status,
+            embeddedSessionUrl: created.embeddedSessionUrl
+          };
+        }
+      });
+      const esignPackage = foxitESignPackageSchema.parse({
+        ...currentESignPackage,
+        signer: {
+          ...currentESignPackage.signer,
+          email: signerEmail
+        },
+        foxitEnvelopeId: String(receipt.result.foxitEnvelopeId),
+        ...(typeof receipt.result.embeddedSessionUrl === "string"
+          ? { foxitEmbeddedSessionUrl: receipt.result.embeddedSessionUrl }
+          : {}),
+        status: "human_action_required",
+        updatedAt: new Date().toISOString()
+      });
+      const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
+
+      events.publish({
+        projectId: project.id,
+        agent: "document",
+        level: "warning",
+        message: `Foxit eSign draft envelope ${esignPackage.foxitEnvelopeId} created. Human preparation/signing remains required.`
+      });
+
+      response.json({ project, esignPackage, receipt });
+    } catch (error) {
+      if (
+        error instanceof FoxitESignConfigurationError ||
+        error instanceof FoxitESignRequestError ||
+        (error instanceof Error && error.message.includes("FOXIT_"))
+      ) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
+      next(mapApprovalError(error));
+    }
+  });
+
   app.patch("/api/projects/:projectId/esign/status", async (request, response, next) => {
     try {
       const existingProject = await projects.findById(request.params.projectId);
@@ -698,8 +803,8 @@ export function createApp({
           };
         }
       });
-      const rawStatus = typeof receipt.result.status === "string" ? receipt.result.status.toLowerCase() : "shared";
-      const mappedStatus = foxitESignStatusSchema.catch("shared").parse(rawStatus);
+      const rawStatus = typeof receipt.result.status === "string" ? receipt.result.status : "shared";
+      const mappedStatus = mapFoxitESignStatus(rawStatus);
       const esignPackage = foxitESignPackageSchema.parse({
         ...existingProject.foxitESignPackage,
         foxitEnvelopeId: String(receipt.result.foxitEnvelopeId ?? envelopeId),
@@ -1077,6 +1182,57 @@ async function storeGeneratedPdf({
   await writeFile(outputPath, pdfBytes);
 
   return `${baseUrl}/documents/${encodeURIComponent(projectId)}/${encodeURIComponent(safeFileName)}`;
+}
+
+async function readPreparedPdf({
+  documentsRoot,
+  projectId,
+  downloadUrl
+}: {
+  documentsRoot: string;
+  projectId: string;
+  downloadUrl: string;
+}): Promise<Buffer> {
+  const parsedUrl = new URL(downloadUrl);
+  const prefix = `/documents/${projectId}/`;
+  const documentPathIndex = parsedUrl.pathname.indexOf(prefix);
+
+  if (documentPathIndex === -1) {
+    throw new ApiError(400, "Document download URL is outside the project document store.");
+  }
+
+  const fileName = decodeURIComponent(parsedUrl.pathname.slice(documentPathIndex + prefix.length));
+  const filePath = path.join(documentsRoot, projectId, fileName);
+  const normalizedRoot = path.resolve(documentsRoot, projectId);
+  const normalizedPath = path.resolve(filePath);
+
+  if (!normalizedPath.startsWith(`${normalizedRoot}${path.sep}`)) {
+    throw new ApiError(400, "Document path is invalid.");
+  }
+
+  return readFile(normalizedPath);
+}
+
+function mapFoxitESignStatus(status: string) {
+  const normalized = status.toLowerCase().replace(/[\s-]+/g, "_");
+
+  if (normalized === "draft" || normalized === "prepared") {
+    return "human_action_required";
+  }
+
+  if (normalized === "shared" || normalized === "partially_signed") {
+    return "shared";
+  }
+
+  if (normalized === "completed" || normalized === "folder_completed") {
+    return "completed";
+  }
+
+  if (normalized === "executed" || normalized === "folder_executed") {
+    return "executed";
+  }
+
+  return foxitESignStatusSchema.catch("shared").parse(normalized);
 }
 
 function parseApprovalToken(body: unknown): string {

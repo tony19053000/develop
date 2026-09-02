@@ -56,6 +56,7 @@ interface DocumentArtifactResponse {
 interface ESignPackageResponse {
   project: LaunchProject;
   esignPackage: FoxitESignPackage;
+  receipt?: SecureExecutionReceipt;
 }
 
 interface HumanOnlyDecisionResponse {
@@ -145,6 +146,13 @@ export async function generateDocuments(projectId: string): Promise<DocumentArti
 
 export async function prepareESign(projectId: string): Promise<ESignPackageResponse> {
   const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/esign/prepare`, {
+    method: "POST"
+  });
+  return readJson<ESignPackageResponse>(response);
+}
+
+export async function createESignEnvelope(projectId: string): Promise<ESignPackageResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/esign/envelope`, {
     method: "POST"
   });
   return readJson<ESignPackageResponse>(response);

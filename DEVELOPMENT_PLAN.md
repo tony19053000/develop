@@ -236,15 +236,15 @@ Acceptance:
 
 Tasks:
 
-- Signature workflow.
-- Human-only classification.
-- AI signature prevention.
-- Foxit eSign completion state.
-- Audit.
+- Signature workflow: complete with real Foxit Fusion eSign draft envelope creation.
+- Human-only classification: complete for `foxit.sendForSignature`.
+- AI signature prevention: complete; AI send attempts return HTTP 409 `HUMAN_ONLY`.
+- Foxit eSign completion state: complete with read-only status refresh reporting `EXECUTED`.
+- Audit: protected action receipts and status changes recorded for Phase 13 scope.
 
 Acceptance:
 
-- AI prepares documents but cannot sign as the user.
+- AI prepares documents but cannot sign as the user. Verified with real envelope `35688804`.
 
 ## Phase 14 - Full Multi-Agent Orchestration
 

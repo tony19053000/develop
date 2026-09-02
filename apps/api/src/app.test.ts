@@ -362,6 +362,36 @@ describe("LaunchForge API foundation", () => {
     expect(response.body.esignPackage.status).toBe("completed");
   });
 
+  it("creates a Foxit eSign draft envelope through SecureExecutor without sending", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/documents`).expect(200);
+    await request(app).post(`/api/projects/${createResponse.body.project.id}/esign/prepare`).expect(200);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/esign/envelope`)
+      .expect(200);
+
+    expect(response.body.receipt).toMatchObject({
+      actionType: "foxit.createESignEnvelope",
+      evidenceVerified: false,
+      result: {
+        created: true,
+        foxitEnvelopeId: "folder-123",
+        status: "DRAFT"
+      }
+    });
+    expect(response.body.esignPackage).toMatchObject({
+      foxitEnvelopeId: "folder-123",
+      foxitEmbeddedSessionUrl: "https://na1.fusion.foxit.com/embedded/embeddedsend?eetid=test",
+      status: "human_action_required",
+      humanOnly: true
+    });
+  });
+
   it("rejects deployment without a website artifact", async () => {
     const createResponse = await request(app)
       .post("/api/projects")
@@ -903,7 +933,7 @@ function createFakeFoxitClient(): FoxitClient {
     async generateDocument(input) {
       return {
         id: `foxit-${input.fileName}`,
-        downloadUrl: `https://example.foxit.com/${input.fileName}`,
+        base64FileString: Buffer.from("%PDF-1.4\n% fake pdf").toString("base64"),
         size: input.markdown.length
       };
     }
@@ -912,6 +942,13 @@ function createFakeFoxitClient(): FoxitClient {
 
 function createFakeFoxitESignClient(): FoxitESignClient {
   return {
+    async createEnvelope() {
+      return {
+        envelopeId: "folder-123",
+        status: "DRAFT",
+        embeddedSessionUrl: "https://na1.fusion.foxit.com/embedded/embeddedsend?eetid=test"
+      };
+    },
     async getEnvelopeStatus(envelopeId) {
       return {
         envelopeId,

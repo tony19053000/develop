@@ -112,7 +112,7 @@ Phase 12 was live verified with `https://na1.fusion.foxit.com/document-generatio
 
 ## Phase 13 eSign Boundary
 
-Phase 13 prepares Foxit eSign packages but keeps send/sign execution human-only.
+Phase 13 prepares Foxit eSign packages, creates real Fusion draft envelopes, and keeps send/sign execution human-only.
 
 Blocked AI send path:
 
@@ -136,4 +136,15 @@ foxit.getEnvelopeStatus
   -> status receipt
 ```
 
-The current Fusion eSign adapter uses the existing Foxit Developer Portal application credentials as `client_id` and `client_secret` headers against `https://na1.fusion.foxit.com/esign/api/v1/...`. Live eSign verification is pending activation/access for that existing application and a real folder/signing workflow. This does not weaken the send/sign boundary: the AI path still returns `HUMAN_ONLY` before any sponsor send action can occur.
+Draft envelope creation path:
+
+```text
+foxit.createESignEnvelope
+  -> AgentLatch AUTO_ALLOW for draft preparation
+  -> SecureExecutor
+  -> FOXIT_CLIENT_SECRET resolution
+  -> Foxit Fusion createfolder endpoint
+  -> embedded human send/sign URL
+```
+
+The current Fusion eSign adapter uses the existing Foxit Developer Portal application credentials as `client_id` and `client_secret` headers against `https://na1.fusion.foxit.com/esign/api/v1/...`. Phase 13 was live verified with envelope `35688804`: LaunchForge created the draft, the human sent and signed it in Foxit, and read-only status refresh returned `EXECUTED`. Local eSign receipts correctly reported `evidenceVerified: false`; only the Google Confidential Space production executor can return `evidenceVerified: true` after genuine attestation verification.

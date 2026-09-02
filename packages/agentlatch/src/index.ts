@@ -17,6 +17,7 @@ export const toolActionTypeSchema = z.enum([
   "namecom.updateDns",
   "xano.provisionBackend",
   "foxit.generateDocument",
+  "foxit.createESignEnvelope",
   "foxit.getEnvelopeStatus",
   "foxit.sendForSignature",
   "system.read",

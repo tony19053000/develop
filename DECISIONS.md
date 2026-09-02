@@ -339,7 +339,7 @@ Reversibility: Medium.
 
 ## 2026-09-02 - Human-Only Foxit eSign Boundary
 
-Decision: Implement eSign preparation and status modeling while keeping `foxit.sendForSignature` non-executable for AI agents.
+Decision: Implement real Fusion eSign draft/status workflows while keeping `foxit.sendForSignature` non-executable for AI agents.
 
 Context: Phase 13 requires Foxit eSign workflows, but the product requirement explicitly says AI prepares documents and cannot sign as the user.
 
@@ -349,10 +349,10 @@ Alternatives:
 - Reuse the Phase 12 DocGen path and ignore eSign-specific API boundaries.
 - Defer all eSign UX until live credentials are available.
 
-Chosen Approach: Add typed `FoxitESignPackage` state, dashboard preparation controls, manual envelope status recording, and a read-only Foxit eSign status adapter. `foxit.sendForSignature` remains `HUMAN_ONLY`, cannot create a normal approval, and returns a 409 safety response if the AI path attempts it.
+Chosen Approach: Add typed `FoxitESignPackage` state, dashboard preparation controls, SecureExecutor-gated Fusion draft envelope creation, embedded human send/sign handoff, manual envelope status recording, and a read-only Foxit eSign status adapter. `foxit.sendForSignature` remains `HUMAN_ONLY`, cannot create a normal approval, and returns a 409 safety response if the AI path attempts it.
 
 Reason: This gives the founder a prepared package and completion-state tracking while preserving signer identity and consent as human-only acts.
 
-Consequences: Phase 13 is implemented as a checkpoint. The current Fusion eSign adapter uses the existing Foxit Developer Portal application credentials as `client_id` and `client_secret` request headers. Live eSign verification still requires that eSign be activated for that existing application and that a real folder/signing workflow succeeds before the phase can be marked complete. Separate `FOXIT_ESIGN_CLIENT_ID` / `FOXIT_ESIGN_CLIENT_SECRET` values are reserved only for an intentional switch to Foxit's legacy eSign credential model.
+Consequences: Phase 13 is complete after a real Fusion eSign envelope `35688804` was created with the existing Foxit Developer Portal application credentials, sent by the human in Foxit, signed by the human signer, and verified through Foxit status read-back as `EXECUTED`. Local SecureExecutor eSign receipts still report `evidenceVerified: false`; `evidenceVerified: true` remains reserved for genuine Google Confidential Space attestation. Separate `FOXIT_ESIGN_CLIENT_ID` / `FOXIT_ESIGN_CLIENT_SECRET` values are reserved only for an intentional switch to Foxit's legacy eSign credential model.
 
 Reversibility: Medium.

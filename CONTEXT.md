@@ -8,7 +8,8 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 
 Phase 11 - Deployment System is complete and approved.
 Phase 12 - Foxit + Document Agent is complete and approved.
-Current phase: Phase 13 - Foxit eSign + Human-Only Boundary is implemented as a checkpoint; live Fusion eSign activation/workflow verification is pending.
+Phase 13 - Foxit eSign + Human-Only Boundary is complete and approved.
+Current phase: Phase 14 - Full Multi-Agent Orchestration.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -23,6 +24,7 @@ Phase 9 - Website / Product Agent is complete and approved.
 Phase 10 - Xano + Backend Agent is complete and approved.
 Phase 11 - Deployment System is complete and approved.
 Phase 12 - Foxit + Document Agent is complete and approved.
+Phase 13 - Foxit eSign + Human-Only Boundary is complete and approved.
 
 ## Completed Work
 
@@ -185,18 +187,20 @@ Phase 12 - Foxit + Document Agent is complete and approved.
   - Verified real Foxit PDF generation for project `68d5b4b2-7855-4256-9af5-b2a81a463359`.
   - Generated three PDF files: founder launch brief `6523` bytes, investor one-pager `6399` bytes, and technical delivery summary `6527` bytes.
   - Verified generated files have `%PDF-` signatures and are served as `application/pdf`.
-- Added Phase 13 Foxit eSign + Human-Only Boundary checkpoint:
+- Completed Phase 13 Foxit eSign + Human-Only Boundary:
   - Added typed `FoxitESignPackage` shared state.
   - Added eSign package persistence on launch projects.
   - Added `POST /api/projects/:projectId/esign/prepare`.
   - Added `POST /api/projects/:projectId/esign/send-attempt`, which returns HTTP 409 and AgentLatch `HUMAN_ONLY`.
   - Added manual `PATCH /api/projects/:projectId/esign/status` for human-recorded envelope state.
   - Added read-only `POST /api/projects/:projectId/esign/status/refresh` through AgentLatch, SecureExecutor, and the Foxit eSign status adapter.
+  - Added real `POST /api/projects/:projectId/esign/envelope` draft creation through AgentLatch, SecureExecutor, and Foxit Fusion eSign.
   - Added dashboard eSign preparation and AI send-check controls.
   - Added `docs/FOXIT_ESIGN.md`.
   - Verified local eSign preparation, human-only send blocking, and manual executed-state recording.
   - Corrected eSign integration to Foxit's current Fusion eSign API using `client_id` and `client_secret` request headers against `https://na1.fusion.foxit.com/esign/api/v1/...`.
-  - Current Fusion eSign activation probe returns HTTP 502 with the existing Foxit application credentials, while dummy credentials return JSON `401 Invalid credentials`. This suggests the existing app credentials are not yet usable for activated eSign workflows.
+  - Created real Foxit draft envelope `35688804` for project `dc4e763d-a394-4687-be51-786c006fbf17`, returned an embedded human send/sign URL, completed the human signing flow, and verified Foxit read-back status `EXECUTED`.
+  - Verified the AI send path still returns HTTP 409 with `HUMAN_ONLY`.
 
 ## Architecture Summary
 
@@ -208,14 +212,14 @@ Current architecture:
 - Shared Zod-backed TypeScript contracts.
 - File-backed Phase 1 project storage.
 - LangGraph Orchestrator runtime is implemented.
-- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, live-verified Foxit DocGen PDF generation, and a current Fusion Foxit eSign checkpoint awaiting app activation.
+- Sponsor adapter layer has live-verified SerpApi, name.com availability, protected name.com development/test registration, protected Xano Metadata API provisioning, live-verified Foxit DocGen PDF generation, and live-verified Foxit Fusion eSign draft/status workflow with human-only send/sign boundaries.
 - AgentLatch deterministic policy engine, protected executor boundary, approval persistence, signed tokens, and approval dashboard are implemented.
 - SecureExecutor abstraction is implemented and real Google Confidential Space attestation is verified. Local mode is not hardware-backed and always reports `evidenceVerified: false`.
 - Website/Product Agent is implemented with local static artifact generation, validation, project persistence, and dashboard preview.
 - Backend Agent is implemented and live verified with Xano Metadata API provisioning.
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
 - Document Agent is implemented and live verified with Foxit DocGen PDF generation through SecureExecutor-gated sponsor execution.
-- Foxit eSign preparation and human-only send blocking are implemented; read-only Fusion eSign status refresh awaits activated eSign access for the existing Foxit app credentials.
+- Foxit eSign preparation, real Fusion draft envelope creation, embedded human send/sign handoff, read-only status refresh, and human-only AI send blocking are implemented and live verified.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -260,6 +264,9 @@ Current architecture:
 - `POST /api/secure-executions/xano/provision-backend`
 - `POST /api/projects/:projectId/deployments`
 - `GET /deployments/:deploymentId/`
+- `POST /api/projects/:projectId/esign/envelope`
+- `POST /api/projects/:projectId/esign/status/refresh`
+- `POST /api/projects/:projectId/esign/send-attempt`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -303,7 +310,9 @@ Current architecture:
 - Phase 11 local deployment smoke test: passed with deployment `73feef18-a64c-4d15-bd22-9319b23d3f8e`.
 - Phase 12 no-credential Foxit smoke test: passed with HTTP 424, confirming LaunchForge refuses to fake sponsor PDF generation.
 - Phase 12 real Foxit DocGen run: passed with receipt `6c62ef48-43b0-40fd-b215-7235dd35ea54` and three valid PDF outputs.
-- Phase 13 checkpoint tests: passing with eSign preparation, human-only send blocking, manual state recording, and mocked status refresh.
+- Phase 13 real Foxit Fusion eSign run: passed with envelope `35688804`, human send/sign completed, Foxit status `EXECUTED`, and local SecureExecutor receipts reporting `evidenceVerified: false`.
+- Phase 13 AI-send prevention: passed with HTTP 409, AgentLatch `HUMAN_ONLY`, and `executable: false`.
+- Phase 13 automated tests: passing with eSign preparation, human-only send blocking, real-envelope route mocking, manual state recording, and mocked status refresh.
 
 ## Environment Assumptions
 
@@ -313,14 +322,14 @@ Current architecture:
 - `NAMECOM_USERNAME` and `NAMECOM_API_TOKEN` are configured locally for Phase 4 verification and must not be committed.
 - `XANO_API_KEY`, `XANO_WORKSPACE_ID`, and `XANO_INSTANCE_BASE_URL` are configured locally and must not be committed.
 - Foxit credentials are configured locally and must not be committed.
-- Foxit current Fusion eSign uses existing `FOXIT_CLIENT_ID` and `FOXIT_CLIENT_SECRET`. The current blocker is Foxit Developer Portal eSign activation/access for that application, not a legacy OAuth credential requirement.
+- Foxit current Fusion eSign uses existing `FOXIT_CLIENT_ID` and `FOXIT_CLIENT_SECRET`; no separate eSign credentials are required for the current integration.
 
 ## Blockers
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
-Phase 13 completion requires a real current Fusion eSign folder/signing workflow to succeed with eSign activated for the existing Foxit Developer Portal application.
+No Phase 13 blocker remains.
 
 ## Next Exact Task
 
-Verify eSign is activated for the Foxit Developer Portal application, retry current Fusion eSign folder/status access with `FOXIT_CLIENT_ID` and `FOXIT_CLIENT_SECRET`, then complete Phase 13 without enabling AI send/sign execution.
+Begin Phase 14 by connecting the completed agent and sponsor capabilities into a full multi-agent orchestration run.

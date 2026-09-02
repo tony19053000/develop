@@ -38,6 +38,7 @@ import {
 import {
   attemptAISignatureSend,
   approveRequest,
+  createESignEnvelope,
   createProject,
   deployProject,
   dryRunSecureExecution,
@@ -244,6 +245,24 @@ export function App() {
       setSelectedProjectId(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to prepare eSign.");
+    } finally {
+      setIsPreparingESign(false);
+    }
+  }
+
+  async function handleCreateESignEnvelope(projectId: string) {
+    setIsPreparingESign(true);
+    setError(null);
+
+    try {
+      const { project, receipt } = await createESignEnvelope(projectId);
+      setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
+      if (receipt) {
+        setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+      }
+      setSelectedProjectId(project.id);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to create Foxit eSign draft.");
     } finally {
       setIsPreparingESign(false);
     }
@@ -530,6 +549,7 @@ export function App() {
                     esignPackage={selectedProject.foxitESignPackage}
                     isPreparingESign={isPreparingESign}
                     onAttemptAISend={handleAttemptAISend}
+                    onCreateESignEnvelope={handleCreateESignEnvelope}
                     onPrepareESign={handlePrepareESign}
                   />
                 ) : null}
@@ -621,12 +641,14 @@ function DocumentArtifactPanel({
   esignPackage,
   isPreparingESign,
   onAttemptAISend,
+  onCreateESignEnvelope,
   onPrepareESign
 }: {
   artifact: DocumentArtifact;
   esignPackage: LaunchProject["foxitESignPackage"];
   isPreparingESign: boolean;
   onAttemptAISend: (projectId: string) => Promise<void>;
+  onCreateESignEnvelope: (projectId: string) => Promise<void>;
   onPrepareESign: (projectId: string) => Promise<void>;
 }) {
   return (
@@ -692,6 +714,27 @@ function DocumentArtifactPanel({
             <ShieldX size={18} aria-hidden="true" />
             AI Send Check
           </button>
+          <button
+            className="secondary-button"
+            disabled={!esignPackage || isPreparingESign}
+            onClick={() => void onCreateESignEnvelope(artifact.projectId)}
+            type="button"
+          >
+            <ClipboardCheck size={18} aria-hidden="true" />
+            {esignPackage?.foxitEnvelopeId ? "Refresh Draft" : "Create Draft"}
+          </button>
+          {esignPackage?.foxitEmbeddedSessionUrl ? (
+            <a
+              className="secondary-button"
+              href={esignPackage.foxitEmbeddedSessionUrl}
+              rel="noreferrer"
+              target="_blank"
+              title="Open Foxit eSign"
+            >
+              <ExternalLink size={18} aria-hidden="true" />
+              Open Foxit
+            </a>
+          ) : null}
         </div>
       </div>
     </section>

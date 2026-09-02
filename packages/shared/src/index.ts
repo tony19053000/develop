@@ -290,6 +290,7 @@ export const foxitESignPackageSchema = z.object({
     permission: z.literal("FILL_FIELDS_AND_SIGN")
   }),
   foxitEnvelopeId: z.string().optional(),
+  foxitEmbeddedSessionUrl: z.string().url().optional(),
   auditNote: z.string(),
   preparedAt: z.string().datetime(),
   updatedAt: z.string().datetime()
