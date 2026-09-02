@@ -91,6 +91,13 @@ button {
   background: #1a2722;
 }
 
+.nav-item.active {
+  background: #1f6f46;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 #7bf59d;
+}
+
 .workspace {
   display: flex;
   flex-direction: column;
@@ -309,22 +316,77 @@ textarea:focus {
 
 .approval-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.approval-actions.compact {
   gap: 6px;
 }
 
 .approval-actions button {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #c8d8cc;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
   border-radius: 8px;
-  background: #ffffff;
-  color: #1f5e3d;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.approval-actions button:last-child {
-  color: #9b2c23;
+.approval-actions .approve-btn {
+  border: 1px solid #23854d;
+  background: #1f6f46;
+  color: #ffffff;
+}
+
+.approval-actions .approve-btn:hover {
+  background: #195837;
+}
+
+.approval-actions .reject-btn {
+  border: 1px solid #e5b4ad;
+  background: #fff1ef;
+  color: #8c2219;
+}
+
+.approval-actions .reject-btn:hover {
+  background: #fce8e5;
+}
+
+.approval-actions .dryrun-btn {
+  border: 1px solid #c0d8c8;
+  background: #edf3ef;
+  color: #1b4330;
+}
+
+.approval-actions .dryrun-btn:hover {
+  background: #dbe9df;
+}
+
+.approval-actions .action-btn {
+  border: 1px solid #1f5e3d;
+  background: #1f5e3d;
+  color: #ffffff;
+}
+
+.approval-actions .action-btn:hover {
+  background: #17482f;
+}
+
+.approval-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eef2ef;
+  color: #4f5f55;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .mini-action-button {

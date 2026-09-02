@@ -61,13 +61,15 @@ import {
 } from "./api.js";
 
 const navigation = [
-  { label: "Dashboard", icon: LayoutDashboard },
-  { label: "New Launch", icon: Plus },
-  { label: "Live Workspace", icon: Radio },
-  { label: "Approvals", icon: ClipboardCheck },
-  { label: "Security", icon: LockKeyhole },
-  { label: "Audit", icon: Activity }
-];
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "new_launch", label: "New Launch", icon: Plus },
+  { id: "live_workspace", label: "Live Workspace", icon: Radio },
+  { id: "approvals", label: "Approvals", icon: ClipboardCheck },
+  { id: "security", label: "Security", icon: LockKeyhole },
+  { id: "audit", label: "Audit", icon: Activity }
+] as const;
+
+type NavTab = (typeof navigation)[number]["id"];
 
 const agentMeta: Record<AgentRole, { label: string; icon: typeof Bot }> = {
   orchestrator: { label: "Orchestrator", icon: Bot },
@@ -86,6 +88,7 @@ export function App() {
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [secureReceipts, setSecureReceipts] = useState<SecureExecutionReceipt[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -432,8 +435,15 @@ export function App() {
         <nav className="nav-list">
           {navigation.map((item) => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
-              <button className="nav-item" key={item.label} type="button" title={item.label}>
+              <button
+                className={isActive ? "nav-item active" : "nav-item"}
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                type="button"
+                title={item.label}
+              >
                 <Icon size={18} aria-hidden="true" />
                 <span>{item.label}</span>
               </button>
@@ -1070,55 +1080,60 @@ function ApprovalPanel({
               {approval.status === "pending" ? (
                 <div className="approval-actions">
                   <button
+                    className="approve-btn"
                     aria-label={`Approve ${approval.actionRequest.resource}`}
                     onClick={() => void onDecision(approval, "approve")}
-                    title="Approve"
                     type="button"
                   >
                     <ShieldCheck size={16} aria-hidden="true" />
+                    <span>Approve</span>
                   </button>
                   <button
+                    className="reject-btn"
                     aria-label={`Reject ${approval.actionRequest.resource}`}
                     onClick={() => void onDecision(approval, "reject")}
-                    title="Reject"
                     type="button"
                   >
                     <ShieldX size={16} aria-hidden="true" />
+                    <span>Reject</span>
                   </button>
                 </div>
               ) : approval.status === "approved" ? (
                 <div className="approval-actions compact">
                   <button
+                    className="dryrun-btn"
                     aria-label={`Dry run ${approval.actionRequest.resource}`}
                     onClick={() => void onDryRun(approval)}
-                    title="Dry run"
                     type="button"
                   >
                     <ShieldCheck size={16} aria-hidden="true" />
+                    <span>Dry Run</span>
                   </button>
                   {approval.actionRequest.actionType === "namecom.registerDomain" ? (
                     <button
+                      className="action-btn"
                       aria-label={`Register ${approval.actionRequest.resource}`}
                       onClick={() => void onRegister(approval)}
-                      title="Register"
                       type="button"
                     >
                       <Globe2 size={16} aria-hidden="true" />
+                      <span>Register Domain</span>
                     </button>
                   ) : null}
                   {approval.actionRequest.actionType === "xano.provisionBackend" ? (
                     <button
+                      className="action-btn"
                       aria-label={`Provision backend ${approval.actionRequest.resource}`}
                       onClick={() => void onProvisionBackend(approval)}
-                      title="Provision backend"
                       type="button"
                     >
                       <Database size={16} aria-hidden="true" />
+                      <span>Provision Backend</span>
                     </button>
                   ) : null}
                 </div>
               ) : (
-                <small>{approval.status}</small>
+                <small className="approval-status-badge">{approval.status}</small>
               )}
             </div>
           ))}

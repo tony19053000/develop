@@ -384,3 +384,17 @@ Reason: This provides full traceability and compliance evidence for human approv
 Consequences: Local SecureExecutor audit receipts report `evidenceVerified: false`; `evidenceVerified: true` remains strictly reserved for verified Google Confidential Space attestation tokens. `foxit.sendForSignature` evaluations record `HUMAN_ONLY` decisions with `executable: false`.
 
 Reversibility: Medium.
+
+## 2026-09-02 - Active Navigation Tabs and Explicit Approval Controls
+
+Decision: Implement Phase 16 Final UI / UX with interactive active sidebar navigation tabs and explicit labeled approval buttons.
+
+Context: Users needed clear visual feedback for navigation view switching and explicit, unambiguous action controls for protected approvals.
+
+Chosen Approach: Connect sidebar navigation items (`Dashboard`, `New Launch`, `Live Workspace`, `Approvals`, `Security`, `Audit`) to an `activeTab` state with highlighted active styling. Replace icon-only approval buttons with explicit, labeled buttons (`Approve`, `Reject`, `Dry Run`, `Register Domain`, `Provision Backend`) featuring distinct color indicators and hover states.
+
+Reason: This eliminates user confusion around card vs button clicks and makes navigation and approval actions visually striking and intuitive.
+
+Consequences: Phase 16 is complete after full workspace unit test validation, active tab switching verification, labeled approval button testing, and no-vulnerabilities security audit.
+
+Reversibility: Medium.
