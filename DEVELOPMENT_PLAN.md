@@ -250,13 +250,13 @@ Acceptance:
 
 Tasks:
 
-- Connect all agents: checkpoint implemented through `POST /api/projects/:projectId/orchestrate/full`.
-- Dependencies and handoffs: checkpoint implemented for market, domain, website, backend, deployment, documents, and eSign preparation.
-- Recovery and pause/resume: checkpoint implemented for idempotent artifact reuse and Xano approval pause/resume.
+- Connect all agents: complete through `POST /api/projects/:projectId/orchestrate/full`.
+- Dependencies and handoffs: complete for market, domain, website, backend, deployment, documents, and eSign preparation.
+- Recovery and pause/resume: complete for idempotent artifact reuse and Xano approval pause/resume.
 
 Acceptance:
 
-- One launch request flows through all required agents and integrations. Automated coverage passes; live local verification is paused for human Xano approval before final Phase 14 approval.
+- One launch request flows through all required agents and integrations. Verified with live pause/resume through Xano provisioning, deployment, Foxit documents, and eSign preparation.
 
 ## Phase 15 - Audit + Security Center
 

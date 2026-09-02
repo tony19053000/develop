@@ -6,7 +6,7 @@ AgentLatch is the enforceable authorization layer between AI agents and sensitiv
 
 ## Current Status
 
-Phase 14 is implemented as a checkpoint and paused for human Xano approval in live local verification. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, live-verified SecureExecutor-gated Foxit PDF document generation, live-verified Foxit Fusion eSign draft/status workflow with human-only send/sign protection, and a resumable full-launch orchestration route.
+Phase 14 is complete and approved. The repository contains a runnable full-stack TypeScript foundation with a React command-center shell, Express API, shared launch contracts, file-backed project storage, SSE event plumbing, LangGraph orchestration, live-verified SerpApi market research, live-verified name.com domain availability and protected development/test registration, deterministic AgentLatch policies, signed human approval flows, verified Google Confidential Space secure execution, generated product website artifacts with dashboard preview, verified protected Xano backend provisioning, local static deployment with health checks, live-verified SecureExecutor-gated Foxit PDF document generation, live-verified Foxit Fusion eSign draft/status workflow with human-only send/sign protection, and a live-verified resumable full-launch orchestration route.
 
 ## Sponsor Integrations
 
@@ -14,7 +14,7 @@ Phase 14 is implemented as a checkpoint and paused for human Xano approval in li
 - name.com: domain search, availability, registration, DNS operations.
 - Xano: generated product backend, APIs, data models, auth where appropriate.
 - Foxit: business document generation, PDF workflows, and Fusion eSign draft/status workflows live verified; send/sign remains blocked as human-only.
-- Full orchestration: `POST /api/projects/:projectId/orchestrate/full` connects completed agents and pauses at protected approval gates.
+- Full orchestration: `POST /api/projects/:projectId/orchestrate/full` connects completed agents, pauses at protected approval gates, and resumes after approval through deployment, documents, and eSign preparation.
 
 ## Architecture Summary
 
