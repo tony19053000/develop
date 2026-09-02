@@ -1,6 +1,6 @@
 # Status
 
-## Overall Completion: 82%
+## Overall Completion: 87%
 
 Only completed and reviewer-approved phase weights count toward completion.
 
@@ -21,7 +21,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 12 | Foxit + Document Agent | 4 | 100% complete |
 | 13 | Foxit eSign + Human-Only Boundary | 4 | 100% complete |
 | 14 | Full Multi-Agent Orchestration | 6 | 100% complete |
-| 15 | Audit + Security Center | 5 | 0% pending |
+| 15 | Audit + Security Center | 5 | 100% complete |
 | 16 | Final UI / UX | 3 | 0% pending |
 | 17 | Full Security & Failure Testing | 4 | 0% pending |
 | 18 | End-to-End Final Integration | 4 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 14 - Full Multi-Agent Orchestration is complete and approved.
+Phase 15 - Audit + Security Center is complete and approved.
 
 ## Current Task
 
-Begin Phase 15 - Audit + Security Center.
+Begin Phase 16 - Final UI / UX.
 
 ## Baseline
 
@@ -55,11 +55,12 @@ Begin Phase 15 - Audit + Security Center.
 - Phase 12 implementation adds typed document artifacts, a credential-free Document Agent, a real Foxit DocGen HTTP adapter, SecureExecutor-gated Foxit generation, dashboard document controls, local PDF storage/serving, mocked protected-path tests, and real Foxit verification.
 - Phase 13 adds typed Foxit eSign package state, human-only signature routing, AI send prevention, real Fusion eSign draft envelope creation, read-only status refresh, embedded human send/sign handoff, and dashboard eSign controls.
 - Phase 14 adds `POST /api/projects/:projectId/orchestrate/full`, ordered multi-agent handoffs, idempotent reuse/resume behavior, automatic Xano approval creation, protected resume after approval, and a dashboard `Run Full Launch` control.
+- Phase 15 implementation adds shared `AuditEvent` schemas/types, file-backed `FileAuditRepository`, secret redaction logic for keys and high-entropy values, `GET /api/audit-events` filter parameters, audit logging for policy decisions, approval creation/decisions, secure execution receipts, eSign status events, agent events, Security Center web panel, and Audit Timeline panel.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 85 tests.
+- Tests: passed, 43 workspace tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -94,6 +95,8 @@ Begin Phase 15 - Audit + Security Center.
 - Phase 14 Xano read-back state: provisioned API group `430840`, one table, and one endpoint for `OnboardingPilot`.
 - Phase 14 deployment serving verification: `GET /deployments/67e8df0f-6112-40b9-8095-0aae85fac92e/` returned HTTP 200.
 - Phase 14 local SecureExecutor receipts correctly reported `evidenceVerified: false` for Xano provisioning and Foxit generation.
+- Phase 15 automated tests: shared Zod schema redaction, API audit recording/filtering, and web Security Center / Audit Timeline panels pass.
+- Phase 15 audit smoke test: verified `POST /api/agentlatch/evaluate` records redacted `HUMAN_ONLY` decision, secret payloads are redacted, local receipts report `evidenceVerified: false`, and `foxit.sendForSignature` remains `HUMAN_ONLY`.
 
 ## Review Status
 
@@ -122,6 +125,8 @@ Reviewer/Tester result for Phase 12: APPROVED after real Foxit DocGen execution,
 Reviewer/Tester result for Phase 13: APPROVED after real Foxit Fusion eSign create, human send/sign, status read-back, and AI-send blocking were verified.
 
 Reviewer/Tester result for Phase 14: APPROVED after live pause/resume, protected Xano provisioning, deployment, Foxit document generation, and eSign human-boundary verification.
+
+Reviewer/Tester result for Phase 15: APPROVED after full validation, audit event redaction tests, Security Center metrics, Audit Timeline panel, and local live audit smoke test verification.
 
 ## GitHub Status
 

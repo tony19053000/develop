@@ -5,12 +5,34 @@ import { App } from "./App.js";
 
 const fetchMock = vi.fn<typeof fetch>();
 
+function okJson(body: unknown): Response {
+  return {
+    ok: true,
+    json: async () => body
+  } as Response;
+}
+
+function mockApiResponses(...responses: unknown[]) {
+  const queue = [...responses];
+
+  fetchMock.mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.includes("/api/audit-events")) {
+      return okJson({ auditEvents: [] });
+    }
+
+    const next = queue.shift() ?? { projects: [] };
+    if (typeof next === "object" && next !== null && "ok" in next && "json" in next) {
+      return next as Response;
+    }
+
+    return okJson(next);
+  });
+}
+
 beforeEach(() => {
   globalThis.fetch = fetchMock;
-  fetchMock.mockResolvedValue({
-    ok: true,
-    json: async () => ({ projects: [] })
-  } as Response);
+  mockApiResponses({ projects: [] }, { approvals: [] });
 });
 
 afterEach(() => {
@@ -27,16 +49,15 @@ describe("LaunchForge web foundation", () => {
   });
 
   it("creates a launch project through the API", async () => {
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({ projects: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -50,7 +71,7 @@ describe("LaunchForge web foundation", () => {
             updatedAt: "2026-08-31T00:00:00.000Z"
           }
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -66,8 +87,7 @@ describe("LaunchForge web foundation", () => {
   });
 
   it("runs market research and renders brand evidence", async () => {
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -83,12 +103,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -132,7 +152,7 @@ describe("LaunchForge web foundation", () => {
             }
           }
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -146,8 +166,7 @@ describe("LaunchForge web foundation", () => {
   });
 
   it("runs domain research and renders the recommended domain", async () => {
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -163,12 +182,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -222,7 +241,7 @@ describe("LaunchForge web foundation", () => {
             }
           }
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -236,8 +255,7 @@ describe("LaunchForge web foundation", () => {
   });
 
   it("generates and previews a website artifact", async () => {
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -253,12 +271,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -303,7 +321,7 @@ describe("LaunchForge web foundation", () => {
             productName: "InterviewForge"
           }
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -363,8 +381,7 @@ describe("LaunchForge web foundation", () => {
       updatedAt: "2026-08-31T00:01:00.000Z"
     };
 
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -381,12 +398,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -403,7 +420,7 @@ describe("LaunchForge web foundation", () => {
           },
           deployment: deploymentRecord
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -482,8 +499,7 @@ describe("LaunchForge web foundation", () => {
       updatedAt: "2026-08-31T00:00:00.000Z"
     };
 
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -499,12 +515,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           project: {
@@ -520,8 +536,8 @@ describe("LaunchForge web foundation", () => {
           },
           artifact: backendArtifact
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           approval: pendingApproval,
@@ -538,8 +554,8 @@ describe("LaunchForge web foundation", () => {
             updatedAt: "2026-08-31T00:02:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           approval: { ...pendingApproval, status: "approved" },
@@ -555,8 +571,8 @@ describe("LaunchForge web foundation", () => {
             updatedAt: "2026-08-31T00:03:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           receipt: {
@@ -573,8 +589,8 @@ describe("LaunchForge web foundation", () => {
             executedAt: "2026-08-31T00:04:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           projects: [
@@ -602,7 +618,7 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response);
+      });
 
     render(<App />);
 
@@ -654,8 +670,7 @@ describe("LaunchForge web foundation", () => {
       updatedAt: "2026-08-31T00:00:00.000Z"
     };
 
-    fetchMock
-      .mockResolvedValueOnce({
+    mockApiResponses({
         ok: true,
         json: async () => ({
           projects: [
@@ -692,12 +707,12 @@ describe("LaunchForge web foundation", () => {
             }
           ]
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({ approvals: [] })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           approval: pendingApproval,
@@ -734,8 +749,8 @@ describe("LaunchForge web foundation", () => {
             updatedAt: "2026-08-31T00:01:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           approval: { ...pendingApproval, status: "approved" },
@@ -750,8 +765,8 @@ describe("LaunchForge web foundation", () => {
             updatedAt: "2026-08-31T00:02:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           receipt: {
@@ -767,8 +782,8 @@ describe("LaunchForge web foundation", () => {
             executedAt: "2026-08-31T00:03:00.000Z"
           }
         })
-      } as Response)
-      .mockResolvedValueOnce({
+      },
+      {
         ok: true,
         json: async () => ({
           receipt: {
@@ -785,7 +800,7 @@ describe("LaunchForge web foundation", () => {
             executedAt: "2026-08-31T00:04:00.000Z"
           }
         })
-      } as Response);
+      });
 
     render(<App />);
 

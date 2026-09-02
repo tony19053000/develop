@@ -19,6 +19,7 @@ import { createSecureExecutor, EnvironmentSecretProvider, type SecureExecutionEv
 import { loadConfig } from "./config.js";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
+import { FileAuditRepository } from "./audit.js";
 import { LocalStaticDeploymentService } from "./deployments.js";
 import { EventBus } from "./events.js";
 import { FileProjectRepository } from "./storage.js";
@@ -85,6 +86,7 @@ const app = createApp({
   config,
   projects: new FileProjectRepository(config.DATA_DIR),
   events: new EventBus(),
+  audits: new FileAuditRepository(config.DATA_DIR),
   orchestrator,
   marketBrand,
   domain,

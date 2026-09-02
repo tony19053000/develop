@@ -2,6 +2,7 @@ import type { ApprovalRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   CreateLaunchProjectInput,
+  AuditEvent,
   BackendArtifact,
   DeploymentRecord,
   DocumentArtifact,
@@ -68,6 +69,10 @@ interface ApprovalListResponse {
   approvals: ApprovalRequest[];
 }
 
+interface AuditEventListResponse {
+  auditEvents: AuditEvent[];
+}
+
 interface ApprovalResponse {
   approval: ApprovalRequest;
   token?: string;
@@ -100,6 +105,13 @@ export async function listApprovals(): Promise<ApprovalRequest[]> {
   const response = await fetch(`${API_BASE_URL}/api/approvals`);
   const body = await readJson<ApprovalListResponse>(response);
   return body.approvals ?? [];
+}
+
+export async function listAuditEvents(projectId?: string): Promise<AuditEvent[]> {
+  const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/audit-events${query}`);
+  const body = await readJson<AuditEventListResponse>(response);
+  return body.auditEvents ?? [];
 }
 
 export async function createProject(input: CreateLaunchProjectInput): Promise<LaunchProject> {

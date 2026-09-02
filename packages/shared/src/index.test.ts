@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateProjectProgress,
+  auditEventSchema,
   createInitialAgentTasks,
   createLaunchProjectSchema,
   domainResearchSchema,
@@ -16,6 +17,26 @@ describe("shared launch contracts", () => {
     });
 
     expect(parsed.idea).toContain("interview");
+  });
+
+  it("validates redacted audit events", () => {
+    const event = auditEventSchema.parse({
+      id: "audit-1",
+      projectId: "project-1",
+      type: "policy_decision",
+      severity: "warning",
+      actor: "agentlatch",
+      action: "namecom.registerDomain",
+      resource: "example.com",
+      decision: "HIGH_RISK_APPROVAL",
+      redacted: true,
+      metadata: {
+        payloadHash: "hash-1"
+      },
+      createdAt: "2026-08-31T00:00:00.000Z"
+    });
+
+    expect(event.redacted).toBe(true);
   });
 
   it("creates initial agent tasks for the command center", () => {

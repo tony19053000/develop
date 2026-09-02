@@ -6,7 +6,7 @@ import express from "express";
 import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
-import type { ApprovalRequest } from "@launchforge/agentlatch";
+import type { AgentLatchPolicyResult, ApprovalRequest, ToolActionRequest } from "@launchforge/agentlatch";
 import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   BackendAgent,
@@ -31,6 +31,7 @@ import {
 import type { SecureExecutor } from "@launchforge/secure-executor";
 import {
   backendArtifactSchema,
+  auditEventTypeSchema,
   createLaunchProjectSchema,
   documentArtifactSchema,
   foxitESignPackageSchema,
@@ -41,6 +42,7 @@ import { DeploymentError, type DeploymentService } from "./deployments.js";
 import { ApiError, errorHandler, notFound } from "./errors.js";
 import { EventBus } from "./events.js";
 import { ApprovalRepositoryError, type ApprovalRepository } from "./approvals.js";
+import type { AuditRepository } from "./audit.js";
 import type { ProjectRepository } from "./storage.js";
 
 const registerDomainPayloadSchema = z.object({
@@ -83,6 +85,7 @@ export interface AppDependencies {
   config: ApiConfig;
   projects: ProjectRepository;
   events: EventBus;
+  audits: AuditRepository;
   orchestrator: OrchestratorRuntime;
   marketBrand: MarketBrandAgent;
   domain: DomainAgent;
@@ -102,6 +105,7 @@ export function createApp({
   config,
   projects,
   events,
+  audits,
   orchestrator,
   marketBrand,
   domain,
@@ -118,6 +122,78 @@ export function createApp({
 }: AppDependencies) {
   const app = express();
   const documentsRoot = path.join(config.DATA_DIR, "documents");
+  const publishEvent = (input: Parameters<EventBus["publish"]>[0]) => {
+    const event = events.publish(input);
+    if (config.NODE_ENV !== "test") {
+      void audits
+        .record({
+          projectId: input.projectId,
+          type: "agent_event",
+          severity: input.level,
+          actor: input.agent,
+          action: input.message,
+          metadata: {
+            eventId: event.id,
+            level: event.level
+          }
+        })
+        .catch(() => undefined);
+    }
+
+    return event;
+  };
+  const recordPolicyDecision = (request: ToolActionRequest, decision: AgentLatchPolicyResult) =>
+    audits.record({
+      projectId: request.projectId,
+      type: "policy_decision",
+      severity: decision.executable ? "success" : decision.decision === "DENY" ? "error" : "warning",
+      actor: request.requestedBy,
+      action: request.actionType,
+      resource: request.resource,
+      decision: decision.decision,
+      metadata: {
+        requestId: request.id,
+        payloadHash: decision.payloadHash,
+        category: decision.category,
+        requiresHumanApproval: decision.requiresHumanApproval,
+        executable: decision.executable
+      }
+    });
+  const recordApprovalAudit = (approval: ApprovalRequest, action: string) =>
+    audits.record({
+      projectId: approval.projectId,
+      type: action === "created" ? "approval_created" : "approval_decided",
+      severity: approval.status === "rejected" ? "error" : approval.status === "approved" ? "success" : "warning",
+      actor: approval.decidedBy ?? approval.actionRequest.requestedBy,
+      action,
+      resource: approval.actionRequest.resource,
+      decision: approval.status,
+      metadata: {
+        approvalId: approval.id,
+        actionType: approval.actionRequest.actionType,
+        requestId: approval.actionRequest.id,
+        payloadHash: approval.decision.payloadHash,
+        tokenExpiresAt: approval.tokenExpiresAt
+      }
+    });
+  const recordReceiptAudit = (receipt: SecureExecutionReceipt, projectId: string, resource?: string) =>
+    audits.record({
+      projectId,
+      type: "secure_execution",
+      severity: "success",
+      actor: "secure-executor",
+      action: receipt.actionType,
+      ...(resource ? { resource } : {}),
+      evidenceVerified: receipt.evidenceVerified,
+      metadata: {
+        receiptId: receipt.id,
+        requestId: receipt.requestId,
+        payloadHash: receipt.payloadHash,
+        mode: receipt.mode,
+        teeProvider: receipt.teeProvider,
+        result: receipt.result
+      }
+    });
 
   app.use(cors({ origin: config.WEB_ORIGIN }));
   app.use(express.json({ limit: "1mb" }));
@@ -140,11 +216,32 @@ export function createApp({
     }
   });
 
+  app.get("/api/audit-events", async (request, response, next) => {
+    try {
+      const projectId = typeof request.query.projectId === "string" ? request.query.projectId : undefined;
+      const type = typeof request.query.type === "string" ? auditEventTypeSchema.parse(request.query.type) : undefined;
+      const limit =
+        typeof request.query.limit === "string" && request.query.limit.trim()
+          ? Number.parseInt(request.query.limit, 10)
+          : undefined;
+
+      response.json({
+        auditEvents: await audits.list({
+          ...(projectId ? { projectId } : {}),
+          ...(type ? { type } : {}),
+          ...(limit ? { limit } : {})
+        })
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/projects", async (request, response, next) => {
     try {
       const input = createLaunchProjectSchema.parse(request.body);
       const createdProject = await projects.create(input);
-      events.publish({
+      publishEvent({
         projectId: createdProject.id,
         agent: "orchestrator",
         level: "info",
@@ -157,7 +254,7 @@ export function createApp({
       });
       const project = await projects.applyWorkflowPlan(createdProject.id, plan);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "orchestrator",
         level: "success",
@@ -191,7 +288,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "orchestrator",
         level: "info",
@@ -204,7 +301,7 @@ export function createApp({
       });
       const project = await projects.applyWorkflowPlan(existingProject.id, plan);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "orchestrator",
         level: "success",
@@ -229,7 +326,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "orchestrator",
         level: "info",
@@ -243,7 +340,7 @@ export function createApp({
         });
         project = await projects.saveMarketResearch(project.id, research);
         steps.push({ id: "market-research", status: "complete", message: `Brand direction created: ${research.brand.name}.` });
-        events.publish({
+        publishEvent({
           projectId: project.id,
           agent: "market_brand",
           level: "success",
@@ -267,7 +364,7 @@ export function createApp({
             ? `Recommended domain ${research.recommendedDomain.domainName}.`
             : "Domain research completed without a purchasable recommendation."
         });
-        events.publish({
+        publishEvent({
           projectId: project.id,
           agent: "domain",
           level: "success",
@@ -286,7 +383,7 @@ export function createApp({
         });
         project = await projects.saveWebsiteArtifact(project.id, artifact);
         steps.push({ id: "website-foundation", status: "complete", message: `Website generated for ${artifact.productName}.` });
-        events.publish({
+        publishEvent({
           projectId: project.id,
           agent: "website",
           level: "success",
@@ -325,6 +422,7 @@ export function createApp({
           reason: `Approve Xano backend provisioning for ${backendArtifact.productName}.`
         });
         const decision = agentLatch.evaluate(actionRequest);
+        await recordPolicyDecision(actionRequest, decision);
         const projectId = project.id;
         const existingApproval = (await approvals.list()).find(
           (approval) =>
@@ -341,13 +439,14 @@ export function createApp({
             tokenSecret: config.APPROVAL_TOKEN_SECRET
           });
           createdApprovals.push(approval);
+          await recordApprovalAudit(approval, "created");
           project = await projects.markApprovalPending(project.id);
           steps.push({
             id: "xano-provisioning",
             status: "paused",
             message: "Xano provisioning approval was created. Full orchestration will resume after approval."
           });
-          events.publish({
+          publishEvent({
             projectId: project.id,
             agent: "agentlatch",
             level: "warning",
@@ -416,6 +515,7 @@ export function createApp({
           }
         });
         receipts.push(receipt);
+        await recordReceiptAudit(receipt, project.id, `${plannedArtifact.productName} API`);
         project = (await projects.findById(project.id)) ?? project;
         steps.push({ id: "xano-provisioning", status: "complete", message: "Approved Xano backend provisioning executed." });
       } else {
@@ -462,6 +562,7 @@ export function createApp({
           reason: `Generate founder business PDF documents for ${preparedArtifact.productName}.`
         });
         const decision = agentLatch.evaluate(actionRequest);
+        await recordPolicyDecision(actionRequest, decision);
         const receipt = await secureExecutor.execute({
           request: actionRequest,
           approval: decision,
@@ -509,6 +610,7 @@ export function createApp({
           }
         });
         receipts.push(receipt);
+        await recordReceiptAudit(receipt, project.id, `${preparedArtifact.productName} founder documents`);
         const generationResult = foxitGeneratedDocumentsResultSchema.parse(receipt.result);
         const generatedArtifact = documentArtifactSchema.parse({
           ...preparedArtifact,
@@ -566,7 +668,7 @@ export function createApp({
         steps.push({ id: "esign-preparation", status: "skipped", message: "Existing eSign package reused." });
       }
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "orchestrator",
         level: "success",
@@ -604,7 +706,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "market_brand",
         level: "info",
@@ -617,7 +719,7 @@ export function createApp({
       });
       const project = await projects.saveMarketResearch(existingProject.id, research);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "market_brand",
         level: "success",
@@ -643,7 +745,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "domain",
         level: "info",
@@ -657,7 +759,7 @@ export function createApp({
       });
       const project = await projects.saveDomainResearch(existingProject.id, research);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "domain",
         level: "success",
@@ -685,7 +787,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "website",
         level: "info",
@@ -700,7 +802,7 @@ export function createApp({
       });
       const project = await projects.saveWebsiteArtifact(existingProject.id, artifact);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "website",
         level: artifact.validation.passed ? "success" : "warning",
@@ -723,7 +825,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "backend",
         level: "info",
@@ -738,7 +840,7 @@ export function createApp({
       });
       const project = await projects.saveBackendArtifact(existingProject.id, artifact);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "backend",
         level: "success",
@@ -763,7 +865,7 @@ export function createApp({
         throw new ApiError(409, "Website artifact is required before deployment.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "deployment",
         level: "info",
@@ -777,7 +879,7 @@ export function createApp({
       });
       const project = await projects.saveDeploymentRecord(existingProject.id, deployment);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "deployment",
         level: deployment.status === "healthy" ? "success" : "error",
@@ -806,7 +908,7 @@ export function createApp({
         throw new ApiError(404, "Project not found.");
       }
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "document",
         level: "info",
@@ -836,6 +938,7 @@ export function createApp({
         reason: `Generate founder business PDF documents for ${preparedArtifact.productName}.`
       });
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
       const receipt = await secureExecutor.execute({
         request: actionRequest,
         approval: decision,
@@ -882,6 +985,7 @@ export function createApp({
           };
         }
       });
+      await recordReceiptAudit(receipt, existingProject.id, `${preparedArtifact.productName} founder documents`);
       const generationResult = foxitGeneratedDocumentsResultSchema.parse(receipt.result);
       const generatedArtifact = documentArtifactSchema.parse({
         ...preparedArtifact,
@@ -900,7 +1004,7 @@ export function createApp({
       });
       const project = await projects.saveDocumentArtifact(existingProject.id, generatedArtifact);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "document",
         level: "success",
@@ -960,7 +1064,7 @@ export function createApp({
       });
       const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "document",
         level: "warning",
@@ -994,8 +1098,9 @@ export function createApp({
         reason: "Attempt to send a Foxit eSign envelope for signature."
       });
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
 
-      events.publish({
+      publishEvent({
         projectId: existingProject.id,
         agent: "agentlatch",
         level: "warning",
@@ -1053,6 +1158,7 @@ export function createApp({
         reason: "Create a Foxit eSign draft envelope and embedded human preparation session without sending or signing."
       });
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
       const receipt = await secureExecutor.execute({
         request: actionRequest,
         approval: decision,
@@ -1079,6 +1185,7 @@ export function createApp({
           };
         }
       });
+      await recordReceiptAudit(receipt, existingProject.id, `${currentESignPackage.productName} eSign draft envelope`);
       const esignPackage = foxitESignPackageSchema.parse({
         ...currentESignPackage,
         signer: {
@@ -1094,7 +1201,7 @@ export function createApp({
       });
       const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "document",
         level: "warning",
@@ -1136,8 +1243,20 @@ export function createApp({
         updatedAt: new Date().toISOString()
       });
       const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
+      await audits.record({
+        projectId: project.id,
+        type: "security_boundary",
+        severity: input.status === "executed" ? "success" : "info",
+        actor: "document",
+        action: "foxit.esign.status.recorded",
+        resource: input.foxitEnvelopeId,
+        decision: input.status,
+        metadata: {
+          humanOnly: esignPackage.humanOnly
+        }
+      });
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "document",
         level: input.status === "executed" ? "success" : "info",
@@ -1178,6 +1297,7 @@ export function createApp({
         reason: "Refresh read-only Foxit eSign envelope status."
       });
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
       const receipt = await secureExecutor.execute({
         request: actionRequest,
         approval: decision,
@@ -1192,6 +1312,7 @@ export function createApp({
           };
         }
       });
+      await recordReceiptAudit(receipt, existingProject.id, envelopeId);
       const rawStatus = typeof receipt.result.status === "string" ? receipt.result.status : "shared";
       const mappedStatus = mapFoxitESignStatus(rawStatus);
       const esignPackage = foxitESignPackageSchema.parse({
@@ -1202,7 +1323,7 @@ export function createApp({
       });
       const project = await projects.saveFoxitESignPackage(existingProject.id, esignPackage);
 
-      events.publish({
+      publishEvent({
         projectId: project.id,
         agent: "document",
         level: "info",
@@ -1228,8 +1349,9 @@ export function createApp({
     try {
       const actionRequest = toolActionRequestSchema.parse(request.body);
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
 
-      events.publish({
+      publishEvent({
         projectId: actionRequest.projectId,
         agent: "agentlatch",
         level: decision.executable ? "success" : "warning",
@@ -1254,6 +1376,7 @@ export function createApp({
     try {
       const actionRequest = toolActionRequestSchema.parse(request.body);
       const decision = agentLatch.evaluate(actionRequest);
+      await recordPolicyDecision(actionRequest, decision);
 
       if (!decision.requiresHumanApproval || decision.decision === "HUMAN_ONLY") {
         throw new ApiError(409, `AgentLatch decision ${decision.decision} cannot create a normal approval request.`);
@@ -1266,8 +1389,9 @@ export function createApp({
         tokenSecret: config.APPROVAL_TOKEN_SECRET
       });
       const project = await projects.markApprovalPending(actionRequest.projectId);
+      await recordApprovalAudit(approval, "created");
 
-      events.publish({
+      publishEvent({
         projectId: actionRequest.projectId,
         agent: "agentlatch",
         level: "warning",
@@ -1290,8 +1414,9 @@ export function createApp({
         parseDecidedBy(request.body)
       );
       const project = await projects.markApprovalResolved(approval.projectId, true);
+      await recordApprovalAudit(approval, "approved");
 
-      events.publish({
+      publishEvent({
         projectId: approval.projectId,
         agent: "agentlatch",
         level: "success",
@@ -1315,8 +1440,9 @@ export function createApp({
         typeof request.body?.reason === "string" ? request.body.reason : undefined
       );
       const project = await projects.markApprovalResolved(approval.projectId, false);
+      await recordApprovalAudit(approval, "rejected");
 
-      events.publish({
+      publishEvent({
         projectId: approval.projectId,
         agent: "agentlatch",
         level: "error",
@@ -1347,8 +1473,9 @@ export function createApp({
           resource: approval.actionRequest.resource
         })
       });
+      await recordReceiptAudit(receipt, approval.projectId, approval.actionRequest.resource);
 
-      events.publish({
+      publishEvent({
         projectId: approval.projectId,
         agent: "agentlatch",
         level: "success",
@@ -1416,8 +1543,9 @@ export function createApp({
           };
         }
       });
+      await recordReceiptAudit(receipt, approval.projectId, payload.domainName);
 
-      events.publish({
+      publishEvent({
         projectId: approval.projectId,
         agent: "agentlatch",
         level: "success",
@@ -1478,8 +1606,9 @@ export function createApp({
           };
         }
       });
+      await recordReceiptAudit(receipt, approval.projectId, `${plannedArtifact.productName} API`);
 
-      events.publish({
+      publishEvent({
         projectId: approval.projectId,
         agent: "backend",
         level: "success",

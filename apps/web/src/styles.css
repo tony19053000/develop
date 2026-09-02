@@ -360,6 +360,81 @@ textarea:focus {
   font-size: 0.82rem;
 }
 
+.security-panel,
+.audit-panel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #dce4dc;
+}
+
+.security-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.security-metrics div,
+.audit-row {
+  min-width: 0;
+  border: 1px solid #d9e2da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.security-metrics div {
+  padding: 12px;
+}
+
+.security-metrics strong,
+.security-metrics span,
+.audit-row strong,
+.audit-row span,
+.audit-row small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.security-metrics strong {
+  color: #163f2b;
+  font-size: 1.35rem;
+}
+
+.security-metrics span,
+.audit-row span,
+.audit-row small {
+  color: #65746a;
+  font-size: 0.82rem;
+}
+
+.audit-list {
+  display: grid;
+  gap: 8px;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.audit-row.warning {
+  border-color: #d6b660;
+}
+
+.audit-row.error {
+  border-color: #d58a82;
+}
+
+.audit-row.success {
+  border-color: #82b58e;
+}
+
 .project-row {
   display: flex;
   align-items: center;
@@ -1020,7 +1095,9 @@ textarea:focus {
   .artifact-grid,
   .backend-grid,
   .esign-band,
-  .document-row {
+  .document-row,
+  .security-metrics,
+  .audit-row {
     grid-template-columns: 1fr;
   }
 

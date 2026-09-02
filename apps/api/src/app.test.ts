@@ -17,6 +17,7 @@ import {
 import type { FoxitClient, FoxitESignClient, XanoClient } from "@launchforge/integrations";
 import { createApp } from "./app.js";
 import { FileApprovalRepository } from "./approvals.js";
+import { FileAuditRepository } from "./audit.js";
 import { LocalStaticDeploymentService } from "./deployments.js";
 import type { ApiConfig } from "./config.js";
 import { EventBus } from "./events.js";
@@ -46,6 +47,7 @@ beforeEach(async () => {
     config: { ...config, DATA_DIR: dataDir },
     projects: new FileProjectRepository(dataDir),
     events: new EventBus(),
+    audits: new FileAuditRepository(dataDir),
     orchestrator: createFakeOrchestrator(),
     marketBrand: createFakeMarketBrand(),
     domain: createFakeDomainAgent(),
@@ -543,6 +545,39 @@ describe("LaunchForge API foundation", () => {
       requiresHumanApproval: true,
       executable: false
     });
+  });
+
+  it("records redacted audit events for policy decisions", async () => {
+    await request(app)
+      .post("/api/agentlatch/evaluate")
+      .send({
+        projectId: "project-1",
+        requestedBy: "domain",
+        actionType: "namecom.registerDomain",
+        resource: "evidenceforge.com",
+        payload: {
+          domainName: "evidenceforge.com",
+          years: 1,
+          apiToken: "super-sensitive-token-value-that-should-not-appear-anywhere"
+        },
+        reason: "Register the recommended domain."
+      })
+      .expect(200);
+
+    const response = await request(app).get("/api/audit-events?projectId=project-1&type=policy_decision").expect(200);
+
+    expect(response.body.auditEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          projectId: "project-1",
+          type: "policy_decision",
+          redacted: true,
+          action: "namecom.registerDomain",
+          decision: "HIGH_RISK_APPROVAL"
+        })
+      ])
+    );
+    expect(JSON.stringify(response.body)).not.toContain("super-sensitive-token-value");
   });
 
   it("creates and approves a protected action request once", async () => {

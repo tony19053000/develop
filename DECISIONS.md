@@ -370,3 +370,17 @@ Reason: This creates the end-to-end product spine while preserving exact-action 
 Consequences: Phase 14 is complete after automated pause/resume coverage and a live local run. The route reached Xano approval `7b09a5ac-e4c7-4492-a7d7-589b92762b9e`, resumed after human approval, provisioned Xano API group `430840`, deployed a healthy static site, generated Foxit documents, and stopped at the human eSign boundary.
 
 Reversibility: Medium.
+
+## 2026-09-02 - Redacted Audit Events and Security Center
+
+Decision: Implement Phase 15 Audit + Security Center with automated secret redaction, immutable audit events, query filtering, and a dashboard Security Center.
+
+Context: LaunchForge and AgentLatch require transparent governance for every policy decision, approval, TEE execution, eSign event, and agent action, without ever exposing secrets in audit logs or API output.
+
+Chosen Approach: Add shared `AuditEvent` Zod schemas, a file-backed `FileAuditRepository` in the API, recursive redaction for sensitive keys (e.g. `api_key`, `secret`, `token`) and high-entropy strings, `GET /api/audit-events` with `projectId`, `type`, and `limit` filters, and dashboard Security Center and Audit Timeline panels.
+
+Reason: This provides full traceability and compliance evidence for human approvals, TEE attestation, and AgentLatch policy decisions while guaranteeing secret isolation.
+
+Consequences: Local SecureExecutor audit receipts report `evidenceVerified: false`; `evidenceVerified: true` remains strictly reserved for verified Google Confidential Space attestation tokens. `foxit.sendForSignature` evaluations record `HUMAN_ONLY` decisions with `executable: false`.
+
+Reversibility: Medium.

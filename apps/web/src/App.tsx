@@ -4,6 +4,7 @@ import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   AgentRole,
   AgentTask,
+  AuditEvent,
   BackendArtifact,
   DeploymentRecord,
   DocumentArtifact,
@@ -46,6 +47,7 @@ import {
   executeDomainRegistration,
   generateDocuments,
   generateWebsite,
+  listAuditEvents,
   listApprovals,
   listProjects,
   planBackend,
@@ -81,6 +83,7 @@ const agentMeta: Record<AgentRole, { label: string; icon: typeof Bot }> = {
 export function App() {
   const [projects, setProjects] = useState<LaunchProject[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [secureReceipts, setSecureReceipts] = useState<SecureExecutionReceipt[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
@@ -100,6 +103,7 @@ export function App() {
   useEffect(() => {
     void refreshProjects();
     void refreshApprovals();
+    void refreshAuditEvents();
   }, []);
 
   const selectedProject = useMemo(
@@ -130,6 +134,14 @@ export function App() {
     }
   }
 
+  async function refreshAuditEvents(projectId = selectedProjectId ?? undefined) {
+    try {
+      setAuditEvents(await listAuditEvents(projectId));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to load audit events.");
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsCreating(true);
@@ -139,6 +151,7 @@ export function App() {
       const project = await createProject({ idea });
       setProjects((current) => [project, ...current]);
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create project.");
     } finally {
@@ -154,6 +167,7 @@ export function App() {
       const { project } = await runMarketResearch(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to run market research.");
     } finally {
@@ -177,6 +191,7 @@ export function App() {
         ...current.filter((receipt) => !response.receipts.some((nextReceipt) => nextReceipt.id === receipt.id))
       ]);
       setSelectedProjectId(response.project.id);
+      await refreshAuditEvents(response.project.id);
 
       if (response.status === "paused_for_approval") {
         setError("Full launch paused for backend approval.");
@@ -198,6 +213,7 @@ export function App() {
       const { project } = await runDomainResearch(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to run domain research.");
     } finally {
@@ -213,6 +229,7 @@ export function App() {
       const { project } = await generateWebsite(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to generate website.");
     } finally {
@@ -228,6 +245,7 @@ export function App() {
       const { project } = await planBackend(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to plan backend.");
     } finally {
@@ -243,6 +261,7 @@ export function App() {
       const { project } = await deployProject(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to deploy project.");
     } finally {
@@ -259,6 +278,7 @@ export function App() {
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to generate documents.");
     } finally {
@@ -274,6 +294,7 @@ export function App() {
       const { project } = await prepareESign(projectId);
       setProjects((current) => current.map((item) => (item.id === project.id ? project : item)));
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to prepare eSign.");
     } finally {
@@ -292,6 +313,7 @@ export function App() {
         setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
       }
       setSelectedProjectId(project.id);
+      await refreshAuditEvents(project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create Foxit eSign draft.");
     } finally {
@@ -319,6 +341,7 @@ export function App() {
       setApprovals((current) => [response.approval, ...current.filter((approval) => approval.id !== response.approval.id)]);
       setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
       setSelectedProjectId(response.project.id);
+      await refreshAuditEvents(response.project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to request approval.");
     } finally {
@@ -335,6 +358,7 @@ export function App() {
       setApprovals((current) => [response.approval, ...current.filter((approval) => approval.id !== response.approval.id)]);
       setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
       setSelectedProjectId(response.project.id);
+      await refreshAuditEvents(response.project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to request backend approval.");
     } finally {
@@ -349,6 +373,7 @@ export function App() {
       const response = decision === "approve" ? await approveRequest(approval) : await rejectRequest(approval);
       setApprovals((current) => current.map((item) => (item.id === response.approval.id ? response.approval : item)));
       setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
+      await refreshAuditEvents(response.project.id);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to decide approval.");
     }
@@ -360,6 +385,7 @@ export function App() {
     try {
       const receipt = await dryRunSecureExecution(approval);
       setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+      await refreshAuditEvents(approval.projectId);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to run secure execution.");
     }
@@ -371,6 +397,7 @@ export function App() {
     try {
       const receipt = await executeDomainRegistration(approval);
       setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
+      await refreshAuditEvents(approval.projectId);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to register domain.");
     }
@@ -383,6 +410,7 @@ export function App() {
       const receipt = await executeBackendProvisioning(approval);
       setSecureReceipts((current) => [receipt, ...current.filter((item) => item.id !== receipt.id)]);
       await refreshProjects();
+      await refreshAuditEvents(approval.projectId);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to provision backend.");
     }
@@ -463,7 +491,10 @@ export function App() {
                   <button
                     className={project.id === selectedProject?.id ? "project-row selected" : "project-row"}
                     key={project.id}
-                    onClick={() => setSelectedProjectId(project.id)}
+                    onClick={() => {
+                      setSelectedProjectId(project.id);
+                      void refreshAuditEvents(project.id);
+                    }}
                     type="button"
                   >
                     <span>{project.name}</span>
@@ -593,6 +624,15 @@ export function App() {
                     onPrepareESign={handlePrepareESign}
                   />
                 ) : null}
+
+                <SecurityCenterPanel
+                  auditEvents={auditEvents}
+                  approvals={approvals}
+                  receipts={secureReceipts}
+                  selectedProject={selectedProject}
+                />
+
+                <AuditTimelinePanel auditEvents={auditEvents} />
 
                 {selectedProject.domainResearch?.recommendedDomain ? (
                   <div className="approval-request-band">
@@ -908,6 +948,90 @@ function buildPreviewDocument(artifact: WebsiteArtifact): string {
   return html
     .replace('<link rel="stylesheet" href="./styles.css">', `<style>${css}</style>`)
     .replace('<script src="./app.js"></script>', `<script>${js}</script>`);
+}
+
+function SecurityCenterPanel({
+  auditEvents,
+  approvals,
+  receipts,
+  selectedProject
+}: {
+  auditEvents: AuditEvent[];
+  approvals: ApprovalRequest[];
+  receipts: SecureExecutionReceipt[];
+  selectedProject: LaunchProject;
+}) {
+  const projectApprovals = approvals.filter((approval) => approval.projectId === selectedProject.id);
+  const pendingApprovals = projectApprovals.filter((approval) => approval.status === "pending").length;
+  const blockedActions = auditEvents.filter((event) => event.decision === "HUMAN_ONLY" || event.decision === "DENY").length;
+  const verifiedReceipts = receipts.filter((receipt) => receipt.evidenceVerified).length;
+
+  return (
+    <section className="security-panel" aria-labelledby="security-center-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Security</p>
+          <h2 id="security-center-title">AgentLatch Center</h2>
+        </div>
+        <span className="validation-pill passed">
+          <ShieldCheck size={16} aria-hidden="true" />
+          Redacted
+        </span>
+      </div>
+
+      <div className="security-metrics">
+        <div>
+          <strong>{auditEvents.length}</strong>
+          <span>Audit events</span>
+        </div>
+        <div>
+          <strong>{pendingApprovals}</strong>
+          <span>Pending approvals</span>
+        </div>
+        <div>
+          <strong>{blockedActions}</strong>
+          <span>Blocked actions</span>
+        </div>
+        <div>
+          <strong>{verifiedReceipts}</strong>
+          <span>TEE verified receipts</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AuditTimelinePanel({ auditEvents }: { auditEvents: AuditEvent[] }) {
+  return (
+    <section className="audit-panel" aria-labelledby="audit-timeline-title">
+      <div className="section-heading artifact-heading">
+        <div>
+          <p className="eyebrow">Audit</p>
+          <h2 id="audit-timeline-title">Decision Timeline</h2>
+        </div>
+        <span className="validation-pill">Latest {auditEvents.length}</span>
+      </div>
+
+      {auditEvents.length === 0 ? (
+        <p className="empty-state">No audit events recorded.</p>
+      ) : (
+        <div className="audit-list">
+          {auditEvents.slice(0, 12).map((event) => (
+            <div className={`audit-row ${event.severity}`} key={event.id}>
+              <div>
+                <strong>{event.action}</strong>
+                <span>{event.resource ?? event.type.replaceAll("_", " ")}</span>
+              </div>
+              <small>
+                {event.decision ? `${event.decision} · ` : ""}
+                {event.evidenceVerified === true ? "TEE verified" : event.evidenceVerified === false ? "local evidence false" : "redacted"}
+              </small>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function ApprovalPanel({

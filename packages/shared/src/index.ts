@@ -313,6 +313,33 @@ export const agentEventSchema = z.object({
   createdAt: z.string().datetime()
 });
 
+export const auditEventTypeSchema = z.enum([
+  "agent_event",
+  "policy_decision",
+  "approval_created",
+  "approval_decided",
+  "secure_execution",
+  "sponsor_action",
+  "security_boundary"
+]);
+
+export const auditEventSeveritySchema = z.enum(["info", "success", "warning", "error"]);
+
+export const auditEventSchema = z.object({
+  id: z.string(),
+  projectId: z.string().optional(),
+  type: auditEventTypeSchema,
+  severity: auditEventSeveritySchema,
+  actor: z.string(),
+  action: z.string(),
+  resource: z.string().optional(),
+  decision: z.string().optional(),
+  evidenceVerified: z.boolean().optional(),
+  redacted: z.literal(true),
+  metadata: z.record(z.unknown()).default({}),
+  createdAt: z.string().datetime()
+});
+
 export const launchProjectSchema = z.object({
   id: z.string(),
   idea: z.string(),
@@ -332,7 +359,11 @@ export const launchProjectSchema = z.object({
 });
 
 export const launchProjectListSchema = z.array(launchProjectSchema);
+export const auditEventListSchema = z.array(auditEventSchema);
 
+export type AuditEvent = z.infer<typeof auditEventSchema>;
+export type AuditEventSeverity = z.infer<typeof auditEventSeveritySchema>;
+export type AuditEventType = z.infer<typeof auditEventTypeSchema>;
 export type AgentEvent = z.infer<typeof agentEventSchema>;
 export type AgentEventLevel = z.infer<typeof agentEventLevelSchema>;
 export type AgentRole = z.infer<typeof agentRoleSchema>;
