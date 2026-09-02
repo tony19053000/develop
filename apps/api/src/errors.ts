@@ -31,6 +31,18 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     return;
   }
 
+  if (
+    error instanceof Error &&
+    (error.name.includes("ConfigurationError") ||
+      error.constructor.name.includes("ConfigurationError") ||
+      error.message.includes("is required") ||
+      error.message.includes("SERPAPI") ||
+      error.message.includes("NAMECOM"))
+  ) {
+    response.status(424).json({ error: error.message });
+    return;
+  }
+
   response.status(500).json({ error: "Internal server error." });
 };
 
