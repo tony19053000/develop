@@ -22,7 +22,7 @@ export interface CreateApprovalInput {
 }
 
 export interface ApprovalRepository {
-  list(): Promise<ApprovalRequest[]>;
+  list(projectId?: string): Promise<ApprovalRequest[]>;
   findById(id: string): Promise<ApprovalRequest | undefined>;
   create(input: CreateApprovalInput): Promise<{ approval: ApprovalRequest; token: string }>;
   approve(id: string, token: string, tokenSecret: string, decidedBy: string): Promise<ApprovalRequest>;
@@ -45,8 +45,12 @@ export class FileApprovalRepository implements ApprovalRepository {
     this.filePath = path.join(dataDir, "approvals.json");
   }
 
-  async list(): Promise<ApprovalRequest[]> {
-    return this.readApprovals();
+  async list(projectId?: string): Promise<ApprovalRequest[]> {
+    const items = await this.readApprovals();
+    if (!projectId) return items;
+    return items.filter(
+      (item) => item.projectId === projectId || item.actionRequest.projectId === projectId
+    );
   }
 
   async findById(id: string): Promise<ApprovalRequest | undefined> {

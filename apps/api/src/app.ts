@@ -424,7 +424,7 @@ export function createApp({
         const decision = agentLatch.evaluate(actionRequest);
         await recordPolicyDecision(actionRequest, decision);
         const projectId = project.id;
-        const existingApproval = (await approvals.list()).find(
+        const existingApproval = (await approvals.list(projectId)).find(
           (approval) =>
             approval.projectId === projectId &&
             approval.actionRequest.actionType === "xano.provisionBackend" &&
@@ -491,8 +491,11 @@ export function createApp({
             const xano = createXanoClient(await context.getSecret("XANO_API_KEY"));
             const provisioning = await xano.provisionBackend({
               productName: plannedArtifact.productName,
-              apiGroupName: `${plannedArtifact.productName} API`,
-              tables: plannedArtifact.tables,
+              apiGroupName: `${plannedArtifact.productName}-${projectId.slice(0, 8)} API`,
+              tables: plannedArtifact.tables.map((t) => ({
+                ...t,
+                name: `${t.name}_${projectId.slice(0, 8)}`
+              })),
               endpoints: plannedArtifact.endpoints
             });
             const provisionedArtifact = backendArtifactSchema.parse({

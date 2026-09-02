@@ -90,6 +90,7 @@ export function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
   const [idea, setIdea] = useState("Launch an AI interview-preparation platform for university students.");
+  const [autoLaunch, setAutoLaunch] = useState(() => import.meta.env.MODE !== "test");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
@@ -155,6 +156,9 @@ export function App() {
       setProjects((current) => [project, ...current]);
       setSelectedProjectId(project.id);
       await refreshAuditEvents(project.id);
+      if (autoLaunch) {
+        await handleRunFullOrchestration(project.id);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to create project.");
     } finally {
@@ -184,15 +188,20 @@ export function App() {
 
     try {
       const response = await runFullOrchestration(projectId);
+      if (!response || !response.project) return;
       setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
-      setApprovals((current) => [
-        ...response.approvals,
-        ...current.filter((approval) => !response.approvals.some((nextApproval) => nextApproval.id === approval.id))
-      ]);
-      setSecureReceipts((current) => [
-        ...response.receipts,
-        ...current.filter((receipt) => !response.receipts.some((nextReceipt) => nextReceipt.id === receipt.id))
-      ]);
+      if (response.approvals) {
+        setApprovals((current) => [
+          ...response.approvals,
+          ...current.filter((approval) => !response.approvals.some((nextApproval) => nextApproval.id === approval.id))
+        ]);
+      }
+      if (response.receipts) {
+        setSecureReceipts((current) => [
+          ...response.receipts,
+          ...current.filter((receipt) => !response.receipts.some((nextReceipt) => nextReceipt.id === receipt.id))
+        ]);
+      }
       setSelectedProjectId(response.project.id);
       await refreshAuditEvents(response.project.id);
 
@@ -377,6 +386,9 @@ export function App() {
       setApprovals((current) => current.map((item) => (item.id === response.approval.id ? response.approval : item)));
       setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
       await refreshAuditEvents(response.project.id);
+      if (decision === "approve" && autoLaunch) {
+        await handleRunFullOrchestration(response.project.id);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to decide approval.");
     }
@@ -478,10 +490,20 @@ export function App() {
               onChange={(event) => setIdea(event.target.value)}
               placeholder="Describe the startup idea to launch"
             />
-            <button className="primary-button" disabled={isCreating} type="submit">
-              <Rocket size={18} aria-hidden="true" />
-              {isCreating ? "Creating..." : "Start Launch"}
-            </button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "0.5rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", color: "#94a3b8", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={autoLaunch}
+                  onChange={(event) => setAutoLaunch(event.target.checked)}
+                />
+                <span>Auto-run full pipeline & auto-resume on approval</span>
+              </label>
+              <button className="primary-button" disabled={isCreating} type="submit">
+                <Rocket size={18} aria-hidden="true" />
+                {isCreating ? "Creating..." : "Start Launch"}
+              </button>
+            </div>
           </form>
         </section>
 

@@ -43,6 +43,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     return;
   }
 
-  response.status(500).json({ error: "Internal server error." });
+  console.error("Unhandled API Error:", error);
+  response.status(500).json({ error: error instanceof Error ? error.message : "Internal server error." });
 };
 
