@@ -78,6 +78,18 @@ interface SecureExecutionResponse {
   receipt: SecureExecutionReceipt;
 }
 
+interface FullOrchestrationResponse {
+  project: LaunchProject;
+  status: "completed" | "paused_for_approval" | "human_action_required";
+  steps: Array<{
+    id: string;
+    status: "complete" | "skipped" | "paused";
+    message: string;
+  }>;
+  approvals: ApprovalRequest[];
+  receipts: SecureExecutionReceipt[];
+}
+
 export async function listProjects(): Promise<LaunchProject[]> {
   const response = await fetch(`${API_BASE_URL}/api/projects`);
   const body = await readJson<ProjectListResponse>(response);
@@ -100,6 +112,13 @@ export async function createProject(input: CreateLaunchProjectInput): Promise<La
   });
   const body = await readJson<ProjectResponse>(response);
   return body.project;
+}
+
+export async function runFullOrchestration(projectId: string): Promise<FullOrchestrationResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/orchestrate/full`, {
+    method: "POST"
+  });
+  return readJson<FullOrchestrationResponse>(response);
 }
 
 export async function runMarketResearch(projectId: string): Promise<MarketResearchResponse> {

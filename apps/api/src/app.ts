@@ -6,6 +6,8 @@ import express from "express";
 import { z } from "zod";
 import type { AgentLatchPolicyEngine } from "@launchforge/agentlatch";
 import { toolActionRequestSchema } from "@launchforge/agentlatch";
+import type { ApprovalRequest } from "@launchforge/agentlatch";
+import type { SecureExecutionReceipt } from "@launchforge/secure-executor";
 import type {
   BackendAgent,
   DocumentAgent,
@@ -68,6 +70,14 @@ const updateESignStatusSchema = z.object({
 const refreshESignStatusSchema = z.object({
   foxitEnvelopeId: z.string().min(1).optional()
 });
+
+type FullLaunchStatus = "completed" | "paused_for_approval" | "human_action_required";
+
+interface FullLaunchStep {
+  id: string;
+  status: "complete" | "skipped" | "paused";
+  message: string;
+}
 
 export interface AppDependencies {
   config: ApiConfig;
@@ -204,6 +214,385 @@ export function createApp({
       response.json({ project, plan });
     } catch (error) {
       next(error);
+    }
+  });
+
+  app.post("/api/projects/:projectId/orchestrate/full", async (request, response, next) => {
+    const steps: FullLaunchStep[] = [];
+    const createdApprovals: ApprovalRequest[] = [];
+    const receipts: SecureExecutionReceipt[] = [];
+
+    try {
+      let project = await projects.findById(request.params.projectId);
+
+      if (!project) {
+        throw new ApiError(404, "Project not found.");
+      }
+
+      events.publish({
+        projectId: project.id,
+        agent: "orchestrator",
+        level: "info",
+        message: "Full multi-agent orchestration started."
+      });
+
+      if (!project.marketResearch) {
+        const research = await marketBrand.research({
+          projectId: project.id,
+          idea: project.idea
+        });
+        project = await projects.saveMarketResearch(project.id, research);
+        steps.push({ id: "market-research", status: "complete", message: `Brand direction created: ${research.brand.name}.` });
+        events.publish({
+          projectId: project.id,
+          agent: "market_brand",
+          level: "success",
+          message: `Full orchestration completed Market & Brand for ${research.brand.name}.`
+        });
+      } else {
+        steps.push({ id: "market-research", status: "skipped", message: "Existing market research reused." });
+      }
+
+      if (!project.domainResearch) {
+        const research = await domain.research({
+          projectId: project.id,
+          idea: project.idea,
+          ...(project.marketResearch ? { marketResearch: project.marketResearch } : {})
+        });
+        project = await projects.saveDomainResearch(project.id, research);
+        steps.push({
+          id: "domain-research",
+          status: "complete",
+          message: research.recommendedDomain
+            ? `Recommended domain ${research.recommendedDomain.domainName}.`
+            : "Domain research completed without a purchasable recommendation."
+        });
+        events.publish({
+          projectId: project.id,
+          agent: "domain",
+          level: "success",
+          message: "Full orchestration completed domain research."
+        });
+      } else {
+        steps.push({ id: "domain-research", status: "skipped", message: "Existing domain research reused." });
+      }
+
+      if (!project.websiteArtifact) {
+        const artifact = await websiteProduct.generate({
+          projectId: project.id,
+          idea: project.idea,
+          ...(project.marketResearch ? { marketResearch: project.marketResearch } : {}),
+          ...(project.domainResearch ? { domainResearch: project.domainResearch } : {})
+        });
+        project = await projects.saveWebsiteArtifact(project.id, artifact);
+        steps.push({ id: "website-foundation", status: "complete", message: `Website generated for ${artifact.productName}.` });
+        events.publish({
+          projectId: project.id,
+          agent: "website",
+          level: "success",
+          message: "Full orchestration generated the product website."
+        });
+      } else {
+        steps.push({ id: "website-foundation", status: "skipped", message: "Existing website artifact reused." });
+      }
+
+      if (!project.backendArtifact) {
+        const artifact = await backend.plan({
+          projectId: project.id,
+          idea: project.idea,
+          ...(project.marketResearch ? { marketResearch: project.marketResearch } : {}),
+          ...(project.websiteArtifact ? { websiteArtifact: project.websiteArtifact } : {})
+        });
+        project = await projects.saveBackendArtifact(project.id, artifact);
+        steps.push({ id: "backend-foundation", status: "complete", message: `Backend plan created for ${artifact.productName}.` });
+      } else {
+        steps.push({ id: "backend-foundation", status: "skipped", message: "Existing backend artifact reused." });
+      }
+
+      const backendArtifact = project.backendArtifact;
+
+      if (!backendArtifact) {
+        throw new ApiError(409, "Backend artifact is required before Xano provisioning.");
+      }
+
+      if (backendArtifact.mode !== "provisioned") {
+        const actionRequest = toolActionRequestSchema.parse({
+          projectId: project.id,
+          requestedBy: "backend",
+          actionType: "xano.provisionBackend",
+          resource: `${backendArtifact.productName} API`,
+          payload: backendArtifact,
+          reason: `Approve Xano backend provisioning for ${backendArtifact.productName}.`
+        });
+        const decision = agentLatch.evaluate(actionRequest);
+        const projectId = project.id;
+        const existingApproval = (await approvals.list()).find(
+          (approval) =>
+            approval.projectId === projectId &&
+            approval.actionRequest.actionType === "xano.provisionBackend" &&
+            approval.status !== "rejected"
+        );
+
+        if (!existingApproval) {
+          const { approval } = await approvals.create({
+            actionRequest,
+            decision,
+            webOrigin: config.WEB_ORIGIN,
+            tokenSecret: config.APPROVAL_TOKEN_SECRET
+          });
+          createdApprovals.push(approval);
+          project = await projects.markApprovalPending(project.id);
+          steps.push({
+            id: "xano-provisioning",
+            status: "paused",
+            message: "Xano provisioning approval was created. Full orchestration will resume after approval."
+          });
+          events.publish({
+            projectId: project.id,
+            agent: "agentlatch",
+            level: "warning",
+            message: "Full orchestration paused for Xano backend provisioning approval."
+          });
+          response.status(202).json({
+            project,
+            status: "paused_for_approval" satisfies FullLaunchStatus,
+            steps,
+            approvals: createdApprovals,
+            receipts
+          });
+          return;
+        }
+
+        if (existingApproval.status === "pending") {
+          project = await projects.markApprovalPending(project.id);
+          steps.push({
+            id: "xano-provisioning",
+            status: "paused",
+            message: "Waiting for existing Xano provisioning approval."
+          });
+          response.status(202).json({
+            project,
+            status: "paused_for_approval" satisfies FullLaunchStatus,
+            steps,
+            approvals: [existingApproval],
+            receipts
+          });
+          return;
+        }
+
+        if (existingApproval.status !== "approved") {
+          throw new ApiError(409, `Xano provisioning approval is ${existingApproval.status}.`);
+        }
+
+        const plannedArtifact = backendArtifactSchema.parse(existingApproval.actionRequest.payload);
+        const receipt = await secureExecutor.execute({
+          request: existingApproval.actionRequest,
+          approval: existingApproval.decision,
+          operation: async (context) => {
+            const xano = createXanoClient(await context.getSecret("XANO_API_KEY"));
+            const provisioning = await xano.provisionBackend({
+              productName: plannedArtifact.productName,
+              apiGroupName: `${plannedArtifact.productName} API`,
+              tables: plannedArtifact.tables,
+              endpoints: plannedArtifact.endpoints
+            });
+            const provisionedArtifact = backendArtifactSchema.parse({
+              ...plannedArtifact,
+              mode: "provisioned",
+              provisioning,
+              updatedAt: new Date().toISOString()
+            });
+
+            await projects.saveBackendArtifact(projectId, provisionedArtifact);
+
+            return {
+              provisioned: true,
+              productName: provisionedArtifact.productName,
+              workspaceId: provisioning.workspaceId,
+              apiGroup: provisioning.apiGroup,
+              tables: provisioning.tables,
+              endpoints: provisioning.endpoints
+            };
+          }
+        });
+        receipts.push(receipt);
+        project = (await projects.findById(project.id)) ?? project;
+        steps.push({ id: "xano-provisioning", status: "complete", message: "Approved Xano backend provisioning executed." });
+      } else {
+        steps.push({ id: "xano-provisioning", status: "skipped", message: "Existing provisioned backend reused." });
+      }
+
+      if (!project.deploymentRecord || project.deploymentRecord.status !== "healthy") {
+        if (!project.websiteArtifact) {
+          throw new ApiError(409, "Website artifact is required before deployment.");
+        }
+
+        const deployment = await deployments.deployWebsite({
+          projectId: project.id,
+          artifact: project.websiteArtifact,
+          baseUrl: `http://localhost:${config.API_PORT}`
+        });
+        project = await projects.saveDeploymentRecord(project.id, deployment);
+        steps.push({ id: "deployment-system", status: "complete", message: `Deployment healthy at ${deployment.url}.` });
+      } else {
+        steps.push({ id: "deployment-system", status: "skipped", message: "Existing healthy deployment reused." });
+      }
+
+      if (!project.documentArtifact || project.documentArtifact.status !== "generated") {
+        const preparedArtifact = await document.prepare({
+          projectId: project.id,
+          idea: project.idea,
+          ...(project.marketResearch ? { marketResearch: project.marketResearch } : {}),
+          ...(project.domainResearch ? { domainResearch: project.domainResearch } : {}),
+          ...(project.websiteArtifact ? { websiteArtifact: project.websiteArtifact } : {}),
+          ...(project.backendArtifact ? { backendArtifact: project.backendArtifact } : {}),
+          ...(project.deploymentRecord ? { deploymentRecord: project.deploymentRecord } : {})
+        });
+
+        if (!preparedArtifact.validation.passed) {
+          throw new ApiError(409, "Prepared documents failed validation.");
+        }
+
+        const actionRequest = toolActionRequestSchema.parse({
+          projectId: project.id,
+          requestedBy: "document",
+          actionType: "foxit.generateDocument",
+          resource: `${preparedArtifact.productName} founder documents`,
+          payload: preparedArtifact,
+          reason: `Generate founder business PDF documents for ${preparedArtifact.productName}.`
+        });
+        const decision = agentLatch.evaluate(actionRequest);
+        const receipt = await secureExecutor.execute({
+          request: actionRequest,
+          approval: decision,
+          operation: async (context) => {
+            const foxit = createFoxitClient({
+              ...(config.FOXIT_API_KEY ? { apiKey: await context.getSecret("FOXIT_API_KEY") } : {}),
+              ...(config.FOXIT_CLIENT_SECRET ? { clientSecret: await context.getSecret("FOXIT_CLIENT_SECRET") } : {})
+            });
+            const generatedDocuments = [];
+
+            for (const sourceDocument of preparedArtifact.documents) {
+              const generated = await foxit.generateDocument({
+                title: sourceDocument.title,
+                fileName: sourceDocument.fileName,
+                markdown: sourceDocument.markdown,
+                templateKey: sourceDocument.type,
+                data: {
+                  projectId: preparedArtifact.projectId,
+                  productName: preparedArtifact.productName,
+                  documentType: sourceDocument.type
+                }
+              });
+              const storedDownloadUrl = generated.base64FileString
+                ? await storeGeneratedPdf({
+                    documentsRoot,
+                    projectId: preparedArtifact.projectId,
+                    fileName: sourceDocument.fileName,
+                    base64FileString: generated.base64FileString,
+                    baseUrl: `http://localhost:${config.API_PORT}`
+                  })
+                : generated.downloadUrl;
+              generatedDocuments.push({
+                sourceDocumentId: sourceDocument.id,
+                foxitDocumentId: generated.id,
+                ...(storedDownloadUrl ? { downloadUrl: storedDownloadUrl } : {}),
+                size: generated.size ?? Buffer.byteLength(generated.base64FileString ?? "", "base64")
+              });
+            }
+
+            return {
+              generated: true,
+              productName: preparedArtifact.productName,
+              documents: generatedDocuments
+            };
+          }
+        });
+        receipts.push(receipt);
+        const generationResult = foxitGeneratedDocumentsResultSchema.parse(receipt.result);
+        const generatedArtifact = documentArtifactSchema.parse({
+          ...preparedArtifact,
+          status: "generated",
+          receiptId: receipt.id,
+          documents: preparedArtifact.documents.map((sourceDocument) => {
+            const generated = generationResult.documents.find((item) => item.sourceDocumentId === sourceDocument.id);
+            return {
+              ...sourceDocument,
+              ...(generated ? { foxitDocumentId: generated.foxitDocumentId } : {}),
+              ...(generated?.downloadUrl ? { downloadUrl: generated.downloadUrl } : {}),
+              ...(generated?.size !== undefined ? { size: generated.size } : {})
+            };
+          }),
+          updatedAt: new Date().toISOString()
+        });
+        project = await projects.saveDocumentArtifact(project.id, generatedArtifact);
+        steps.push({ id: "document-foundation", status: "complete", message: "Founder documents generated through Foxit." });
+      } else {
+        steps.push({ id: "document-foundation", status: "skipped", message: "Existing generated documents reused." });
+      }
+
+      if (!project.foxitESignPackage) {
+        const generatedDocuments = project.documentArtifact?.documents.filter((sourceDocument) => sourceDocument.downloadUrl) ?? [];
+
+        if (generatedDocuments.length === 0 || !project.documentArtifact) {
+          throw new ApiError(409, "Generated PDF download URLs are required before eSign preparation.");
+        }
+
+        const now = new Date().toISOString();
+        const esignPackage = foxitESignPackageSchema.parse({
+          id: randomUUID(),
+          projectId: project.id,
+          productName: project.documentArtifact.productName,
+          status: "human_action_required",
+          humanOnly: true,
+          documents: generatedDocuments.map((sourceDocument) => ({
+            documentId: sourceDocument.id,
+            title: sourceDocument.title,
+            fileName: sourceDocument.fileName,
+            downloadUrl: sourceDocument.downloadUrl
+          })),
+          signer: {
+            role: "Founder",
+            permission: "FILL_FIELDS_AND_SIGN"
+          },
+          auditNote:
+            "AI prepared Foxit eSign materials only. Sending, signing, and signer identity confirmation remain human-only.",
+          preparedAt: now,
+          updatedAt: now
+        });
+        project = await projects.saveFoxitESignPackage(project.id, esignPackage);
+        steps.push({ id: "esign-preparation", status: "complete", message: "Foxit eSign package prepared for human action." });
+      } else {
+        steps.push({ id: "esign-preparation", status: "skipped", message: "Existing eSign package reused." });
+      }
+
+      events.publish({
+        projectId: project.id,
+        agent: "orchestrator",
+        level: "success",
+        message: "Full multi-agent orchestration reached the human eSign boundary."
+      });
+
+      response.json({
+        project,
+        status: "human_action_required" satisfies FullLaunchStatus,
+        steps,
+        approvals: createdApprovals,
+        receipts
+      });
+    } catch (error) {
+      if (
+        error instanceof SerpApiConfigurationError ||
+        error instanceof NameComConfigurationError ||
+        error instanceof XanoConfigurationError ||
+        error instanceof FoxitConfigurationError ||
+        (error instanceof Error && error.message.includes("FOXIT_"))
+      ) {
+        next(new ApiError(424, error.message));
+        return;
+      }
+
+      next(mapApprovalError(error));
     }
   });
 

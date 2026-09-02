@@ -54,6 +54,7 @@ import {
   requestBackendProvisioningApproval,
   requestDomainRegistrationApproval,
   runDomainResearch,
+  runFullOrchestration,
   runMarketResearch
 } from "./api.js";
 
@@ -92,6 +93,7 @@ export function App() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isGeneratingDocuments, setIsGeneratingDocuments] = useState(false);
   const [isPreparingESign, setIsPreparingESign] = useState(false);
+  const [isRunningFullOrchestration, setIsRunningFullOrchestration] = useState(false);
   const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,6 +158,35 @@ export function App() {
       setError(requestError instanceof Error ? requestError.message : "Unable to run market research.");
     } finally {
       setIsResearching(false);
+    }
+  }
+
+  async function handleRunFullOrchestration(projectId: string) {
+    setIsRunningFullOrchestration(true);
+    setError(null);
+
+    try {
+      const response = await runFullOrchestration(projectId);
+      setProjects((current) => current.map((item) => (item.id === response.project.id ? response.project : item)));
+      setApprovals((current) => [
+        ...response.approvals,
+        ...current.filter((approval) => !response.approvals.some((nextApproval) => nextApproval.id === approval.id))
+      ]);
+      setSecureReceipts((current) => [
+        ...response.receipts,
+        ...current.filter((receipt) => !response.receipts.some((nextReceipt) => nextReceipt.id === receipt.id))
+      ]);
+      setSelectedProjectId(response.project.id);
+
+      if (response.status === "paused_for_approval") {
+        setError("Full launch paused for backend approval.");
+      } else if (response.status === "human_action_required") {
+        setError("Full launch reached the human eSign boundary.");
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to run full orchestration.");
+    } finally {
+      setIsRunningFullOrchestration(false);
     }
   }
 
@@ -461,6 +492,15 @@ export function App() {
             {selectedProject ? (
               <>
                 <div className="workspace-actions">
+                  <button
+                    className="primary-button compact"
+                    disabled={isRunningFullOrchestration}
+                    onClick={() => void handleRunFullOrchestration(selectedProject.id)}
+                    type="button"
+                  >
+                    <Bot size={18} aria-hidden="true" />
+                    {isRunningFullOrchestration ? "Running..." : "Run Full Launch"}
+                  </button>
                   <button
                     className="secondary-button"
                     disabled={isResearching}

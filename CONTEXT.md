@@ -9,7 +9,7 @@ LaunchForge is an autonomous AI startup-launching platform. AgentLatch is its au
 Phase 11 - Deployment System is complete and approved.
 Phase 12 - Foxit + Document Agent is complete and approved.
 Phase 13 - Foxit eSign + Human-Only Boundary is complete and approved.
-Current phase: Phase 14 - Full Multi-Agent Orchestration.
+Current phase: Phase 14 - Full Multi-Agent Orchestration is implemented as a checkpoint and paused for human Xano approval in live local verification.
 
 Phase 0 - Project Analysis & Master Design is complete and approved.
 Phase 1 - Application Foundation is complete and approved.
@@ -201,6 +201,15 @@ Phase 13 - Foxit eSign + Human-Only Boundary is complete and approved.
   - Corrected eSign integration to Foxit's current Fusion eSign API using `client_id` and `client_secret` request headers against `https://na1.fusion.foxit.com/esign/api/v1/...`.
   - Created real Foxit draft envelope `35688804` for project `dc4e763d-a394-4687-be51-786c006fbf17`, returned an embedded human send/sign URL, completed the human signing flow, and verified Foxit read-back status `EXECUTED`.
   - Verified the AI send path still returns HTTP 409 with `HUMAN_ONLY`.
+- Added Phase 14 Full Multi-Agent Orchestration checkpoint:
+  - Added `POST /api/projects/:projectId/orchestrate/full`.
+  - The route runs market research, domain research, website generation, backend planning, deployment, Foxit document generation, and eSign preparation in dependency order.
+  - The route is idempotent: existing artifacts are reused and approved/provisioned backend state resumes downstream work.
+  - Xano provisioning remains protected: the full run creates or waits on an approval and does not execute provisioning until the approval is granted.
+  - Domain registration remains outside the automatic full run because production purchase requires exact user confirmation.
+  - Added dashboard `Run Full Launch` control.
+  - Automated tests verify pause, resume, secret redaction, provisioned backend, deployment, documents, and eSign human boundary.
+  - Live local checkpoint project `1d2184fd-5ba4-4661-ae80-2d27abe0bff7` paused at approval `7b09a5ac-e4c7-4492-a7d7-589b92762b9e`.
 
 ## Architecture Summary
 
@@ -220,6 +229,7 @@ Current architecture:
 - Deployment System is implemented with local static publishing, health checks, static serving, and dashboard access links.
 - Document Agent is implemented and live verified with Foxit DocGen PDF generation through SecureExecutor-gated sponsor execution.
 - Foxit eSign preparation, real Fusion draft envelope creation, embedded human send/sign handoff, read-only status refresh, and human-only AI send blocking are implemented and live verified.
+- Full multi-agent orchestration checkpoint is implemented with pause/resume gates for protected infrastructure changes.
 - Audit trail with redaction and exact action tracking is planned.
 
 ## Decisions
@@ -267,6 +277,7 @@ Current architecture:
 - `POST /api/projects/:projectId/esign/envelope`
 - `POST /api/projects/:projectId/esign/status/refresh`
 - `POST /api/projects/:projectId/esign/send-attempt`
+- `POST /api/projects/:projectId/orchestrate/full`
 - `npm run start -w @launchforge/api`
 - Live `POST /api/projects/:projectId/research/market`
 - Live `POST /api/projects/:projectId/research/domains`
@@ -313,6 +324,8 @@ Current architecture:
 - Phase 13 real Foxit Fusion eSign run: passed with envelope `35688804`, human send/sign completed, Foxit status `EXECUTED`, and local SecureExecutor receipts reporting `evidenceVerified: false`.
 - Phase 13 AI-send prevention: passed with HTTP 409, AgentLatch `HUMAN_ONLY`, and `executable: false`.
 - Phase 13 automated tests: passing with eSign preparation, human-only send blocking, real-envelope route mocking, manual state recording, and mocked status refresh.
+- Phase 14 automated tests: passing with full-orchestration pause and resume coverage.
+- Phase 14 live checkpoint: project `1d2184fd-5ba4-4661-ae80-2d27abe0bff7` paused for Xano approval `7b09a5ac-e4c7-4492-a7d7-589b92762b9e`.
 
 ## Environment Assumptions
 
@@ -328,8 +341,8 @@ Current architecture:
 
 Production domain registration still requires explicit user confirmation for the exact real domain.
 
-No Phase 13 blocker remains.
+Phase 14 live completion requires the human to approve Xano provisioning request `7b09a5ac-e4c7-4492-a7d7-589b92762b9e`.
 
 ## Next Exact Task
 
-Begin Phase 14 by connecting the completed agent and sponsor capabilities into a full multi-agent orchestration run.
+Approve Xano provisioning for `OnboardingPilot API`, then rerun `POST /api/projects/1d2184fd-5ba4-4661-ae80-2d27abe0bff7/orchestrate/full` to verify the live resume path through deployment, Foxit documents, and eSign preparation.

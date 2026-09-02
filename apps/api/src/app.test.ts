@@ -392,6 +392,85 @@ describe("LaunchForge API foundation", () => {
     });
   });
 
+  it("runs full orchestration until the backend approval boundary", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/orchestrate/full`)
+      .expect(202);
+
+    expect(response.body.status).toBe("paused_for_approval");
+    expect(response.body.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "market-research", status: "complete" }),
+        expect.objectContaining({ id: "domain-research", status: "complete" }),
+        expect.objectContaining({ id: "website-foundation", status: "complete" }),
+        expect.objectContaining({ id: "backend-foundation", status: "complete" }),
+        expect.objectContaining({ id: "xano-provisioning", status: "paused" })
+      ])
+    );
+    expect(response.body.approvals).toHaveLength(1);
+    expect(response.body.approvals[0]).toMatchObject({
+      actionRequest: {
+        actionType: "xano.provisionBackend"
+      },
+      status: "pending"
+    });
+    expect(response.body.project.status).toBe("waiting_for_approval");
+    expect(response.body.project.websiteArtifact.productName).toBe("EvidenceForge");
+    expect(response.body.project.backendArtifact.mode).toBe("planned");
+    expect(JSON.stringify(response.body)).not.toContain("test-secret");
+  });
+
+  it("resumes full orchestration after backend approval and stops at human eSign", async () => {
+    const createResponse = await request(app)
+      .post("/api/projects")
+      .send({ idea: "Launch an AI contract review assistant for small law firms." })
+      .expect(201);
+
+    const pausedResponse = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/orchestrate/full`)
+      .expect(202);
+    const approval = pausedResponse.body.approvals[0];
+    const token = new URL(approval.approvalUrl).searchParams.get("token");
+
+    await request(app)
+      .post(`/api/approvals/${approval.id}/approve`)
+      .send({ token, decidedBy: "founder@example.com" })
+      .expect(200);
+
+    const response = await request(app)
+      .post(`/api/projects/${createResponse.body.project.id}/orchestrate/full`)
+      .expect(200);
+
+    expect(response.body.status).toBe("human_action_required");
+    expect(response.body.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "xano-provisioning", status: "complete" }),
+        expect.objectContaining({ id: "deployment-system", status: "complete" }),
+        expect.objectContaining({ id: "document-foundation", status: "complete" }),
+        expect.objectContaining({ id: "esign-preparation", status: "complete" })
+      ])
+    );
+    expect(response.body.receipts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ actionType: "xano.provisionBackend", evidenceVerified: false }),
+        expect.objectContaining({ actionType: "foxit.generateDocument", evidenceVerified: false })
+      ])
+    );
+    expect(response.body.project.backendArtifact.mode).toBe("provisioned");
+    expect(response.body.project.deploymentRecord.status).toBe("healthy");
+    expect(response.body.project.documentArtifact.status).toBe("generated");
+    expect(response.body.project.foxitESignPackage).toMatchObject({
+      status: "human_action_required",
+      humanOnly: true
+    });
+    expect(JSON.stringify(response.body)).not.toContain("test-secret");
+  });
+
   it("rejects deployment without a website artifact", async () => {
     const createResponse = await request(app)
       .post("/api/projects")

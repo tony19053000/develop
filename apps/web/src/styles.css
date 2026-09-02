@@ -202,6 +202,12 @@ textarea:focus {
   opacity: 0.7;
 }
 
+.primary-button.compact {
+  min-height: 40px;
+  min-width: 152px;
+  padding: 0 14px;
+}
+
 .secondary-button {
   display: inline-flex;
   align-items: center;

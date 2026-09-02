@@ -20,7 +20,7 @@ Only completed and reviewer-approved phase weights count toward completion.
 | 11 | Deployment System | 3 | 100% complete |
 | 12 | Foxit + Document Agent | 4 | 100% complete |
 | 13 | Foxit eSign + Human-Only Boundary | 4 | 100% complete |
-| 14 | Full Multi-Agent Orchestration | 6 | 0% pending |
+| 14 | Full Multi-Agent Orchestration | 6 | implementation checkpoint; live run paused for human Xano approval |
 | 15 | Audit + Security Center | 5 | 0% pending |
 | 16 | Final UI / UX | 3 | 0% pending |
 | 17 | Full Security & Failure Testing | 4 | 0% pending |
@@ -29,11 +29,11 @@ Only completed and reviewer-approved phase weights count toward completion.
 
 ## Current Phase
 
-Phase 13 - Foxit eSign + Human-Only Boundary is complete and approved.
+Phase 14 - Full Multi-Agent Orchestration is implemented as a checkpoint.
 
 ## Current Task
 
-Begin Phase 14 - Full Multi-Agent Orchestration.
+Approve the pending `OnboardingPilot API` Xano provisioning request, then resume the full orchestration route to verify deployment, Foxit documents, and eSign preparation in one live run.
 
 ## Baseline
 
@@ -54,11 +54,12 @@ Begin Phase 14 - Full Multi-Agent Orchestration.
 - Phase 11 implementation adds local static deployment records, generated website file publishing, API static serving, deployment health checks, dashboard deployment controls, and deployment documentation.
 - Phase 12 implementation adds typed document artifacts, a credential-free Document Agent, a real Foxit DocGen HTTP adapter, SecureExecutor-gated Foxit generation, dashboard document controls, local PDF storage/serving, mocked protected-path tests, and real Foxit verification.
 - Phase 13 adds typed Foxit eSign package state, human-only signature routing, AI send prevention, real Fusion eSign draft envelope creation, read-only status refresh, embedded human send/sign handoff, and dashboard eSign controls.
+- Phase 14 checkpoint adds `POST /api/projects/:projectId/orchestrate/full`, ordered multi-agent handoffs, idempotent reuse/resume behavior, automatic Xano approval creation, protected resume after approval, and a dashboard `Run Full Launch` control.
 
 ## Test Status
 
 - Typecheck: passed.
-- Tests: passed, 81 tests.
+- Tests: passed, 85 tests.
 - Lint: passed.
 - Build: passed.
 - npm audit: passed, 0 vulnerabilities.
@@ -87,6 +88,8 @@ Begin Phase 14 - Full Multi-Agent Orchestration.
 - Phase 13 real Fusion eSign verification: passed with existing `FOXIT_CLIENT_ID` / `FOXIT_CLIENT_SECRET` against `https://na1.fusion.foxit.com/esign/api/v1/`; created real draft envelope `35688804`, returned an embedded human send/sign URL, human sent the envelope from Foxit, signer completed required fields, and Foxit read-back reported `EXECUTED`.
 - Phase 13 AI-send prevention verification: `POST /api/projects/:projectId/esign/send-attempt` returned HTTP 409 with AgentLatch `HUMAN_ONLY`, `executable: false`, after the real eSign workflow was available.
 - Phase 13 local SecureExecutor receipts correctly reported `evidenceVerified: false` for Foxit eSign create/status operations.
+- Phase 14 automated tests: full orchestration pauses at Xano approval, avoids secret exposure, resumes after approved Xano provisioning, deploys the generated website, generates Foxit documents, and stops at the human eSign boundary.
+- Phase 14 live local checkpoint: project `1d2184fd-5ba4-4661-ae80-2d27abe0bff7` ran through market research, domain research, website generation, and backend planning, then paused with HTTP 202 for pending Xano approval `7b09a5ac-e4c7-4492-a7d7-589b92762b9e` on `OnboardingPilot API`.
 
 ## Review Status
 
@@ -114,6 +117,8 @@ Reviewer/Tester result for Phase 12: APPROVED after real Foxit DocGen execution,
 
 Reviewer/Tester result for Phase 13: APPROVED after real Foxit Fusion eSign create, human send/sign, status read-back, and AI-send blocking were verified.
 
+Reviewer/Tester result for Phase 14: PENDING live resume after human Xano provisioning approval.
+
 ## GitHub Status
 
 - Remote: `https://github.com/tony19053000/develop.git`
@@ -140,7 +145,8 @@ Reviewer/Tester result for Phase 13: APPROVED after real Foxit Fusion eSign crea
 - Phase 12 real Foxit completion commit: `a545c6d`, pushed to `origin/main`.
 - Phase 13 Foxit eSign human-only checkpoint commit: `368cbf2`, pushed to `origin/main`.
 - Phase 13 current Fusion eSign correction commit: `cbc23d2`, pushed to `origin/main`.
-- Phase 13 real Fusion eSign completion commit: included in this change set.
+- Phase 13 real Fusion eSign completion commit: `e35cdc5`, pushed to `origin/main`.
+- Phase 14 full orchestration checkpoint commit: pending.
 
 ## Sponsor Integrations
 
@@ -165,4 +171,4 @@ Partially demo-ready. A user can run the local app, create a launch project, vie
 
 Production domain registration still requires an explicit user confirmation for the exact real domain before any production purchase.
 
-No current Phase 13 blocker remains. Phase 14 should connect the completed agent/integration capabilities into a full multi-agent orchestration run.
+Phase 14 live completion is waiting on human approval for Xano provisioning request `7b09a5ac-e4c7-4492-a7d7-589b92762b9e` on `OnboardingPilot API`.

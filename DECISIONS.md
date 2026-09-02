@@ -356,3 +356,17 @@ Reason: This gives the founder a prepared package and completion-state tracking 
 Consequences: Phase 13 is complete after a real Fusion eSign envelope `35688804` was created with the existing Foxit Developer Portal application credentials, sent by the human in Foxit, signed by the human signer, and verified through Foxit status read-back as `EXECUTED`. Local SecureExecutor eSign receipts still report `evidenceVerified: false`; `evidenceVerified: true` remains reserved for genuine Google Confidential Space attestation. Separate `FOXIT_ESIGN_CLIENT_ID` / `FOXIT_ESIGN_CLIENT_SECRET` values are reserved only for an intentional switch to Foxit's legacy eSign credential model.
 
 Reversibility: Medium.
+
+## 2026-09-02 - Resumable Full Orchestration Gate
+
+Decision: Implement Phase 14 full orchestration as a resumable controller that pauses at protected approval gates.
+
+Context: LaunchForge can now run market research, domain research, website generation, backend planning, deployment, Foxit document generation, and eSign preparation. Xano provisioning is an infrastructure-changing sponsor action and must not be executed until an approval converts the AgentLatch decision into an executable authorization.
+
+Chosen Approach: Add `POST /api/projects/:projectId/orchestrate/full` and a dashboard `Run Full Launch` action. The route runs completed agent capabilities in dependency order, reuses existing artifacts, creates or waits for a Xano provisioning approval, resumes after that approval is granted, and stops at the human eSign boundary.
+
+Reason: This creates the end-to-end product spine while preserving exact-action approval, secret isolation, and human-only signing.
+
+Consequences: Phase 14 has an implementation checkpoint with automated pause/resume coverage. Live local verification reached Xano approval `7b09a5ac-e4c7-4492-a7d7-589b92762b9e`; final Phase 14 approval requires human approval and a resumed live run.
+
+Reversibility: Medium.

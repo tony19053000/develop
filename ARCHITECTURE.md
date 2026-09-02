@@ -23,6 +23,7 @@
 - Deployment system: IMPLEMENTED.
 - Foxit + Document Agent: IMPLEMENTED.
 - Foxit eSign Boundary: IMPLEMENTED.
+- Full multi-agent orchestration: CHECKPOINT.
 
 ## Proposed System Shape
 
@@ -40,6 +41,7 @@ LaunchForge uses a full-stack TypeScript architecture:
 - Deployment System that publishes generated website artifacts to local static hosting, records health checks, and exposes served deployment URLs.
 - Document Agent that prepares founder documents and routes sponsor PDF generation through AgentLatch and SecureExecutor.
 - Foxit eSign package preparation, real draft envelope creation, embedded human send/sign handoff, read-only status refresh, and AI send/sign blocking.
+- Full orchestration controller that runs completed agent capabilities in dependency order, reuses existing artifacts, and pauses/resumes around protected approvals.
 
 ## Trust Boundaries
 
@@ -265,3 +267,21 @@ DocumentArtifact PDFs
   -> blocked before SecureExecutor / Foxit send
   -> read-only status refresh reports Foxit EXECUTED after human completion
 ```
+
+### Full Multi-Agent Orchestration
+
+```text
+Run Full Launch
+  -> Market & Brand
+  -> Domain Research
+  -> Website Generation
+  -> Backend Planning
+  -> AgentLatch Xano Approval Gate
+  -> SecureExecutor Xano Provisioning after approval
+  -> Deployment
+  -> Foxit Document Generation
+  -> Foxit eSign Preparation
+  -> Human eSign Boundary
+```
+
+The full orchestration route is resumable. It reuses existing artifacts, creates a pending Xano approval when infrastructure provisioning is needed, and continues downstream only after the approval becomes executable.
