@@ -29,6 +29,8 @@ LaunchForge will be built as a full-stack application with:
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design.
 
+See [CLAUDE.md](./CLAUDE.md) for the Claude agent handoff guide and command reference.
+
 See [docs/SECURE_EXECUTION.md](./docs/SECURE_EXECUTION.md) for the selected TEE path and local-vs-hardware-backed boundary.
 
 ## Development Flow
